@@ -80,7 +80,66 @@ describe("Ships", function () {
       const referralCount = await ships.read.referralCount([
         user2.account.address,
       ]);
-      expect(referralCount).to.equal(1n);
+      expect(referralCount).to.equal(parseEther("1"));
+    });
+
+    it("Should mint ten ships with correct payment", async function () {
+      const { ships, user1, user2, publicClient } = await loadFixture(
+        deployShipsFixture
+      );
+
+      const tenPackPrice = await ships.read.tenPackPrice();
+
+      const tx = await ships.write.mintTenPack(
+        [user1.account.address, user2.account.address],
+        { value: tenPackPrice }
+      );
+
+      await publicClient.waitForTransactionReceipt({ hash: tx });
+
+      const shipCount = await ships.read.shipCount();
+      expect(shipCount).to.equal(10n);
+
+      // Check all ships are owned by user1
+      for (let i = 1; i <= 10; i++) {
+        const ship = await ships.read.ships([BigInt(i)]);
+        expect(ship[10].toLowerCase()).to.equal(
+          user1.account.address.toLowerCase()
+        );
+      }
+
+      // Check referral count increased by 10
+      const referralCount = await ships.read.referralCount([
+        user2.account.address,
+      ]);
+      expect(referralCount).to.equal(parseEther("8"));
+    });
+
+    it("Should revert ten pack with invalid payment", async function () {
+      const { ships, user1, user2 } = await loadFixture(deployShipsFixture);
+
+      const tenPackPrice = await ships.read.tenPackPrice();
+      const invalidPayment = tenPackPrice - parseEther("1"); // Pay 1 Flow less than required
+
+      await expect(
+        ships.write.mintTenPack(
+          [user1.account.address, user2.account.address],
+          { value: invalidPayment }
+        )
+      ).to.be.rejectedWith("InvalidPayment");
+    });
+
+    it("Should revert ten pack with zero address referral", async function () {
+      const { ships, user1 } = await loadFixture(deployShipsFixture);
+
+      const tenPackPrice = await ships.read.tenPackPrice();
+
+      await expect(
+        ships.write.mintTenPack(
+          [user1.account.address, "0x0000000000000000000000000000000000000000"],
+          { value: tenPackPrice }
+        )
+      ).to.be.rejectedWith("InvalidReferral");
     });
 
     it("Should revert with invalid payment", async function () {
@@ -164,8 +223,32 @@ describe("Ships", function () {
         address: user2.account.address,
       });
 
-      // Check that referral received 10% (first tier)
+      // Check that referral received 1% (first tier)
       expect(finalBalance - initialBalance).to.equal(parseEther("0.01"));
+    });
+
+    it("Should process referral payment correctly for ten pack", async function () {
+      const { ships, user1, user2, publicClient } = await loadFixture(
+        deployShipsFixture
+      );
+
+      const tenPackPrice = await ships.read.tenPackPrice();
+      const initialBalance = await publicClient.getBalance({
+        address: user2.account.address,
+      });
+
+      await ships.write.mintTenPack(
+        [user1.account.address, user2.account.address],
+        { value: tenPackPrice }
+      );
+
+      const finalBalance = await publicClient.getBalance({
+        address: user2.account.address,
+      });
+
+      // Check that referral received 1% of ten pack price (first tier)
+      // For 8 Flow, 1% is 0.08 Flow
+      expect(finalBalance - initialBalance).to.equal(parseEther("0.08"));
     });
 
     it("Should update referral count correctly", async function () {
@@ -179,7 +262,7 @@ describe("Ships", function () {
       const referralCount = await ships.read.referralCount([
         user2.account.address,
       ]);
-      expect(referralCount).to.equal(1n);
+      expect(referralCount).to.equal(parseEther("1"));
     });
   });
 });

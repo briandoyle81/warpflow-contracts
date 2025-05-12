@@ -28,7 +28,14 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     mapping(address => uint) public referralCount;
 
     uint[] public referralPercentages = [0, 10, 20, 35, 50];
-    uint[] public referralStages = [100, 1000, 10000, 50000, 100000];
+    // Amount of Flow sold to reach each tier
+    uint[] public referralStages = [
+        100 ether,
+        1000 ether,
+        10000 ether,
+        50000 ether,
+        100000 ether
+    ];
 
     error InvalidPayment();
     error InvalidReferral();
@@ -105,14 +112,34 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
             revert InvalidReferral();
         }
 
-        _mintShip(_to, _referral);
+        _mintShip(_to);
+        _processReferral(_referral, shipPrice);
+    }
+
+    function mintTenPack(
+        address _to,
+        address _referral
+    ) public payable nonReentrant {
+        if (msg.value != tenPackPrice) {
+            revert InvalidPayment();
+        }
+
+        if (_referral == address(0)) {
+            revert InvalidReferral();
+        }
+
+        for (uint i = 0; i < 10; i++) {
+            _mintShip(_to);
+        }
+
+        _processReferral(_referral, tenPackPrice);
     }
 
     /**
      * @dev INTERNAL
      */
 
-    function _mintShip(address _to, address _referral) internal {
+    function _mintShip(address _to) internal {
         if (paused) {
             revert MintPaused();
         }
@@ -125,11 +152,10 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         newShip.traits.serialNumber = randomManager.requestRandomness();
 
         _safeMint(_to, shipCount);
-        _processReferral(_referral, shipPrice);
     }
 
     function _processReferral(address _referrer, uint _amount) internal {
-        referralCount[_referrer]++;
+        referralCount[_referrer] += _amount;
 
         uint referralPercentage = 1; // For testing, maybe leave and see what happens
 
@@ -191,5 +217,12 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
     function setPaused(bool _paused) public onlyOwner {
         paused = _paused;
+    }
+
+    function withdraw() public onlyOwner {
+        (bool success, ) = payable(owner()).call{value: address(this).balance}(
+            ""
+        );
+        require(success, "Withdrawal failed");
     }
 }

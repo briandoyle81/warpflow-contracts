@@ -99,6 +99,7 @@ struct Ship {
     uint16 costsVersion;
     uint16 cost;
     bool shiny;
+    bool constructed;
     uint timestampDestroyed;
     address owner;
 }

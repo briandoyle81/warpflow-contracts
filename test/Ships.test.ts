@@ -43,8 +43,8 @@ describe("Ships", function () {
     it("Should set the right owner", async function () {
       const { ships, owner } = await loadFixture(deployShipsFixture);
       const contractOwner = await ships.read.owner();
-      expect(contractOwner.toLowerCase()).to.equal(
-        owner.account.address.toLowerCase()
+      expect(contractOwner.toString().toLocaleLowerCase()).to.equal(
+        owner.account.address.toLocaleLowerCase()
       );
     });
 
@@ -72,9 +72,9 @@ describe("Ships", function () {
       expect(shipCount).to.equal(1n);
 
       const ship = await ships.read.ships([1n]);
-      expect(ship[10].toLowerCase()).to.equal(
-        user1.account.address.toLowerCase()
-      ); // owner is at index 10 in the Ship struct
+      expect(ship[11].toString().toLocaleLowerCase()).to.equal(
+        user1.account.address.toLocaleLowerCase()
+      ); // owner is at index 11 in the Ship struct
 
       // Check referral count increased
       const referralCount = await ships.read.referralCount([
@@ -103,8 +103,8 @@ describe("Ships", function () {
       // Check all ships are owned by user1
       for (let i = 1; i <= 10; i++) {
         const ship = await ships.read.ships([BigInt(i)]);
-        expect(ship[10].toLowerCase()).to.equal(
-          user1.account.address.toLowerCase()
+        expect(ship[11].toLocaleLowerCase()).to.equal(
+          user1.account.address.toLocaleLowerCase()
         );
       }
 
@@ -178,8 +178,8 @@ describe("Ships", function () {
 
       await ships.write.setGameAddress([user1.account.address]);
       const gameAddress = await ships.read.gameAddress();
-      expect(gameAddress.toLowerCase()).to.equal(
-        user1.account.address.toLowerCase()
+      expect(gameAddress.toString().toLocaleLowerCase()).to.equal(
+        user1.account.address.toLocaleLowerCase()
       );
     });
 
@@ -263,6 +263,99 @@ describe("Ships", function () {
         user2.account.address,
       ]);
       expect(referralCount).to.equal(parseEther("1"));
+    });
+  });
+
+  describe("Ship Construction", function () {
+    it("Should allow owner to construct their ship", async function () {
+      const { ships, user1, user2, publicClient } = await loadFixture(
+        deployShipsFixture
+      );
+
+      // Mint a ship first
+      await ships.write.mintShip(
+        [user1.account.address, user2.account.address],
+        { value: parseEther("1") }
+      );
+
+      // Construct the ship
+      await ships.write.constructShip([1n], {
+        account: user1.account,
+      });
+
+      // Get the ship data
+      const ship = await ships.read.ships([1n]);
+
+      console.log(ship);
+
+      // Verify construction
+      expect(ship[9]).to.be.true; // constructed flag
+      expect(ship[0]).to.equal("Mock Ship"); // name from mock contract
+      expect(ship[6]).to.equal(1); // costsVersion should be set
+      expect(ship[7]).to.be.greaterThan(0); // cost should be calculated
+    });
+
+    it("Should not allow non-owner to construct ship", async function () {
+      const { ships, user1, user2 } = await loadFixture(deployShipsFixture);
+
+      // Mint a ship first
+      await ships.write.mintShip(
+        [user1.account.address, user2.account.address],
+        { value: parseEther("1") }
+      );
+
+      // Try to construct as non-owner
+      await expect(
+        ships.write.constructShip([1n], {
+          account: user2.account,
+        })
+      ).to.be.rejectedWith("NotYourShip");
+    });
+
+    it("Should not allow constructing an already constructed ship", async function () {
+      const { ships, user1, user2 } = await loadFixture(deployShipsFixture);
+
+      // Mint a ship first
+      await ships.write.mintShip(
+        [user1.account.address, user2.account.address],
+        { value: parseEther("1") }
+      );
+
+      // Construct the ship
+      await ships.write.constructShip([1n], {
+        account: user1.account,
+      });
+
+      // Try to construct again
+      await expect(
+        ships.write.constructShip([1n], {
+          account: user1.account,
+        })
+      ).to.be.rejectedWith("ShipConstructed");
+    });
+
+    it("Should set ship traits and equipment after construction", async function () {
+      const { ships, user1, user2 } = await loadFixture(deployShipsFixture);
+
+      // Mint a ship first
+      await ships.write.mintShip(
+        [user1.account.address, user2.account.address],
+        { value: parseEther("1") }
+      );
+
+      // Construct the ship
+      await ships.write.constructShip([1n], {
+        account: user1.account,
+      });
+
+      // Get the ship data
+      const ship = await ships.read.ships([1n]);
+
+      // Verify traits and equipment are set
+      const traits = ship[3]; // traits struct
+      const equipment = ship[2]; // equipment struct
+
+      // TODO
     });
   });
 });

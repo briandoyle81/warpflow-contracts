@@ -49,6 +49,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     error BadTeamCost();
     error MintPaused();
     error InvalidRenderer();
+    error ShipConstructed(uint);
 
     address public gameAddress;
     address public lobbyAddress;
@@ -64,6 +65,9 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     IOnchainRandomShipNames public shipNames;
     IRenderer public renderer;
     IRandomManager public randomManager;
+
+    uint64 randomSeed = 0;
+    uint8 numberOfVariants = 4;
 
     // Only Owner TODO
     // Withdrawal
@@ -133,6 +137,186 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         }
 
         _processReferral(_referral, tenPackPrice);
+    }
+
+    function constructShip(uint _id) public {
+        Ship storage newShip = ships[_id];
+
+        if (newShip.owner != msg.sender) {
+            revert NotYourShip(_id);
+        }
+
+        if (newShip.constructed) {
+            revert ShipConstructed(_id);
+        }
+
+        newShip.constructed = true;
+
+        uint64 randomBase = randomManager.fulfillRandomRequest(
+            newShip.traits.serialNumber
+        );
+
+        newShip.name = shipNames.getRandomShipName(
+            bytes32(uint256(randomBase))
+        );
+
+        newShip.traits.class = Class(
+            uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 4
+        );
+
+        // r g b 1 and 2 values are 0 to 255
+        randomSeed++;
+        newShip.traits.r1 = uint8(
+            uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 256
+        );
+
+        randomSeed++;
+        newShip.traits.g1 = uint8(
+            uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 256
+        );
+
+        randomSeed++;
+        newShip.traits.b1 = uint8(
+            uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 256
+        );
+
+        randomSeed++;
+        newShip.traits.r2 = uint8(
+            uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 256
+        );
+
+        randomSeed++;
+        newShip.traits.g2 = uint8(
+            uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 256
+        );
+
+        randomSeed++;
+        newShip.traits.b2 = uint8(
+            uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 256
+        );
+
+        randomSeed++;
+        newShip.traits.accuracy = uint8(
+            getTierOfTrait(
+                uint(keccak256(abi.encodePacked(randomSeed, randomBase)))
+            )
+        );
+
+        randomSeed++;
+        newShip.traits.brawling = uint8(
+            getTierOfTrait(
+                uint(keccak256(abi.encodePacked(randomSeed, randomBase)))
+            )
+        );
+
+        randomSeed++;
+        newShip.traits.hull = uint8(
+            getTierOfTrait(
+                uint(keccak256(abi.encodePacked(randomSeed, randomBase)))
+            )
+        );
+
+        randomSeed++;
+        newShip.traits.speed = uint8(
+            getTierOfTrait(
+                uint(keccak256(abi.encodePacked(randomSeed, randomBase)))
+            )
+        );
+
+        randomSeed++;
+        newShip.traits.variant = uint8(
+            uint(keccak256(abi.encodePacked(randomSeed, randomBase))) %
+                numberOfVariants
+        );
+
+        randomSeed++;
+        newShip.equipment.mainWeapon = MainWeapon(
+            uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 4
+        );
+
+        randomSeed++;
+        newShip.equipment.pointDefense = PointDefense(
+            uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 4
+        );
+
+        randomSeed++;
+        newShip.equipment.armor = Armor(
+            uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 4
+        );
+
+        randomSeed++;
+        newShip.equipment.shields = Shields(
+            uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 4
+        );
+
+        randomSeed++;
+        newShip.equipment.special = Special(
+            uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 4
+        );
+
+        // TODO: Should it be adjustable chance for shiny?
+        uint shinyChance = uint(
+            keccak256(abi.encodePacked(randomSeed, randomBase))
+        ) % 100;
+        if (shinyChance == 0) {
+            newShip.shiny = true;
+        }
+
+        // Generated a weighted random number to determine the starting number of enemies destroyed
+        // 75% chance that the number is between 1 and 5
+        // 15% chance that the number is between 6 and 10
+        // 5% chance that the number is between 11 and 50
+        // 4% chance that the number is between 51 and 100
+        // 1% chance that the number is between 101 and 150
+
+        randomSeed++;
+        uint shipsDestroyed = uint(
+            keccak256(abi.encodePacked(randomSeed, randomBase))
+        ) % 100;
+        if (shipsDestroyed < 75) {
+            newShip.shipsDestroyed = uint16(1 + (shipsDestroyed % 5));
+        } else if (shipsDestroyed < 90) {
+            newShip.shipsDestroyed = uint16(6 + (shipsDestroyed % 5));
+        } else if (shipsDestroyed < 95) {
+            newShip.shipsDestroyed = uint16(11 + (shipsDestroyed % 40));
+        } else if (shipsDestroyed < 99) {
+            newShip.shipsDestroyed = uint16(51 + (shipsDestroyed % 50));
+        } else {
+            newShip.shipsDestroyed = uint16(101 + (shipsDestroyed % 50));
+        }
+
+        newShip.costsVersion = costs.version;
+
+        newShip.cost = setCostOfShip(_id);
+    }
+
+    function setCostOfShip(uint _id) public view returns (uint16) {
+        Ship storage ship = ships[_id];
+
+        uint16 unadjustedCost = uint16(
+            costs.baseCost[uint8(ship.traits.class)] +
+                costs.accuracy[uint8(ship.traits.accuracy)] +
+                costs.brawling[uint8(ship.traits.brawling)] +
+                costs.hull[uint8(ship.traits.hull)] +
+                costs.speed[uint8(ship.traits.speed)] +
+                costs.mainWeapon[uint8(ship.equipment.mainWeapon)] +
+                costs.pointDefense[uint8(ship.equipment.pointDefense)] +
+                costs.armor[uint8(ship.equipment.armor)] +
+                costs.shields[uint8(ship.equipment.shields)] +
+                costs.special[uint8(ship.equipment.special)]
+        );
+
+        // TODO: Cap for rank to cost
+        // For now cost is reduced by  0% for rank 1, 10% for rank 2, 20% for rank 3, 30% for rank 4
+        uint16 rank = getRank(ship.shipsDestroyed);
+        uint16 rankCost = (unadjustedCost * rank) / 100;
+        if (rankCost > (unadjustedCost * 30) / 100) {
+            rankCost = (unadjustedCost * 30) / 100;
+        }
+
+        uint16 finalCost = unadjustedCost - rankCost;
+
+        return finalCost;
     }
 
     /**
@@ -224,5 +408,40 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
             ""
         );
         require(success, "Withdrawal failed");
+    }
+
+    function setNumberOfVariants(uint8 _numberOfVariants) public onlyOwner {
+        numberOfVariants = _numberOfVariants;
+    }
+
+    /**
+     * @dev PURE
+     */
+
+    // TODO: Do tiers need to be adjustable?
+    function getTierOfTrait(uint _trait) public pure returns (uint8) {
+        if (_trait < 50) {
+            return 0;
+        } else if (_trait < 80) {
+            return 1;
+        } else {
+            return 2;
+        }
+    }
+
+    function getRank(uint _shipsDestroyed) public pure returns (uint8) {
+        // Rank is the number of digits in the number of ships destroyed
+        return uint8(countDigits(_shipsDestroyed));
+    }
+
+    function countDigits(uint num) public pure returns (uint) {
+        if (num == 0) return 1;
+
+        uint digits = 0;
+        while (num != 0) {
+            digits++;
+            num /= 10;
+        }
+        return digits;
     }
 }

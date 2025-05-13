@@ -286,13 +286,49 @@ describe("Ships", function () {
       // Get the ship data
       const ship = await ships.read.ships([1n]);
 
-      console.log(ship);
-
       // Verify construction
       expect(ship[9]).to.be.true; // constructed flag
       expect(ship[0]).to.equal("Mock Ship"); // name from mock contract
       expect(ship[6]).to.equal(1); // costsVersion should be set
       expect(ship[7]).to.be.greaterThan(0); // cost should be calculated
+    });
+
+    it("Should allow owner to construct multiple ships at once", async function () {
+      const { ships, user1, user2, publicClient } = await loadFixture(
+        deployShipsFixture
+      );
+
+      // Mint a 10-pack
+      const tenPackPrice = await ships.read.tenPackPrice();
+      await ships.write.mintTenPack(
+        [user1.account.address, user2.account.address],
+        { value: tenPackPrice }
+      );
+
+      // Construct all ships at once
+      const shipIds = Array.from({ length: 10 }, (_, i) => BigInt(i + 1));
+      await ships.write.constructShips([shipIds], {
+        account: user1.account,
+      });
+
+      // Create an array of ship data
+      const shipData = [];
+
+      // Verify all ships are constructed
+      for (let i = 1; i <= 10; i++) {
+        const ship = await ships.read.ships([BigInt(i)]);
+        shipData.push(ship);
+      }
+
+      // Verify all ships are constructed
+      for (let i = 0; i < 10; i++) {
+        expect(shipData[i][9]).to.be.true; // constructed flag
+        expect(shipData[i][0]).to.equal("Mock Ship"); // name from mock contract
+        expect(shipData[i][6]).to.equal(1); // costsVersion should be set
+        expect(shipData[i][7]).to.be.greaterThan(0); // cost should be calculated
+      }
+
+      console.log(shipData);
     });
 
     it("Should not allow non-owner to construct ship", async function () {

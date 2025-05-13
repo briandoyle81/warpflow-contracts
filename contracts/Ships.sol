@@ -139,6 +139,12 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         _processReferral(_referral, tenPackPrice);
     }
 
+    function constructShips(uint[] memory _ids) public {
+        for (uint i = 0; i < _ids.length; i++) {
+            constructShip(_ids[i]);
+        }
+    }
+
     function constructShip(uint _id) public {
         Ship storage newShip = ships[_id];
 
@@ -156,8 +162,11 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
             newShip.traits.serialNumber
         );
 
+        randomSeed++;
         newShip.name = shipNames.getRandomShipName(
-            bytes32(uint256(randomBase))
+            bytes32(
+                uint256(keccak256(abi.encodePacked(randomSeed, randomBase)))
+            )
         );
 
         newShip.traits.class = Class(
@@ -198,28 +207,28 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         randomSeed++;
         newShip.traits.accuracy = uint8(
             getTierOfTrait(
-                uint(keccak256(abi.encodePacked(randomSeed, randomBase)))
+                uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 100
             )
         );
 
         randomSeed++;
         newShip.traits.brawling = uint8(
             getTierOfTrait(
-                uint(keccak256(abi.encodePacked(randomSeed, randomBase)))
+                uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 100
             )
         );
 
         randomSeed++;
         newShip.traits.hull = uint8(
             getTierOfTrait(
-                uint(keccak256(abi.encodePacked(randomSeed, randomBase)))
+                uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 100
             )
         );
 
         randomSeed++;
         newShip.traits.speed = uint8(
             getTierOfTrait(
-                uint(keccak256(abi.encodePacked(randomSeed, randomBase)))
+                uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 100
             )
         );
 

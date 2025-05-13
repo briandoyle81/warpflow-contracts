@@ -67,7 +67,11 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     IRandomManager public randomManager;
 
     uint64 randomSeed = 0;
-    uint8 numberOfVariants = 4;
+    uint16 numberOfVariants = 1;
+
+    mapping(uint16 => Costs) public variantCostModifiers;
+
+    // TODO: Should variants have different weapons or props?
 
     // Only Owner TODO
     // Withdrawal
@@ -89,15 +93,15 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         costs.baseCost = [10, 20, 30, 40];
 
         costs.accuracy = [0, 10, 25];
-        costs.brawling = [0, 10, 25];
         costs.hull = [0, 10, 25];
         costs.speed = [0, 10, 25];
 
-        costs.mainWeapon = [25, 30, 40, 10];
-        costs.pointDefense = [0, 20, 30, 30];
+        costs.mainWeapon = [25, 30, 40, 40];
         costs.armor = [0, 5, 10, 15];
         costs.shields = [0, 10, 20, 30];
         costs.special = [0, 10, 20, 15];
+
+        // Variant 0 has no modifiers, already exists as zeroes
     }
 
     /**
@@ -169,8 +173,10 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
             )
         );
 
+        // TODO: Should classes be weighted?
+        // TODO: Hardcoded number of classes
         newShip.traits.class = Class(
-            uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 4
+            uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 3
         );
 
         // r g b 1 and 2 values are 0 to 255
@@ -212,13 +218,6 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         );
 
         randomSeed++;
-        newShip.traits.brawling = uint8(
-            getTierOfTrait(
-                uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 100
-            )
-        );
-
-        randomSeed++;
         newShip.traits.hull = uint8(
             getTierOfTrait(
                 uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 100
@@ -243,20 +242,23 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
             uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 4
         );
 
+        // Flip a coin to determine if a ship has armor or shields
         randomSeed++;
-        newShip.equipment.pointDefense = PointDefense(
-            uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 4
-        );
-
+        bool hasArmor = uint(
+            keccak256(abi.encodePacked(randomSeed, randomBase))
+        ) %
+            2 ==
+            0;
         randomSeed++;
-        newShip.equipment.armor = Armor(
-            uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 4
-        );
-
-        randomSeed++;
-        newShip.equipment.shields = Shields(
-            uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 4
-        );
+        if (hasArmor) {
+            newShip.equipment.armor = Armor(
+                uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 4
+            );
+        } else {
+            newShip.equipment.shields = Shields(
+                uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 4
+            );
+        }
 
         randomSeed++;
         newShip.equipment.special = Special(
@@ -305,11 +307,9 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         uint16 unadjustedCost = uint16(
             costs.baseCost[uint8(ship.traits.class)] +
                 costs.accuracy[uint8(ship.traits.accuracy)] +
-                costs.brawling[uint8(ship.traits.brawling)] +
                 costs.hull[uint8(ship.traits.hull)] +
                 costs.speed[uint8(ship.traits.speed)] +
                 costs.mainWeapon[uint8(ship.equipment.mainWeapon)] +
-                costs.pointDefense[uint8(ship.equipment.pointDefense)] +
                 costs.armor[uint8(ship.equipment.armor)] +
                 costs.shields[uint8(ship.equipment.shields)] +
                 costs.special[uint8(ship.equipment.special)]

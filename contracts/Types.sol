@@ -5,14 +5,7 @@ enum MainWeapon {
     Laser,
     Railgun,
     MissileLauncher,
-    Autocannon
-}
-
-enum PointDefense {
-    LightAutocannon,
-    FlakArray,
-    PlasmaCannon,
-    EMP
+    PlasmaCannon
 }
 
 // Reduces Damage, Does not Provide Hitpoints
@@ -35,12 +28,11 @@ enum Special {
     None,
     CloakingDevice,
     RepairDrones,
-    AuxiliaryThrusters
+    FlakArray
 }
 
 enum Class {
     Frigate,
-    Destroyer,
     Cruiser,
     Battleship
 }
@@ -57,14 +49,12 @@ struct Traits {
     uint8 b2;
     uint8 variant; // Which art to use for the ship
     uint8 accuracy;
-    uint8 brawling;
     uint8 hull; // Hitpoints
     uint8 speed;
 }
 
 struct Equipment {
     MainWeapon mainWeapon;
-    PointDefense pointDefense;
     Armor armor;
     Shields shields;
     Special special;
@@ -75,7 +65,6 @@ struct Attributes {
     uint8 version;
     uint8 range;
     uint8 gunDamage;
-    uint8 pointDefenseDamage;
     uint8 hullPoints;
     uint8 movement;
 }
@@ -127,11 +116,6 @@ struct Costs {
 
 struct GunData {
     uint8 range;
-    uint8 damage;
-    int8 movement;
-}
-
-struct PointDefenseData {
     uint8 damage;
     int8 movement;
 }

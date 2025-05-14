@@ -17,7 +17,7 @@ contract RenderBody is IRenderComponent {
     IReturnSVG public immutable renderArmor3; // Heavy Armor
 
     constructor(address[] memory renderers) {
-        require(renderers.length == 6, "Invalid renderers array");
+        require(renderers.length == 6, "Invalid renderers array in RenderBody");
         renderShield1 = IReturnSVG(renderers[0]);
         renderShield2 = IReturnSVG(renderers[1]);
         renderShield3 = IReturnSVG(renderers[2]);

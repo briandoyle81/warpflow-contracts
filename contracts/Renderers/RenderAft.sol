@@ -10,7 +10,7 @@ contract RenderAft is IRenderComponent {
     IReturnSVG public immutable renderAft2;
 
     constructor(address[] memory renderers) {
-        require(renderers.length == 3, "Invalid renderers array");
+        require(renderers.length == 3, "Invalid renderers array in RenderAft");
         renderAft0 = IReturnSVG(renderers[0]);
         renderAft1 = IReturnSVG(renderers[1]);
         renderAft2 = IReturnSVG(renderers[2]);

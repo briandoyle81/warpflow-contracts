@@ -10,7 +10,7 @@ contract RenderFore is IRenderComponent {
     IReturnSVG public immutable renderFore2; // Class 2
 
     constructor(address[] memory renderers) {
-        require(renderers.length == 3, "Invalid renderers array");
+        require(renderers.length == 3, "Invalid renderers array in RenderFore");
         renderFore0 = IReturnSVG(renderers[0]);
         renderFore1 = IReturnSVG(renderers[1]);
         renderFore2 = IReturnSVG(renderers[2]);

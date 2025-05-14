@@ -2,6 +2,7 @@ import { expect } from "chai";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox-viem/network-helpers";
 import hre from "hardhat";
 import { parseEther } from "viem";
+import DeployModule from "../ignition/modules/DeployAndConfig";
 
 describe("Ships", function () {
   // Deploy function to set up the initial state
@@ -9,29 +10,67 @@ describe("Ships", function () {
     const [owner, user1, user2] = await hre.viem.getWalletClients();
     const publicClient = await hre.viem.getPublicClient();
 
-    // Deploy mock contracts first
-    const mockShipNames = await hre.viem.deployContract(
-      "MockOnchainRandomShipNames"
-    );
-    const renderer = await hre.viem.deployContract("Renderer");
-
-    // Deploy the RandomManager contract
-    const randomManager = await hre.viem.deployContract("RandomManager");
-
-    // Deploy the Ships contract
-    const ships = await hre.viem.deployContract("Ships", [
-      mockShipNames.address,
-      renderer.address,
-    ]);
-
-    // Set the random manager
-    await ships.write.setRandomManager([randomManager.address]);
+    // Deploy all contracts using the Ignition module
+    const {
+      ships,
+      mockShipNames,
+      metadataRenderer,
+      randomManager,
+      imageRenderer,
+      renderSpecial,
+      renderAft,
+      renderWeapon,
+      renderBody,
+      renderFore,
+      renderSpecial1,
+      renderSpecial2,
+      renderSpecial3,
+      renderAft0,
+      renderAft1,
+      renderAft2,
+      renderWeapon1,
+      renderWeapon2,
+      renderWeapon3,
+      renderShield1,
+      renderShield2,
+      renderShield3,
+      renderArmor1,
+      renderArmor2,
+      renderArmor3,
+      renderFore0,
+      renderFore1,
+      renderFore2,
+    } = await hre.ignition.deploy(DeployModule);
 
     return {
       ships,
       mockShipNames,
-      renderer,
+      metadataRenderer,
       randomManager,
+      imageRenderer,
+      renderSpecial,
+      renderAft,
+      renderWeapon,
+      renderBody,
+      renderFore,
+      renderSpecial1,
+      renderSpecial2,
+      renderSpecial3,
+      renderAft0,
+      renderAft1,
+      renderAft2,
+      renderWeapon1,
+      renderWeapon2,
+      renderWeapon3,
+      renderShield1,
+      renderShield2,
+      renderShield3,
+      renderArmor1,
+      renderArmor2,
+      renderArmor3,
+      renderFore0,
+      renderFore1,
+      renderFore2,
       owner,
       user1,
       user2,
@@ -268,9 +307,8 @@ describe("Ships", function () {
 
   describe("Ship Construction", function () {
     it("Should allow owner to construct their ship", async function () {
-      const { ships, user1, user2, publicClient } = await loadFixture(
-        deployShipsFixture
-      );
+      const { ships, user1, user2, publicClient, randomManager } =
+        await loadFixture(deployShipsFixture);
 
       // Mint a ship first
       await ships.write.mintShip(
@@ -278,25 +316,31 @@ describe("Ships", function () {
         { value: parseEther("1") }
       );
 
+      // Get the ship's serial number
+      const ship = await ships.read.ships([1n]);
+      const serialNumber = ship[3].serialNumber; // traits is at index 3
+
+      // Fulfill the random request
+      await randomManager.write.fulfillRandomRequest([serialNumber]);
+
       // Construct the ship
       await ships.write.constructShip([1n], {
         account: user1.account,
       });
 
       // Get the ship data
-      const ship = await ships.read.ships([1n]);
+      const constructedShip = await ships.read.ships([1n]);
 
       // Verify construction
-      expect(ship[9]).to.be.true; // constructed flag
-      expect(ship[0]).to.equal("Mock Ship"); // name from mock contract
-      expect(ship[6]).to.equal(1); // costsVersion should be set
-      expect(ship[7]).to.be.greaterThan(0); // cost should be calculated
+      expect(constructedShip[9]).to.be.true; // constructed flag
+      expect(constructedShip[0]).to.equal("Mock Ship"); // name from mock contract
+      expect(constructedShip[6]).to.equal(1); // costsVersion should be set
+      expect(constructedShip[7]).to.be.greaterThan(0); // cost should be calculated
     });
 
     it("Should allow owner to construct multiple ships at once", async function () {
-      const { ships, user1, user2, publicClient } = await loadFixture(
-        deployShipsFixture
-      );
+      const { ships, user1, user2, publicClient, randomManager } =
+        await loadFixture(deployShipsFixture);
 
       // Mint a 10-pack
       const tenPackPrice = await ships.read.tenPackPrice();
@@ -305,40 +349,46 @@ describe("Ships", function () {
         { value: tenPackPrice }
       );
 
+      // Get all ships' serial numbers
+      for (let i = 1; i <= 10; i++) {
+        const ship = await ships.read.ships([BigInt(i)]);
+        const serialNumber = ship[3].serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
       // Construct all ships at once
       const shipIds = Array.from({ length: 10 }, (_, i) => BigInt(i + 1));
       await ships.write.constructShips([shipIds], {
         account: user1.account,
       });
 
-      // Create an array of ship data
-      const shipData = [];
-
       // Verify all ships are constructed
       for (let i = 1; i <= 10; i++) {
         const ship = await ships.read.ships([BigInt(i)]);
-        shipData.push(ship);
+        expect(ship[9]).to.be.true; // constructed flag
+        expect(ship[0]).to.equal("Mock Ship"); // name from mock contract
+        expect(ship[6]).to.equal(1); // costsVersion should be set
+        expect(ship[7]).to.be.greaterThan(0); // cost should be calculated
       }
-
-      // Verify all ships are constructed
-      for (let i = 0; i < 10; i++) {
-        expect(shipData[i][9]).to.be.true; // constructed flag
-        expect(shipData[i][0]).to.equal("Mock Ship"); // name from mock contract
-        expect(shipData[i][6]).to.equal(1); // costsVersion should be set
-        expect(shipData[i][7]).to.be.greaterThan(0); // cost should be calculated
-      }
-
-      // console.log(shipData);
     });
 
     it("Should not allow non-owner to construct ship", async function () {
-      const { ships, user1, user2 } = await loadFixture(deployShipsFixture);
+      const { ships, user1, user2, randomManager } = await loadFixture(
+        deployShipsFixture
+      );
 
       // Mint a ship first
       await ships.write.mintShip(
         [user1.account.address, user2.account.address],
         { value: parseEther("1") }
       );
+
+      // Get the ship's serial number
+      const ship = await ships.read.ships([1n]);
+      const serialNumber = ship[3].serialNumber;
+
+      // Fulfill the random request
+      await randomManager.write.fulfillRandomRequest([serialNumber]);
 
       // Try to construct as non-owner
       await expect(
@@ -349,13 +399,22 @@ describe("Ships", function () {
     });
 
     it("Should not allow constructing an already constructed ship", async function () {
-      const { ships, user1, user2 } = await loadFixture(deployShipsFixture);
+      const { ships, user1, user2, randomManager } = await loadFixture(
+        deployShipsFixture
+      );
 
       // Mint a ship first
       await ships.write.mintShip(
         [user1.account.address, user2.account.address],
         { value: parseEther("1") }
       );
+
+      // Get the ship's serial number
+      const ship = await ships.read.ships([1n]);
+      const serialNumber = ship[3].serialNumber;
+
+      // Fulfill the random request
+      await randomManager.write.fulfillRandomRequest([serialNumber]);
 
       // Construct the ship
       await ships.write.constructShip([1n], {
@@ -368,30 +427,6 @@ describe("Ships", function () {
           account: user1.account,
         })
       ).to.be.rejectedWith("ShipConstructed");
-    });
-
-    it("Should set ship traits and equipment after construction", async function () {
-      const { ships, user1, user2 } = await loadFixture(deployShipsFixture);
-
-      // Mint a ship first
-      await ships.write.mintShip(
-        [user1.account.address, user2.account.address],
-        { value: parseEther("1") }
-      );
-
-      // Construct the ship
-      await ships.write.constructShip([1n], {
-        account: user1.account,
-      });
-
-      // Get the ship data
-      const ship = await ships.read.ships([1n]);
-
-      // Verify traits and equipment are set
-      const traits = ship[3]; // traits struct
-      const equipment = ship[2]; // equipment struct
-
-      // TODO
     });
   });
 
@@ -408,7 +443,7 @@ describe("Ships", function () {
 
       // Get the ship's serial number
       const ship = await ships.read.ships([1n]);
-      const serialNumber = ship[3].serialNumber; // traits is at index 3
+      const serialNumber = ship[3].serialNumber;
 
       // Fulfill the random request
       await randomManager.write.fulfillRandomRequest([serialNumber]);
@@ -431,8 +466,6 @@ describe("Ships", function () {
       const decodedContent = Buffer.from(base64Content, "base64").toString();
       const metadata = JSON.parse(decodedContent);
 
-      // console.log(metadata);
-
       // Verify basic metadata structure
       expect(metadata).to.have.property("name");
       expect(metadata).to.have.property("description");
@@ -447,8 +480,8 @@ describe("Ships", function () {
         "A unique spaceship in the Warpflow universe. Each ship has unique traits, equipment, and stats that determine its capabilities in battle."
       );
 
-      // Verify image format
-      expect(metadata.image).to.match(/^ipfs:\/\/QmPlaceholderHash$/);
+      // Verify image format - should now be a base64 encoded SVG
+      expect(metadata.image).to.match(/^data:image\/svg\+xml;base64,/);
 
       // Verify attributes structure
       const attributes = metadata.attributes;

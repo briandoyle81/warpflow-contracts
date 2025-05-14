@@ -11,7 +11,10 @@ contract RenderWeapon is IRenderComponent {
     IReturnSVG public immutable renderWeapon4; // Plasma Cannon
 
     constructor(address[] memory renderers) {
-        require(renderers.length == 4, "Invalid renderers array");
+        require(
+            renderers.length == 4,
+            "Invalid renderers array in RenderWeapon"
+        );
         renderWeapon1 = IReturnSVG(renderers[0]);
         renderWeapon2 = IReturnSVG(renderers[1]);
         renderWeapon3 = IReturnSVG(renderers[2]);

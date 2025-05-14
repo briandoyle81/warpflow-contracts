@@ -10,7 +10,10 @@ contract RenderSpecial is IRenderComponent {
     IReturnSVG public immutable renderSpecial3;
 
     constructor(address[] memory renderers) {
-        require(renderers.length == 3, "Invalid renderers array");
+        require(
+            renderers.length == 3,
+            "Invalid renderers array in RenderSpecial"
+        );
         renderSpecial1 = IReturnSVG(renderers[0]);
         renderSpecial2 = IReturnSVG(renderers[1]);
         renderSpecial3 = IReturnSVG(renderers[2]);

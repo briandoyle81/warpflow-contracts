@@ -1,8 +1,16 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
-import "./Types.sol";
+import {Ship} from "./Types.sol";
 
-interface IRenderer {
+interface IRenderComponent {
     function render(Ship memory ship) external view returns (string memory);
+}
+
+interface IReturnSVG {
+    function render() external view returns (string memory);
+}
+
+interface IRenderMetadata {
+    function tokenURI(Ship memory ship) external view returns (string memory);
 }

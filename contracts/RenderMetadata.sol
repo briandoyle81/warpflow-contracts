@@ -4,9 +4,17 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts/utils/Base64.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "./Types.sol";
+import "./IRenderer.sol";
+import "./ImageRenderer.sol";
 
-contract Renderer {
+contract RenderMetadata is IRenderMetadata {
     using Strings for uint256;
+
+    ImageRenderer public immutable imageRenderer;
+
+    constructor(address _imageRenderer) {
+        imageRenderer = ImageRenderer(_imageRenderer);
+    }
 
     function getBasicTraitsString(
         Ship memory ship
@@ -149,18 +157,15 @@ contract Renderer {
             );
     }
 
-    function getIpfsHash(
+    function tokenURI(
         Ship memory ship
-    ) internal pure returns (string memory) {
-        // This is a placeholder - in a real implementation, you would generate or retrieve
-        // the actual IPFS hash for the ship's image based on its traits
-        return "QmPlaceholderHash";
-    }
-
-    function tokenURI(Ship memory ship) public pure returns (string memory) {
+    ) public view override returns (string memory) {
         if (ship.id == 0) {
             revert("InvalidId");
         }
+
+        string memory svg = imageRenderer.renderShip(ship);
+        string memory base64Svg = Base64.encode(bytes(svg));
 
         string memory baseJson = string(
             abi.encodePacked(
@@ -172,8 +177,8 @@ contract Renderer {
                 getTraitsString(ship),
                 ",",
                 getStatsString(ship),
-                '],"image": "ipfs://',
-                getIpfsHash(ship),
+                '],"image": "data:image/svg+xml;base64,',
+                base64Svg,
                 '"}'
             )
         );

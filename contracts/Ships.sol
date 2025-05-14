@@ -63,7 +63,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     bool public paused;
 
     IOnchainRandomShipNames public shipNames;
-    IRenderer public renderer;
+    IRenderMetadata public metadataRenderer;
     IRandomManager public randomManager;
 
     uint64 randomSeed = 0;
@@ -87,7 +87,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         address _renderer
     ) ERC721("Warpflow Ships", "SHIP") Ownable(msg.sender) {
         shipNames = IOnchainRandomShipNames(_shipNames);
-        renderer = IRenderer(_renderer);
+        metadataRenderer = IRenderMetadata(_renderer);
 
         costs.version = 1;
         costs.baseCost = 50;
@@ -446,7 +446,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     }
 
     function tokenURI(uint _id) public view override returns (string memory) {
-        return renderer.tokenURI(ships[_id]);
+        return metadataRenderer.tokenURI(ships[_id]);
     }
 
     /**

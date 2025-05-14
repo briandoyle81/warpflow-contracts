@@ -3,18 +3,17 @@ pragma solidity ^0.8.28;
 
 import "../Types.sol";
 import "../IRenderer.sol";
-import "../IRendererNoShip.sol";
 
-contract RenderAft is IRenderer {
-    IRendererNoShip public immutable renderAft0;
-    IRendererNoShip public immutable renderAft1;
-    IRendererNoShip public immutable renderAft2;
+contract RenderAft is IRenderComponent {
+    IReturnSVG public immutable renderAft0;
+    IReturnSVG public immutable renderAft1;
+    IReturnSVG public immutable renderAft2;
 
     constructor(address[] memory renderers) {
         require(renderers.length == 3, "Invalid renderers array");
-        renderAft0 = IRendererNoShip(renderers[0]);
-        renderAft1 = IRendererNoShip(renderers[1]);
-        renderAft2 = IRendererNoShip(renderers[2]);
+        renderAft0 = IReturnSVG(renderers[0]);
+        renderAft1 = IReturnSVG(renderers[1]);
+        renderAft2 = IReturnSVG(renderers[2]);
     }
 
     function render(

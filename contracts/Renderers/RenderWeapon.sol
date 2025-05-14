@@ -3,20 +3,19 @@ pragma solidity ^0.8.28;
 
 import "../Types.sol";
 import "../IRenderer.sol";
-import "../IRendererNoShip.sol";
 
-contract RenderWeapon is IRenderer {
-    IRendererNoShip public immutable renderWeapon1; // Laser
-    IRendererNoShip public immutable renderWeapon2; // Railgun
-    IRendererNoShip public immutable renderWeapon3; // Missile Launcher
-    IRendererNoShip public immutable renderWeapon4; // Plasma Cannon
+contract RenderWeapon is IRenderComponent {
+    IReturnSVG public immutable renderWeapon1; // Laser
+    IReturnSVG public immutable renderWeapon2; // Railgun
+    IReturnSVG public immutable renderWeapon3; // Missile Launcher
+    IReturnSVG public immutable renderWeapon4; // Plasma Cannon
 
     constructor(address[] memory renderers) {
         require(renderers.length == 4, "Invalid renderers array");
-        renderWeapon1 = IRendererNoShip(renderers[0]);
-        renderWeapon2 = IRendererNoShip(renderers[1]);
-        renderWeapon3 = IRendererNoShip(renderers[2]);
-        renderWeapon4 = IRendererNoShip(renderers[3]);
+        renderWeapon1 = IReturnSVG(renderers[0]);
+        renderWeapon2 = IReturnSVG(renderers[1]);
+        renderWeapon3 = IReturnSVG(renderers[2]);
+        renderWeapon4 = IReturnSVG(renderers[3]);
     }
 
     function render(

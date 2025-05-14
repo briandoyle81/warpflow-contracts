@@ -4,6 +4,7 @@ pragma solidity ^0.8.28;
 import "./Types.sol";
 import "./IRenderer.sol";
 import "./Renderers/RenderSpecial.sol";
+import "./Renderers/RenderAft.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract ImageRenderer {
@@ -19,6 +20,7 @@ contract ImageRenderer {
     // [0] = bottom layer (e.g., base ship)
     // [1] = middle layer (e.g., equipment)
     // [2] = top layer (e.g., special effects)
+    // [3] = aft layer (drawn on top of special effects)
     address[] private renderers;
 
     constructor() {
@@ -26,6 +28,7 @@ contract ImageRenderer {
         // First renderer (index 0) will be drawn first (bottom)
         // Last renderer will be drawn last (top)
         renderers.push(address(new RenderSpecial()));
+        renderers.push(address(new RenderAft()));
         // TODO: Add other renderers in the correct order
     }
 

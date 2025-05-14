@@ -26,20 +26,13 @@ enum Shields {
 
 enum Special {
     None,
-    CloakingDevice,
+    EMP,
     RepairDrones,
     FlakArray
 }
 
-enum Class {
-    Frigate,
-    Cruiser,
-    Battleship
-}
-
 // Raw Traits Will Never Change
 struct Traits {
-    Class class;
     uint256 serialNumber; // Id for random number in commit reveal
     uint8 r1;
     uint8 g1;
@@ -67,6 +60,7 @@ struct Attributes {
     uint8 gunDamage;
     uint8 hullPoints;
     uint8 movement;
+    uint8[] statusEffects;
 }
 
 struct GameData {
@@ -95,7 +89,7 @@ struct Ship {
 
 struct Costs {
     uint16 version;
-    uint8[] baseCost;
+    uint8 baseCost;
     uint8[] accuracy;
     uint8[] brawling;
     uint8[] hull;

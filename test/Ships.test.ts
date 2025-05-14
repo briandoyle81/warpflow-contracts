@@ -13,7 +13,7 @@ describe("Ships", function () {
     const mockShipNames = await hre.viem.deployContract(
       "MockOnchainRandomShipNames"
     );
-    const mockRenderer = await hre.viem.deployContract("MockRenderer");
+    const renderer = await hre.viem.deployContract("Renderer");
 
     // Deploy the RandomManager contract
     const randomManager = await hre.viem.deployContract("RandomManager");
@@ -21,7 +21,7 @@ describe("Ships", function () {
     // Deploy the Ships contract
     const ships = await hre.viem.deployContract("Ships", [
       mockShipNames.address,
-      mockRenderer.address,
+      renderer.address,
     ]);
 
     // Set the random manager
@@ -30,7 +30,7 @@ describe("Ships", function () {
     return {
       ships,
       mockShipNames,
-      mockRenderer,
+      renderer,
       randomManager,
       owner,
       user1,
@@ -328,7 +328,7 @@ describe("Ships", function () {
         expect(shipData[i][7]).to.be.greaterThan(0); // cost should be calculated
       }
 
-      console.log(shipData);
+      // console.log(shipData);
     });
 
     it("Should not allow non-owner to construct ship", async function () {
@@ -392,6 +392,124 @@ describe("Ships", function () {
       const equipment = ship[2]; // equipment struct
 
       // TODO
+    });
+  });
+
+  describe("Token URI", function () {
+    it("Should return valid metadata for a constructed ship", async function () {
+      const { ships, user1, user2, publicClient, randomManager } =
+        await loadFixture(deployShipsFixture);
+
+      // Mint and construct a ship
+      await ships.write.mintShip(
+        [user1.account.address, user2.account.address],
+        { value: parseEther("1") }
+      );
+
+      // Get the ship's serial number
+      const ship = await ships.read.ships([1n]);
+      const serialNumber = ship[3].serialNumber; // traits is at index 3
+
+      // Fulfill the random request
+      await randomManager.write.fulfillRandomRequest([serialNumber]);
+
+      await ships.write.constructShip([1n], {
+        account: user1.account,
+      });
+
+      // Get the token URI
+      const tokenURI = await ships.read.tokenURI([1n]);
+
+      // Verify it's a base64 encoded data URI
+      expect(tokenURI).to.match(/^data:application\/json;base64,/);
+
+      // Decode the base64 content
+      const base64Content = tokenURI.replace(
+        "data:application/json;base64,",
+        ""
+      );
+      const decodedContent = Buffer.from(base64Content, "base64").toString();
+      const metadata = JSON.parse(decodedContent);
+
+      // Verify basic metadata structure
+      expect(metadata).to.have.property("name");
+      expect(metadata).to.have.property("description");
+      expect(metadata).to.have.property("attributes").that.is.an("array");
+      expect(metadata).to.have.property("image").that.is.a("string");
+
+      // Verify name format
+      expect(metadata.name).to.match(/^Mock Ship #1$/);
+
+      // Verify description
+      expect(metadata.description).to.equal(
+        "A unique spaceship in the Warpflow universe. Each ship has unique traits, equipment, and stats that determine its capabilities in battle."
+      );
+
+      // Verify image format
+      expect(metadata.image).to.match(/^ipfs:\/\/QmPlaceholderHash$/);
+
+      // Verify attributes structure
+      const attributes = metadata.attributes;
+      expect(attributes).to.be.an("array");
+
+      // Create a map of attributes for easier verification
+      const attributeMap = new Map(
+        attributes.map(
+          (attr: { trait_type: string; value: string | number | boolean }) => [
+            attr.trait_type,
+            attr.value,
+          ]
+        )
+      );
+
+      // Verify required traits
+      expect(attributeMap.has("Serial Number")).to.be.true;
+      expect(attributeMap.has("Variant")).to.be.true;
+      expect(attributeMap.has("Accuracy")).to.be.true;
+      expect(attributeMap.has("Hull")).to.be.true;
+      expect(attributeMap.has("Speed")).to.be.true;
+      expect(attributeMap.has("Shiny")).to.be.true;
+      expect(attributeMap.has("Ships Destroyed")).to.be.true;
+      expect(attributeMap.has("Cost")).to.be.true;
+
+      // Verify equipment traits
+      expect(attributeMap.has("Main Weapon")).to.be.true;
+      expect(attributeMap.has("Armor")).to.be.true;
+      expect(attributeMap.has("Shields")).to.be.true;
+      expect(attributeMap.has("Special")).to.be.true;
+
+      // Verify stats traits
+      expect(attributeMap.has("Range")).to.be.true;
+      expect(attributeMap.has("Gun Damage")).to.be.true;
+      expect(attributeMap.has("Hull Points")).to.be.true;
+      expect(attributeMap.has("Movement")).to.be.true;
+
+      // Verify numeric values are actually numbers
+      expect(Number(attributeMap.get("Accuracy"))).to.not.be.NaN;
+      expect(Number(attributeMap.get("Hull"))).to.not.be.NaN;
+      expect(Number(attributeMap.get("Speed"))).to.not.be.NaN;
+      expect(Number(attributeMap.get("Ships Destroyed"))).to.not.be.NaN;
+      expect(Number(attributeMap.get("Cost"))).to.not.be.NaN;
+      expect(Number(attributeMap.get("Range"))).to.not.be.NaN;
+      expect(Number(attributeMap.get("Gun Damage"))).to.not.be.NaN;
+      expect(Number(attributeMap.get("Hull Points"))).to.not.be.NaN;
+      expect(Number(attributeMap.get("Movement"))).to.not.be.NaN;
+
+      // Verify boolean values
+      const shinyValue = attributeMap.get("Shiny");
+      expect(shinyValue?.toString()).to.be.oneOf(["true", "false"]);
+
+      // Verify equipment values are strings
+      expect(attributeMap.get("Main Weapon")).to.be.a("string");
+      expect(attributeMap.get("Armor")).to.be.a("string");
+      expect(attributeMap.get("Shields")).to.be.a("string");
+      expect(attributeMap.get("Special")).to.be.a("string");
+    });
+
+    it("Should revert for non-existent token", async function () {
+      const { ships } = await loadFixture(deployShipsFixture);
+
+      await expect(ships.read.tokenURI([999n])).to.be.rejectedWith("InvalidId");
     });
   });
 });

@@ -90,7 +90,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         renderer = IRenderer(_renderer);
 
         costs.version = 1;
-        costs.baseCost = [10, 20, 30, 40];
+        costs.baseCost = 50;
 
         costs.accuracy = [0, 10, 25];
         costs.hull = [0, 10, 25];
@@ -171,12 +171,6 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
             bytes32(
                 uint256(keccak256(abi.encodePacked(randomSeed, randomBase)))
             )
-        );
-
-        // TODO: Should classes be weighted?
-        // TODO: Hardcoded number of classes
-        newShip.traits.class = Class(
-            uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 3
         );
 
         // r g b 1 and 2 values are 0 to 255
@@ -305,7 +299,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         Ship storage ship = ships[_id];
 
         uint16 unadjustedCost = uint16(
-            costs.baseCost[uint8(ship.traits.class)] +
+            costs.baseCost +
                 costs.accuracy[uint8(ship.traits.accuracy)] +
                 costs.hull[uint8(ship.traits.hull)] +
                 costs.speed[uint8(ship.traits.speed)] +
@@ -421,6 +415,38 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
     function setNumberOfVariants(uint8 _numberOfVariants) public onlyOwner {
         numberOfVariants = _numberOfVariants;
+    }
+
+    /**
+     * @dev VIEW
+     */
+
+    function getCosts() public view returns (Costs memory) {
+        return costs;
+    }
+
+    function getCostsVersion() public view returns (uint) {
+        return costsVersion;
+    }
+
+    function getShip(uint _id) public view returns (Ship memory) {
+        return ships[_id];
+    }
+
+    function getShipCount() public view returns (uint) {
+        return shipCount;
+    }
+
+    function getShipPrice() public view returns (uint) {
+        return shipPrice;
+    }
+
+    function getTenPackPrice() public view returns (uint) {
+        return tenPackPrice;
+    }
+
+    function tokenURI(uint _id) public view override returns (string memory) {
+        return renderer.tokenURI(ships[_id]);
     }
 
     /**

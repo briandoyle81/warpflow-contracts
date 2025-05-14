@@ -431,6 +431,8 @@ describe("Ships", function () {
       const decodedContent = Buffer.from(base64Content, "base64").toString();
       const metadata = JSON.parse(decodedContent);
 
+      // console.log(metadata);
+
       // Verify basic metadata structure
       expect(metadata).to.have.property("name");
       expect(metadata).to.have.property("description");

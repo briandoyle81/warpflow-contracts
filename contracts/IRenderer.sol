@@ -4,5 +4,5 @@ pragma solidity ^0.8.28;
 import "./Types.sol";
 
 interface IRenderer {
-    function tokenURI(Ship memory ship) external pure returns (string memory);
+    function render(Ship memory ship) external view returns (string memory);
 }

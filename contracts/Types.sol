@@ -91,12 +91,10 @@ struct Costs {
     uint16 version;
     uint8 baseCost;
     uint8[] accuracy;
-    uint8[] brawling;
     uint8[] hull;
     uint8[] speed;
     // Items are uint8[4]
     uint8[] mainWeapon;
-    uint8[] pointDefense;
     uint8[] armor;
     uint8[] shields;
     uint8[] special;

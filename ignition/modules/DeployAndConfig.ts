@@ -93,6 +93,7 @@ const DeployModule = buildModule("DeployModule", (m) => {
     renderWeapon1,
     renderWeapon2,
     renderWeapon3,
+    renderWeapon4,
     renderShield1,
     renderShield2,
     renderShield3,

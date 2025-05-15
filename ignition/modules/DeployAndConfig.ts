@@ -33,6 +33,8 @@ const DeployModule = buildModule("DeployModule", (m) => {
   const renderArmor2 = m.contract("RenderArmor2");
   const renderArmor3 = m.contract("RenderArmor3");
 
+  const renderBaseBody = m.contract("RenderBaseBody");
+
   // Deploy main renderers that combine sub-renderers
   const renderSpecial = m.contract("RenderSpecial", [
     [renderSpecial1, renderSpecial2, renderSpecial3],
@@ -48,6 +50,7 @@ const DeployModule = buildModule("DeployModule", (m) => {
 
   const renderBody = m.contract("RenderBody", [
     [
+      renderBaseBody,
       renderShield1,
       renderShield2,
       renderShield3,

@@ -480,7 +480,7 @@ describe("Ships", function () {
         "A unique spaceship in the Warpflow universe. Each ship has unique traits, equipment, and stats that determine its capabilities in battle."
       );
 
-      console.log(metadata.image);
+      console.log(metadata);
 
       // Verify image format - should now be a base64 encoded SVG
       expect(metadata.image).to.match(/^data:image\/svg\+xml;base64,/);

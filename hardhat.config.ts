@@ -15,14 +15,25 @@ const config: HardhatUserConfig = {
     },
   },
   etherscan: {
-    apiKey: process.env.BASECAN_API_KEY || "", // used with npx hardhat verify <address> --network mumbai
+    apiKey: {
+      "flow-testnet": "abc",
+      flow: "abc",
+    },
     customChains: [
       {
-        network: "base-goerli",
-        chainId: 84532,
+        network: "flow",
+        chainId: 747,
         urls: {
-          apiURL: "https://api-sepolia.basescan.org/api",
-          browserURL: "https://sepolia.basescan.org",
+          apiURL: "https://evm.flowscan.io/api",
+          browserURL: "https://evm.flowscan.io",
+        },
+      },
+      {
+        network: "flow-testnet",
+        chainId: 545,
+        urls: {
+          apiURL: "https://evm-testnet.flowscan.io/api",
+          browserURL: "https://evm-testnet.flowscan.io",
         },
       },
     ],

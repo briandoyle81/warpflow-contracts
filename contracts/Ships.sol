@@ -66,7 +66,6 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     IRenderMetadata public metadataRenderer;
     IRandomManager public randomManager;
 
-    uint64 randomSeed = 0;
     uint16 numberOfVariants = 1;
 
     mapping(uint16 => Costs) public variantCostModifiers;
@@ -166,103 +165,88 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
             newShip.traits.serialNumber
         );
 
-        randomSeed++;
+        randomBase++;
         newShip.name = shipNames.getRandomShipName(
-            bytes32(
-                uint256(keccak256(abi.encodePacked(randomSeed, randomBase)))
-            )
+            bytes32(uint256(keccak256(abi.encodePacked(randomBase))))
         );
 
         // r g b 1 and 2 values are 0 to 255
-        randomSeed++;
+        randomBase++;
         newShip.traits.r1 = uint8(
-            uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 256
+            uint(keccak256(abi.encodePacked(randomBase))) % 256
         );
 
-        randomSeed++;
+        randomBase++;
         newShip.traits.g1 = uint8(
-            uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 256
+            uint(keccak256(abi.encodePacked(randomBase))) % 256
         );
 
-        randomSeed++;
+        randomBase++;
         newShip.traits.b1 = uint8(
-            uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 256
+            uint(keccak256(abi.encodePacked(randomBase))) % 256
         );
 
-        randomSeed++;
+        randomBase++;
         newShip.traits.r2 = uint8(
-            uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 256
+            uint(keccak256(abi.encodePacked(randomBase))) % 256
         );
 
-        randomSeed++;
+        randomBase++;
         newShip.traits.g2 = uint8(
-            uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 256
+            uint(keccak256(abi.encodePacked(randomBase))) % 256
         );
 
-        randomSeed++;
+        randomBase++;
         newShip.traits.b2 = uint8(
-            uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 256
+            uint(keccak256(abi.encodePacked(randomBase))) % 256
         );
 
-        randomSeed++;
+        randomBase++;
         newShip.traits.accuracy = uint8(
-            getTierOfTrait(
-                uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 100
-            )
+            getTierOfTrait(uint(keccak256(abi.encodePacked(randomBase))) % 100)
         );
 
-        randomSeed++;
+        randomBase++;
         newShip.traits.hull = uint8(
-            getTierOfTrait(
-                uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 100
-            )
+            getTierOfTrait(uint(keccak256(abi.encodePacked(randomBase))) % 100)
         );
 
-        randomSeed++;
+        randomBase++;
         newShip.traits.speed = uint8(
-            getTierOfTrait(
-                uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 100
-            )
+            getTierOfTrait(uint(keccak256(abi.encodePacked(randomBase))) % 100)
         );
 
-        randomSeed++;
+        randomBase++;
         newShip.traits.variant = uint8(
-            uint(keccak256(abi.encodePacked(randomSeed, randomBase))) %
-                numberOfVariants
+            uint(keccak256(abi.encodePacked(randomBase))) % numberOfVariants
         );
 
-        randomSeed++;
+        randomBase++;
         newShip.equipment.mainWeapon = MainWeapon(
-            uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 4
+            uint(keccak256(abi.encodePacked(randomBase))) % 4
         );
 
         // Flip a coin to determine if a ship has armor or shields
-        randomSeed++;
-        bool hasArmor = uint(
-            keccak256(abi.encodePacked(randomSeed, randomBase))
-        ) %
-            2 ==
-            0;
-        randomSeed++;
+        randomBase++;
+        bool hasArmor = uint(keccak256(abi.encodePacked(randomBase))) % 2 == 0;
+        randomBase++;
         if (hasArmor) {
             newShip.equipment.armor = Armor(
-                uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 4
+                uint(keccak256(abi.encodePacked(randomBase))) % 4
             );
         } else {
             newShip.equipment.shields = Shields(
-                uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 4
+                uint(keccak256(abi.encodePacked(randomBase))) % 4
             );
         }
 
-        randomSeed++;
+        randomBase++;
         newShip.equipment.special = Special(
-            uint(keccak256(abi.encodePacked(randomSeed, randomBase))) % 4
+            uint(keccak256(abi.encodePacked(randomBase))) % 4
         );
 
         // TODO: Should it be adjustable chance for shiny?
-        uint shinyChance = uint(
-            keccak256(abi.encodePacked(randomSeed, randomBase))
-        ) % 100;
+        uint shinyChance = uint(keccak256(abi.encodePacked(randomBase))) % 100;
         if (shinyChance == 0) {
             newShip.shiny = true;
         }
@@ -274,10 +258,9 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         // 4% chance that the number is between 51 and 100
         // 1% chance that the number is between 101 and 150
 
-        randomSeed++;
-        uint shipsDestroyed = uint(
-            keccak256(abi.encodePacked(randomSeed, randomBase))
-        ) % 100;
+        randomBase++;
+        uint shipsDestroyed = uint(keccak256(abi.encodePacked(randomBase))) %
+            100;
         if (shipsDestroyed < 75) {
             newShip.shipsDestroyed = uint16(1 + (shipsDestroyed % 5));
         } else if (shipsDestroyed < 90) {

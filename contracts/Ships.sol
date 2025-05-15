@@ -70,6 +70,8 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
     mapping(uint16 => Costs) public variantCostModifiers;
 
+    event MetadataUpdate(uint256 _tokenId);
+
     // TODO: Should variants have different weapons or props?
 
     // Only Owner TODO
@@ -149,6 +151,8 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     }
 
     function constructShip(uint _id) public {
+        emit MetadataUpdate(_id);
+
         Ship storage newShip = ships[_id];
 
         if (newShip.owner != msg.sender) {

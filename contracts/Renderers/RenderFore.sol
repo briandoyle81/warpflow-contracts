@@ -19,10 +19,10 @@ contract RenderFore is IRenderComponent {
     function render(
         Ship memory ship
     ) external view override returns (string memory) {
-        // Use the variant to determine which fore class to use
-        if (ship.traits.variant == 0) {
+        // Use the accuracy to determine which fore class to use
+        if (ship.traits.accuracy == 0) {
             return renderFore0.render();
-        } else if (ship.traits.variant == 1) {
+        } else if (ship.traits.accuracy == 1) {
             return renderFore1.render();
         } else {
             return renderFore2.render();

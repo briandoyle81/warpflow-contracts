@@ -116,7 +116,7 @@ const DeployModule = buildModule("DeployModule", (m) => {
     renderFore,
     imageRenderer,
     metadataRenderer,
-    mockShipNames,
+    shipNames,
     ships,
   };
 });

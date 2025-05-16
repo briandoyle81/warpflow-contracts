@@ -24,7 +24,7 @@ const DeployModule = buildModule("DeployModule", (m) => {
   const renderFore0 = m.contract("RenderFore0");
   const renderFore1 = m.contract("RenderFore1");
   const renderFore2 = m.contract("RenderFore2");
-
+  const renderForeShiny = m.contract("RenderForeShiny");
   const renderShield1 = m.contract("RenderShield1");
   const renderShield2 = m.contract("RenderShield2");
   const renderShield3 = m.contract("RenderShield3");
@@ -61,7 +61,7 @@ const DeployModule = buildModule("DeployModule", (m) => {
   ]);
 
   const renderFore = m.contract("RenderFore", [
-    [renderFore0, renderFore1, renderFore2],
+    [renderFore0, renderFore1, renderFore2, renderForeShiny],
   ]);
 
   // Deploy ImageRenderer with all main renderers
@@ -109,6 +109,7 @@ const DeployModule = buildModule("DeployModule", (m) => {
     renderFore0,
     renderFore1,
     renderFore2,
+    renderForeShiny,
     renderSpecial,
     renderAft,
     renderWeapon,

@@ -150,6 +150,15 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         }
     }
 
+    function constructAllMyShips() public {
+        uint[] memory ids = shipsOwned[msg.sender].values();
+        for (uint i = 0; i < ids.length; i++) {
+            if (!ships[ids[i]].constructed) {
+                constructShip(ids[i]);
+            }
+        }
+    }
+
     function constructShip(uint _id) public {
         emit MetadataUpdate(_id);
 
@@ -313,6 +322,27 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
      * @dev INTERNAL
      */
 
+    // Overried erc721 update
+    function _update(
+        address to,
+        uint256 tokenId,
+        address auth
+    ) internal override(ERC721) returns (address) {
+        require(ships[tokenId].timestampDestroyed == 0, "Ship destroyed");
+
+        // Handle ownership list
+        address oldOwner = ships[tokenId].owner;
+        if (oldOwner != address(0)) {
+            // Only remove if there was a previous owner
+            shipsOwned[oldOwner].remove(tokenId);
+        }
+
+        shipsOwned[to].add(tokenId);
+        ships[tokenId].owner = to;
+
+        return super._update(to, tokenId, auth);
+    }
+
     function _mintShip(address _to) internal {
         if (paused) {
             revert MintPaused();
@@ -349,6 +379,14 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     /**
      * @dev OWNER
      */
+
+    function setTimestampDestroyed(uint _id) public {
+        if (msg.sender != owner() && msg.sender != gameAddress) {
+            revert NotAuthorized(msg.sender);
+        }
+
+        ships[_id].timestampDestroyed = block.timestamp;
+    }
 
     function setShipPrice(uint _price) public onlyOwner {
         shipPrice = _price;
@@ -434,6 +472,10 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
     function tokenURI(uint _id) public view override returns (string memory) {
         return metadataRenderer.tokenURI(ships[_id]);
+    }
+
+    function getShipsOwned(address _owner) public view returns (uint[] memory) {
+        return shipsOwned[_owner].values();
     }
 
     /**

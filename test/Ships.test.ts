@@ -7,7 +7,7 @@ import DeployModule from "../ignition/modules/DeployAndConfig";
 describe("Ships", function () {
   // Deploy function to set up the initial state
   async function deployShipsFixture() {
-    const [owner, user1, user2] = await hre.viem.getWalletClients();
+    const [owner, user1, user2, user3] = await hre.viem.getWalletClients();
     const publicClient = await hre.viem.getPublicClient();
 
     // Deploy all contracts using the Ignition module
@@ -74,6 +74,7 @@ describe("Ships", function () {
       owner,
       user1,
       user2,
+      user3,
       publicClient,
     };
   }
@@ -547,6 +548,249 @@ describe("Ships", function () {
       const { ships } = await loadFixture(deployShipsFixture);
 
       await expect(ships.read.tokenURI([999n])).to.be.rejectedWith("InvalidId");
+    });
+  });
+
+  describe("Ownership Changes", function () {
+    it("Should allow owner to transfer their ship", async function () {
+      const { ships, user1, user2, publicClient } = await loadFixture(
+        deployShipsFixture
+      );
+
+      // Mint a ship to user1
+      await ships.write.mintShip(
+        [user1.account.address, user2.account.address],
+        { value: parseEther("1") }
+      );
+
+      // Transfer the ship from user1 to user2
+      await ships.write.transferFrom(
+        [user1.account.address, user2.account.address, 1n],
+        { account: user1.account }
+      );
+
+      // Verify new owner
+      const newOwner = await ships.read.ownerOf([1n]);
+      expect(newOwner.toString().toLocaleLowerCase()).to.equal(
+        user2.account.address.toLocaleLowerCase()
+      );
+    });
+
+    it("Should allow approved address to transfer ship", async function () {
+      const { ships, user1, user2, user3, publicClient } = await loadFixture(
+        deployShipsFixture
+      );
+
+      // Mint a ship to user1
+      await ships.write.mintShip(
+        [user1.account.address, user2.account.address],
+        { value: parseEther("1") }
+      );
+
+      // User1 approves user2 to transfer their ship
+      await ships.write.approve([user2.account.address, 1n], {
+        account: user1.account,
+      });
+
+      // User2 transfers the ship to user3
+      await ships.write.transferFrom(
+        [user1.account.address, user3.account.address, 1n],
+        { account: user2.account }
+      );
+
+      // Verify new owner
+      const newOwner = await ships.read.ownerOf([1n]);
+      expect(newOwner.toString().toLocaleLowerCase()).to.equal(
+        user3.account.address.toLocaleLowerCase()
+      );
+    });
+
+    it("Should allow operator to transfer ship", async function () {
+      const { ships, user1, user2, user3, publicClient } = await loadFixture(
+        deployShipsFixture
+      );
+
+      // Mint a ship to user1
+      await ships.write.mintShip(
+        [user1.account.address, user2.account.address],
+        { value: parseEther("1") }
+      );
+
+      // User1 sets user2 as operator
+      await ships.write.setApprovalForAll([user2.account.address, true], {
+        account: user1.account,
+      });
+
+      // User2 transfers the ship to user3
+      await ships.write.transferFrom(
+        [user1.account.address, user3.account.address, 1n],
+        { account: user2.account }
+      );
+
+      // Verify new owner
+      const newOwner = await ships.read.ownerOf([1n]);
+      expect(newOwner.toString().toLocaleLowerCase()).to.equal(
+        user3.account.address.toLocaleLowerCase()
+      );
+    });
+
+    it("Should not allow non-owner to transfer ship", async function () {
+      const { ships, user1, user2, user3, publicClient } = await loadFixture(
+        deployShipsFixture
+      );
+
+      // Mint a ship to user1
+      await ships.write.mintShip(
+        [user1.account.address, user2.account.address],
+        { value: parseEther("1") }
+      );
+
+      // Try to transfer as non-owner
+      await expect(
+        ships.write.transferFrom(
+          [user1.account.address, user3.account.address, 1n],
+          { account: user2.account }
+        )
+      ).to.be.rejectedWith("ERC721InsufficientApproval");
+    });
+
+    it("Should not allow transfer of destroyed ship", async function () {
+      const { ships, user1, user2, owner, publicClient } = await loadFixture(
+        deployShipsFixture
+      );
+
+      // Mint a ship to user1
+      await ships.write.mintShip(
+        [user1.account.address, user2.account.address],
+        { value: parseEther("1") }
+      );
+
+      // Destroy the ship (simulate by setting timestampDestroyed)
+      await ships.write.setTimestampDestroyed([1n], { account: owner.account });
+
+      // Try to transfer destroyed ship
+      await expect(
+        ships.write.transferFrom(
+          [user1.account.address, user2.account.address, 1n],
+          { account: user1.account }
+        )
+      ).to.be.rejectedWith("Ship destroyed");
+    });
+
+    it("Should update shipsOwned mapping on transfer", async function () {
+      const { ships, user1, user2, publicClient } = await loadFixture(
+        deployShipsFixture
+      );
+
+      // Mint a ship to user1
+      await ships.write.mintShip(
+        [user1.account.address, user2.account.address],
+        { value: parseEther("1") }
+      );
+
+      // Verify initial state
+      const initialUser1Ships = await ships.read.getShipsOwned([
+        user1.account.address,
+      ]);
+      expect(initialUser1Ships).to.include(1n);
+
+      // Transfer the ship
+      const tx = await ships.write.transferFrom(
+        [user1.account.address, user2.account.address, 1n],
+        { account: user1.account }
+      );
+
+      // Wait for the transaction to be mined
+      await publicClient.waitForTransactionReceipt({ hash: tx });
+
+      // Check shipsOwned mapping
+      const user1Ships = await ships.read.getShipsOwned([
+        user1.account.address,
+      ]);
+      const user2Ships = await ships.read.getShipsOwned([
+        user2.account.address,
+      ]);
+
+      // Verify the ship is only in user2's list after transfer
+      expect(user1Ships).to.not.include(1n);
+      expect(user2Ships).to.include(1n);
+
+      // Verify the actual owner is user2
+      const owner = await ships.read.ownerOf([1n]);
+      expect(owner.toString().toLocaleLowerCase()).to.equal(
+        user2.account.address.toLocaleLowerCase()
+      );
+    });
+
+    it("Should allow owner to approve and revoke approval", async function () {
+      const { ships, user1, user2, publicClient } = await loadFixture(
+        deployShipsFixture
+      );
+
+      // Mint a ship to user1
+      await ships.write.mintShip(
+        [user1.account.address, user2.account.address],
+        { value: parseEther("1") }
+      );
+
+      // Approve user2
+      await ships.write.approve([user2.account.address, 1n], {
+        account: user1.account,
+      });
+
+      // Verify approval
+      const approved = await ships.read.getApproved([1n]);
+      expect(approved.toString().toLocaleLowerCase()).to.equal(
+        user2.account.address.toLocaleLowerCase()
+      );
+
+      // Revoke approval
+      await ships.write.approve(
+        ["0x0000000000000000000000000000000000000000", 1n],
+        { account: user1.account }
+      );
+
+      // Verify approval revoked
+      const newApproved = await ships.read.getApproved([1n]);
+      expect(newApproved).to.equal(
+        "0x0000000000000000000000000000000000000000"
+      );
+    });
+
+    it("Should allow owner to set and revoke operator", async function () {
+      const { ships, user1, user2, publicClient } = await loadFixture(
+        deployShipsFixture
+      );
+
+      // Mint a ship to user1
+      await ships.write.mintShip(
+        [user1.account.address, user2.account.address],
+        { value: parseEther("1") }
+      );
+
+      // Set user2 as operator
+      await ships.write.setApprovalForAll([user2.account.address, true], {
+        account: user1.account,
+      });
+
+      // Verify operator status
+      const isOperator = await ships.read.isApprovedForAll([
+        user1.account.address,
+        user2.account.address,
+      ]);
+      expect(isOperator).to.be.true;
+
+      // Revoke operator status
+      await ships.write.setApprovalForAll([user2.account.address, false], {
+        account: user1.account,
+      });
+
+      // Verify operator status revoked
+      const isOperatorAfter = await ships.read.isApprovedForAll([
+        user1.account.address,
+        user2.account.address,
+      ]);
+      expect(isOperatorAfter).to.be.false;
     });
   });
 });

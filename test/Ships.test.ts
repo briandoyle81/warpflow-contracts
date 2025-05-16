@@ -13,7 +13,7 @@ describe("Ships", function () {
     // Deploy all contracts using the Ignition module
     const {
       ships,
-      mockShipNames,
+      shipNames,
       metadataRenderer,
       randomManager,
       imageRenderer,
@@ -44,7 +44,7 @@ describe("Ships", function () {
 
     return {
       ships,
-      mockShipNames,
+      shipNames,
       metadataRenderer,
       randomManager,
       imageRenderer,

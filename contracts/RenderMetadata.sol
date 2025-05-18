@@ -164,8 +164,18 @@ contract RenderMetadata is IRenderMetadata {
             revert("InvalidId");
         }
 
-        string memory svg = imageRenderer.renderShip(ship);
-        string memory base64Svg = Base64.encode(bytes(svg));
+        string memory imageUri;
+        if (ship.timestampDestroyed > 0) {
+            imageUri = "ipfs://bafkreige3z6iopsmgyzefidhydbaikpipxwrstqzuylw2y2c4rvwnn6yvm";
+        } else if (!ship.constructed) {
+            imageUri = "ipfs://bafkreibc3fdrdsw4l7zy4wjrgalvfhg6kfd3wmijwefny3nxj5244x2tr4";
+        } else {
+            string memory svg = imageRenderer.renderShip(ship);
+            string memory base64Svg = Base64.encode(bytes(svg));
+            imageUri = string(
+                abi.encodePacked("data:image/svg+xml;base64,", base64Svg)
+            );
+        }
 
         string memory baseJson = string(
             abi.encodePacked(
@@ -177,8 +187,8 @@ contract RenderMetadata is IRenderMetadata {
                 getTraitsString(ship),
                 ",",
                 getStatsString(ship),
-                '],"image": "data:image/svg+xml;base64,',
-                base64Svg,
+                '],"image": "',
+                imageUri,
                 '"}'
             )
         );

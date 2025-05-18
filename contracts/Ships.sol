@@ -319,6 +319,18 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     }
 
     /**
+     * @dev Lobby Functions
+     */
+
+    function setInFleet(uint _id, bool _inFleet) public {
+        if (msg.sender != lobbyAddress) {
+            revert NotAuthorized(msg.sender);
+        }
+
+        ships[_id].inFleet = _inFleet;
+    }
+
+    /**
      * @dev INTERNAL
      */
 
@@ -474,8 +486,29 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         return metadataRenderer.tokenURI(ships[_id]);
     }
 
-    function getShipsOwned(address _owner) public view returns (uint[] memory) {
+    function getShipIdsOwned(
+        address _owner
+    ) public view returns (uint[] memory) {
         return shipsOwned[_owner].values();
+    }
+
+    function getShipsOwned(address _owner) public view returns (Ship[] memory) {
+        uint[] memory ids = getShipIdsOwned(_owner);
+        Ship[] memory shipsFetched = new Ship[](ids.length);
+        for (uint i = 0; i < ids.length; i++) {
+            shipsFetched[i] = ships[ids[i]];
+        }
+        return shipsFetched;
+    }
+
+    function getShipsByIds(
+        uint[] memory _ids
+    ) public view returns (Ship[] memory) {
+        Ship[] memory shipsFetched = new Ship[](_ids.length);
+        for (uint i = 0; i < _ids.length; i++) {
+            shipsFetched[i] = ships[_ids[i]];
+        }
+        return shipsFetched;
     }
 
     /**

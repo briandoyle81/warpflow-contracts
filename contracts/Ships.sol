@@ -398,6 +398,8 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         }
 
         ships[_id].timestampDestroyed = block.timestamp;
+
+        emit MetadataUpdate(_id);
     }
 
     function setShipPrice(uint _price) public onlyOwner {

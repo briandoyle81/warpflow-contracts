@@ -331,19 +331,22 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
      * @dev Lobby Functions
      */
 
-    // function setInFleet(uint _id, bool _inFleet) public {
-    //     if (msg.sender != config.lobbyAddress) {
-    //         revert NotAuthorized(msg.sender);
-    //     }
+    function setInFleet(uint _id, bool _inFleet) public {
+        if (
+            msg.sender != config.lobbyAddress &&
+            msg.sender != config.gameAddress
+        ) {
+            revert NotAuthorized(msg.sender);
+        }
 
-    //     ships[_id].inFleet = _inFleet;
-    // }
+        ships[_id].shipData.inFleet = _inFleet;
+    }
 
     /**
      * @dev INTERNAL
      */
 
-    // Overried erc721 update
+    // Override erc721 update
     function _update(
         address to,
         uint256 tokenId,

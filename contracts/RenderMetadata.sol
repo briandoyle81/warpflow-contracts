@@ -48,13 +48,13 @@ contract RenderMetadata is IRenderMetadata {
             string(
                 abi.encodePacked(
                     '{"trait_type": "Shiny", "value": ',
-                    ship.shiny ? "true" : "false",
+                    ship.shipData.shiny ? "true" : "false",
                     "},",
                     '{"trait_type": "Ships Destroyed", "value": ',
-                    Strings.toString(uint256(ship.shipsDestroyed)),
+                    Strings.toString(uint256(ship.shipData.shipsDestroyed)),
                     "},",
                     '{"trait_type": "Cost", "value": ',
-                    Strings.toString(uint256(ship.cost)),
+                    Strings.toString(uint256(ship.shipData.cost)),
                     "}"
                 )
             );
@@ -135,28 +135,6 @@ contract RenderMetadata is IRenderMetadata {
         return "Unknown";
     }
 
-    function getStatsString(
-        Ship memory ship
-    ) internal pure returns (string memory) {
-        return
-            string(
-                abi.encodePacked(
-                    '{"trait_type": "Range", "value": ',
-                    Strings.toString(ship.gameData.attributes.range),
-                    "},",
-                    '{"trait_type": "Gun Damage", "value": ',
-                    Strings.toString(ship.gameData.attributes.gunDamage),
-                    "},",
-                    '{"trait_type": "Hull Points", "value": ',
-                    Strings.toString(ship.gameData.attributes.hullPoints),
-                    "},",
-                    '{"trait_type": "Movement", "value": ',
-                    Strings.toString(ship.gameData.attributes.movement),
-                    "}"
-                )
-            );
-    }
-
     function tokenURI(
         Ship memory ship
     ) public view override returns (string memory) {
@@ -164,18 +142,7 @@ contract RenderMetadata is IRenderMetadata {
             revert("InvalidId");
         }
 
-        string memory imageUri;
-        if (ship.timestampDestroyed > 0) {
-            imageUri = "ipfs://bafkreige3z6iopsmgyzefidhydbaikpipxwrstqzuylw2y2c4rvwnn6yvm";
-        } else if (!ship.constructed) {
-            imageUri = "ipfs://bafkreibc3fdrdsw4l7zy4wjrgalvfhg6kfd3wmijwefny3nxj5244x2tr4";
-        } else {
-            string memory svg = imageRenderer.renderShip(ship);
-            string memory base64Svg = Base64.encode(bytes(svg));
-            imageUri = string(
-                abi.encodePacked("data:image/svg+xml;base64,", base64Svg)
-            );
-        }
+        string memory imageUri = imageRenderer.renderShip(ship);
 
         string memory baseJson = string(
             abi.encodePacked(
@@ -185,8 +152,6 @@ contract RenderMetadata is IRenderMetadata {
                 ship.id.toString(),
                 '","description": "A unique spaceship in the Warpflow universe. Each ship has unique traits, equipment, and stats that determine its capabilities in battle.", "attributes": [',
                 getTraitsString(ship),
-                ",",
-                getStatsString(ship),
                 '],"image": "',
                 imageUri,
                 '"}'

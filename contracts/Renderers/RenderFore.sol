@@ -22,7 +22,7 @@ contract RenderFore is IRenderComponent {
         Ship memory ship
     ) external view override returns (string memory) {
         // If the ship is shiny, use the shiny renderer
-        if (ship.shiny) {
+        if (ship.shipData.shiny) {
             return renderForeShiny.render();
         }
         // Use the accuracy to determine which fore class to use

@@ -77,10 +77,10 @@ const DeployModule = buildModule("DeployModule", (m) => {
   const metadataRenderer = m.contract("RenderMetadata", [imageRenderer]);
 
   // Deploy mock ship names
-  // const shipNames = m.contract("MockOnchainRandomShipNames");
+  const shipNames = m.contract("MockOnchainRandomShipNames");
 
   // For testnet use
-  const shipNames = "0x9E433A07D283d56E8243EA25b7358521b1922df5";
+  // const shipNames = "0x9E433A07D283d56E8243EA25b7358521b1922df5";
 
   // Finally deploy Ships with all dependencies
   const ships = m.contract("Ships", [shipNames, metadataRenderer]);

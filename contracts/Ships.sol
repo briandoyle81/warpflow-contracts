@@ -23,6 +23,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     uint public shipCount;
 
     mapping(address => EnumerableSet.UintSet) private shipsOwned;
+
     mapping(address => uint) public onboardingStep;
 
     mapping(address => uint) public referralCount;
@@ -50,9 +51,17 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     error MintPaused();
     error InvalidRenderer();
     error ShipConstructed(uint);
+    error ShipInFleet(uint);
 
-    address public gameAddress;
-    address public lobbyAddress;
+    struct ContractConfig {
+        address gameAddress;
+        address lobbyAddress;
+        IOnchainRandomShipNames shipNames;
+        IRenderMetadata metadataRenderer;
+        IRandomManager randomManager;
+    }
+
+    ContractConfig public config;
 
     uint public shipPrice = 1 ether; // 1 Flow
     uint public tenPackPrice = 8 ether; // 8 Flow
@@ -62,13 +71,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
     bool public paused;
 
-    IOnchainRandomShipNames public shipNames;
-    IRenderMetadata public metadataRenderer;
-    IRandomManager public randomManager;
-
     uint16 numberOfVariants = 1;
-
-    mapping(uint16 => Costs) public variantCostModifiers;
 
     event MetadataUpdate(uint256 _tokenId);
 
@@ -87,8 +90,8 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         address _shipNames,
         address _renderer
     ) ERC721("Warpflow Ships", "SHIP") Ownable(msg.sender) {
-        shipNames = IOnchainRandomShipNames(_shipNames);
-        metadataRenderer = IRenderMetadata(_renderer);
+        config.shipNames = IOnchainRandomShipNames(_shipNames);
+        config.metadataRenderer = IRenderMetadata(_renderer);
 
         costs.version = 1;
         costs.baseCost = 50;
@@ -153,7 +156,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     function constructAllMyShips() public {
         uint[] memory ids = shipsOwned[msg.sender].values();
         for (uint i = 0; i < ids.length; i++) {
-            if (!ships[ids[i]].constructed) {
+            if (!ships[ids[i]].shipData.constructed) {
                 constructShip(ids[i]);
             }
         }
@@ -168,18 +171,18 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
             revert NotYourShip(_id);
         }
 
-        if (newShip.constructed) {
+        if (newShip.shipData.constructed) {
             revert ShipConstructed(_id);
         }
 
-        newShip.constructed = true;
+        newShip.shipData.constructed = true;
 
-        uint64 randomBase = randomManager.fulfillRandomRequest(
+        uint64 randomBase = config.randomManager.fulfillRandomRequest(
             newShip.traits.serialNumber
         );
 
         randomBase++;
-        newShip.name = shipNames.getRandomShipName(
+        newShip.name = config.shipNames.getRandomShipName(
             bytes32(uint256(keccak256(abi.encodePacked(randomBase))))
         );
 
@@ -261,7 +264,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         // TODO: Should it be adjustable chance for shiny?
         uint shinyChance = uint(keccak256(abi.encodePacked(randomBase))) % 100;
         if (shinyChance == 0) {
-            newShip.shiny = true;
+            newShip.shipData.shiny = true;
         }
 
         // Generated a weighted random number to determine the starting number of enemies destroyed
@@ -275,20 +278,26 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         uint shipsDestroyed = uint(keccak256(abi.encodePacked(randomBase))) %
             100;
         if (shipsDestroyed < 75) {
-            newShip.shipsDestroyed = uint16(1 + (shipsDestroyed % 5));
+            newShip.shipData.shipsDestroyed = uint16(1 + (shipsDestroyed % 5));
         } else if (shipsDestroyed < 90) {
-            newShip.shipsDestroyed = uint16(6 + (shipsDestroyed % 5));
+            newShip.shipData.shipsDestroyed = uint16(6 + (shipsDestroyed % 5));
         } else if (shipsDestroyed < 95) {
-            newShip.shipsDestroyed = uint16(11 + (shipsDestroyed % 40));
+            newShip.shipData.shipsDestroyed = uint16(
+                11 + (shipsDestroyed % 40)
+            );
         } else if (shipsDestroyed < 99) {
-            newShip.shipsDestroyed = uint16(51 + (shipsDestroyed % 50));
+            newShip.shipData.shipsDestroyed = uint16(
+                51 + (shipsDestroyed % 50)
+            );
         } else {
-            newShip.shipsDestroyed = uint16(101 + (shipsDestroyed % 50));
+            newShip.shipData.shipsDestroyed = uint16(
+                101 + (shipsDestroyed % 50)
+            );
         }
 
-        newShip.costsVersion = costs.version;
+        newShip.shipData.costsVersion = costs.version;
 
-        newShip.cost = setCostOfShip(_id);
+        newShip.shipData.cost = setCostOfShip(_id);
     }
 
     function setCostOfShip(uint _id) public view returns (uint16) {
@@ -307,7 +316,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
         // TODO: Cap for rank to cost
         // For now cost is reduced by  0% for rank 1, 10% for rank 2, 20% for rank 3, 30% for rank 4
-        uint16 rank = getRank(ship.shipsDestroyed);
+        uint16 rank = getRank(ship.shipData.shipsDestroyed);
         uint16 rankCost = (unadjustedCost * rank) / 100;
         if (rankCost > (unadjustedCost * 30) / 100) {
             rankCost = (unadjustedCost * 30) / 100;
@@ -322,13 +331,13 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
      * @dev Lobby Functions
      */
 
-    function setInFleet(uint _id, bool _inFleet) public {
-        if (msg.sender != lobbyAddress) {
-            revert NotAuthorized(msg.sender);
-        }
+    // function setInFleet(uint _id, bool _inFleet) public {
+    //     if (msg.sender != config.lobbyAddress) {
+    //         revert NotAuthorized(msg.sender);
+    //     }
 
-        ships[_id].inFleet = _inFleet;
-    }
+    //     ships[_id].inFleet = _inFleet;
+    // }
 
     /**
      * @dev INTERNAL
@@ -340,7 +349,14 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         uint256 tokenId,
         address auth
     ) internal override(ERC721) returns (address) {
-        require(ships[tokenId].timestampDestroyed == 0, "Ship destroyed");
+        require(
+            ships[tokenId].shipData.timestampDestroyed == 0,
+            "Ship destroyed"
+        );
+
+        if (ships[tokenId].shipData.inFleet) {
+            revert ShipInFleet(tokenId);
+        }
 
         // Handle ownership list
         address oldOwner = ships[tokenId].owner;
@@ -365,7 +381,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         newShip.id = shipCount;
         newShip.owner = _to;
 
-        newShip.traits.serialNumber = randomManager.requestRandomness();
+        newShip.traits.serialNumber = config.randomManager.requestRandomness();
 
         _safeMint(_to, shipCount);
     }
@@ -393,11 +409,11 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
      */
 
     function setTimestampDestroyed(uint _id) public {
-        if (msg.sender != owner() && msg.sender != gameAddress) {
+        if (msg.sender != owner() && msg.sender != config.gameAddress) {
             revert NotAuthorized(msg.sender);
         }
 
-        ships[_id].timestampDestroyed = block.timestamp;
+        ships[_id].shipData.timestampDestroyed = block.timestamp;
 
         emit MetadataUpdate(_id);
     }
@@ -411,19 +427,19 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     }
 
     function setGameAddress(address _gameAddress) public onlyOwner {
-        gameAddress = _gameAddress;
+        config.gameAddress = _gameAddress;
     }
 
     function setLobbyAddress(address _lobbyAddress) public onlyOwner {
-        lobbyAddress = _lobbyAddress;
+        config.lobbyAddress = _lobbyAddress;
     }
 
     function setShipNames(address _shipNames) public onlyOwner {
-        shipNames = IOnchainRandomShipNames(_shipNames);
+        config.shipNames = IOnchainRandomShipNames(_shipNames);
     }
 
     function setRandomManager(address _randomManager) public onlyOwner {
-        randomManager = IRandomManager(_randomManager);
+        config.randomManager = IRandomManager(_randomManager);
     }
 
     function setReferralStages(uint[] memory _referralStages) public onlyOwner {
@@ -485,7 +501,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     }
 
     function tokenURI(uint _id) public view override returns (string memory) {
-        return metadataRenderer.tokenURI(ships[_id]);
+        return config.metadataRenderer.tokenURI(ships[_id]);
     }
 
     function getShipIdsOwned(

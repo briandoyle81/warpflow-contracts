@@ -78,6 +78,11 @@ struct Ship {
     Equipment equipment;
     Traits traits;
     GameData gameData;
+    ShipData shipData;
+    address owner;
+}
+
+struct ShipData {
     uint32 shipsDestroyed; // +1 for Frigate, +2 for Destroyer, +3 for Cruiser, +4 for Battleship
     uint16 costsVersion;
     uint16 cost;
@@ -85,7 +90,6 @@ struct Ship {
     bool constructed;
     bool inFleet;
     uint timestampDestroyed;
-    address owner;
 }
 
 struct Costs {

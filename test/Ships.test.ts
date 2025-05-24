@@ -112,9 +112,9 @@ describe("Ships", function () {
       expect(shipCount).to.equal(1n);
 
       const ship = await ships.read.ships([1n]);
-      expect(ship[11].toString().toLocaleLowerCase()).to.equal(
+      expect(ship[6].toString().toLocaleLowerCase()).to.equal(
         user1.account.address.toLocaleLowerCase()
-      ); // owner is at index 11 in the Ship struct
+      ); // owner is at index 6 in the Ship struct
 
       // Check referral count increased
       const referralCount = await ships.read.referralCount([
@@ -143,7 +143,7 @@ describe("Ships", function () {
       // Check all ships are owned by user1
       for (let i = 1; i <= 10; i++) {
         const ship = await ships.read.ships([BigInt(i)]);
-        expect(ship[11].toLocaleLowerCase()).to.equal(
+        expect(ship[6].toLocaleLowerCase()).to.equal(
           user1.account.address.toLocaleLowerCase()
         );
       }
@@ -217,10 +217,10 @@ describe("Ships", function () {
       const { ships, owner, user1 } = await loadFixture(deployShipsFixture);
 
       await ships.write.setGameAddress([user1.account.address]);
-      const gameAddress = await ships.read.gameAddress();
-      expect(gameAddress.toString().toLocaleLowerCase()).to.equal(
+      const config = await ships.read.config();
+      expect(config[0].toString().toLocaleLowerCase()).to.equal(
         user1.account.address.toLocaleLowerCase()
-      );
+      ); // gameAddress is first element in config struct
     });
 
     it("Should allow owner to set paused state", async function () {
@@ -333,10 +333,10 @@ describe("Ships", function () {
       const constructedShip = await ships.read.ships([1n]);
 
       // Verify construction
-      expect(constructedShip[9]).to.be.true; // constructed flag
-      expect(constructedShip[0]).to.equal("Mock Ship"); // name from mock contract
-      expect(constructedShip[6]).to.equal(1); // costsVersion should be set
-      expect(constructedShip[7]).to.be.greaterThan(0); // cost should be calculated
+      expect(constructedShip[5].constructed).to.be.true; // shipData is at index 5
+      expect(constructedShip[0]).to.equal("Mock Ship"); // name is at index 0
+      expect(constructedShip[5].costsVersion).to.equal(1); // shipData.costsVersion
+      expect(constructedShip[5].cost).to.be.greaterThan(0); // shipData.cost
     });
 
     it("Should allow owner to construct multiple ships at once", async function () {
@@ -353,7 +353,7 @@ describe("Ships", function () {
       // Get all ships' serial numbers
       for (let i = 1; i <= 10; i++) {
         const ship = await ships.read.ships([BigInt(i)]);
-        const serialNumber = ship[3].serialNumber;
+        const serialNumber = ship[3].serialNumber; // traits is at index 3
         await randomManager.write.fulfillRandomRequest([serialNumber]);
       }
 
@@ -366,10 +366,10 @@ describe("Ships", function () {
       // Verify all ships are constructed
       for (let i = 1; i <= 10; i++) {
         const ship = await ships.read.ships([BigInt(i)]);
-        expect(ship[9]).to.be.true; // constructed flag
-        expect(ship[0]).to.equal("Mock Ship"); // name from mock contract
-        expect(ship[6]).to.equal(1); // costsVersion should be set
-        expect(ship[7]).to.be.greaterThan(0); // cost should be calculated
+        expect(ship[5].constructed).to.be.true; // shipData is at index 5
+        expect(ship[0]).to.equal("Mock Ship"); // name is at index 0
+        expect(ship[5].costsVersion).to.equal(1); // shipData.costsVersion
+        expect(ship[5].cost).to.be.greaterThan(0); // shipData.cost
       }
     });
 
@@ -386,7 +386,7 @@ describe("Ships", function () {
 
       // Get the ship's serial number
       const ship = await ships.read.ships([1n]);
-      const serialNumber = ship[3].serialNumber;
+      const serialNumber = ship[3].serialNumber; // traits is at index 3
 
       // Fulfill the random request
       await randomManager.write.fulfillRandomRequest([serialNumber]);
@@ -412,7 +412,7 @@ describe("Ships", function () {
 
       // Get the ship's serial number
       const ship = await ships.read.ships([1n]);
-      const serialNumber = ship[3].serialNumber;
+      const serialNumber = ship[3].serialNumber; // traits is at index 3
 
       // Fulfill the random request
       await randomManager.write.fulfillRandomRequest([serialNumber]);
@@ -444,7 +444,7 @@ describe("Ships", function () {
 
       // Get the ship's serial number
       const ship = await ships.read.ships([1n]);
-      const serialNumber = ship[3].serialNumber;
+      const serialNumber = ship[3].serialNumber; // traits is at index 3
 
       // Fulfill the random request
       await randomManager.write.fulfillRandomRequest([serialNumber]);
@@ -481,8 +481,6 @@ describe("Ships", function () {
         "A unique spaceship in the Warpflow universe. Each ship has unique traits, equipment, and stats that determine its capabilities in battle."
       );
 
-      console.log(metadata.image);
-
       // Verify image format - should now be a base64 encoded SVG
       expect(metadata.image).to.match(/^data:image\/svg\+xml;base64,/);
 
@@ -516,22 +514,12 @@ describe("Ships", function () {
       expect(attributeMap.has("Shields")).to.be.true;
       expect(attributeMap.has("Special")).to.be.true;
 
-      // Verify stats traits
-      expect(attributeMap.has("Range")).to.be.true;
-      expect(attributeMap.has("Gun Damage")).to.be.true;
-      expect(attributeMap.has("Hull Points")).to.be.true;
-      expect(attributeMap.has("Movement")).to.be.true;
-
       // Verify numeric values are actually numbers
       expect(Number(attributeMap.get("Accuracy"))).to.not.be.NaN;
       expect(Number(attributeMap.get("Hull"))).to.not.be.NaN;
       expect(Number(attributeMap.get("Speed"))).to.not.be.NaN;
       expect(Number(attributeMap.get("Ships Destroyed"))).to.not.be.NaN;
       expect(Number(attributeMap.get("Cost"))).to.not.be.NaN;
-      expect(Number(attributeMap.get("Range"))).to.not.be.NaN;
-      expect(Number(attributeMap.get("Gun Damage"))).to.not.be.NaN;
-      expect(Number(attributeMap.get("Hull Points"))).to.not.be.NaN;
-      expect(Number(attributeMap.get("Movement"))).to.not.be.NaN;
 
       // Verify boolean values
       const shinyValue = attributeMap.get("Shiny");
@@ -692,7 +680,7 @@ describe("Ships", function () {
       const initialUser1Ships = await ships.read.getShipsOwned([
         user1.account.address,
       ]);
-      expect(initialUser1Ships).to.include(1n);
+      expect(initialUser1Ships[0].id).to.equal(1n);
 
       // Transfer the ship
       const tx = await ships.write.transferFrom(
@@ -712,8 +700,8 @@ describe("Ships", function () {
       ]);
 
       // Verify the ship is only in user2's list after transfer
-      expect(user1Ships).to.not.include(1n);
-      expect(user2Ships).to.include(1n);
+      expect(user1Ships.length).to.equal(0);
+      expect(user2Ships[0].id).to.equal(1n);
 
       // Verify the actual owner is user2
       const owner = await ships.read.ownerOf([1n]);

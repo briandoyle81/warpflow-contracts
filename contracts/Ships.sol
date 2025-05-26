@@ -127,6 +127,10 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
             revert InvalidPurchase(_tier, msg.value);
         }
 
+        if (_referral == address(0)) {
+            revert InvalidReferral();
+        }
+
         uint totalShips = tierShips[_tier];
 
         for (uint i = 0; i < totalShips; i++) {

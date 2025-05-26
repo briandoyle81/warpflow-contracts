@@ -106,96 +106,122 @@ describe("Ships", function () {
       );
     });
 
-    it("Should set the correct initial ship price", async function () {
+    it("Should set the correct initial tier prices", async function () {
       const { ships } = await loadFixture(deployShipsFixture);
-      const price = await ships.read.shipPrice();
-      expect(price).to.equal(parseEther("1"));
+      const [tiers, shipsPerTier, prices] = await ships.read.getPurchaseInfo();
+
+      // Check tier 1 (5 ships for 4.99 Flow)
+      expect(tiers[0]).to.equal(1);
+      expect(shipsPerTier[0]).to.equal(5);
+      expect(prices[0]).to.equal(parseEther("4.99"));
+
+      // Check tier 2 (11 ships for 9.99 Flow)
+      expect(tiers[1]).to.equal(2);
+      expect(shipsPerTier[1]).to.equal(11);
+      expect(prices[1]).to.equal(parseEther("9.99"));
+
+      // Check tier 3 (28 ships for 24.99 Flow)
+      expect(tiers[2]).to.equal(3);
+      expect(shipsPerTier[2]).to.equal(28);
+      expect(prices[2]).to.equal(parseEther("24.99"));
+
+      // Check tier 4 (60 ships for 49.99 Flow)
+      expect(tiers[3]).to.equal(4);
+      expect(shipsPerTier[3]).to.equal(60);
+      expect(prices[3]).to.equal(parseEther("49.99"));
+
+      // Check tier 5 (125 ships for 99.99 Flow)
+      expect(tiers[4]).to.equal(5);
+      expect(shipsPerTier[4]).to.equal(125);
+      expect(prices[4]).to.equal(parseEther("99.99"));
     });
   });
 
   describe("Minting", function () {
-    it("Should mint a ship with correct payment", async function () {
+    it("Should tier 1 with correct payment", async function () {
       const { ships, user1, user2, publicClient } = await loadFixture(
         deployShipsFixture
       );
 
-      const tx = await ships.write.mintShip(
-        [user1.account.address, user2.account.address],
-        { value: parseEther("1") }
+      const tx = await ships.write.purchaseWithFlow(
+        [user1.account.address, 0n, user2.account.address],
+        { value: parseEther("4.99") }
       );
 
       await publicClient.waitForTransactionReceipt({ hash: tx });
 
       const shipCount = await ships.read.shipCount();
-      expect(shipCount).to.equal(1n);
+      expect(shipCount).to.equal(5n);
 
-      const ship = await ships.read.ships([1n]);
-      expect(ship[6].toString().toLocaleLowerCase()).to.equal(
-        user1.account.address.toLocaleLowerCase()
-      ); // owner is at index 6 in the Ship struct
+      // Check all ships are owned by user1
+      for (let i = 1; i <= 5; i++) {
+        const ship = await ships.read.ships([BigInt(i)]);
+        expect(ship[6].toString().toLocaleLowerCase()).to.equal(
+          user1.account.address.toLocaleLowerCase()
+        ); // owner is at index 6 in the Ship struct
+      }
 
-      // Check referral count increased by 1 ship
+      // Check referral count increased by 5 ships
       const referralCount = await ships.read.referralCount([
         user2.account.address,
       ]);
-      expect(referralCount).to.equal(1n);
+      expect(referralCount).to.equal(5n);
     });
 
-    it("Should mint ten ships with correct payment", async function () {
+    it("Should tier 2 with correct payment", async function () {
       const { ships, user1, user2, publicClient } = await loadFixture(
         deployShipsFixture
       );
 
-      const tenPackPrice = await ships.read.tenPackPrice();
-
-      const tx = await ships.write.mintTenPack(
-        [user1.account.address, user2.account.address],
-        { value: tenPackPrice }
+      const tx = await ships.write.purchaseWithFlow(
+        [user1.account.address, 1n, user2.account.address],
+        { value: parseEther("9.99") }
       );
 
       await publicClient.waitForTransactionReceipt({ hash: tx });
 
       const shipCount = await ships.read.shipCount();
-      expect(shipCount).to.equal(10n);
+      expect(shipCount).to.equal(11n);
 
       // Check all ships are owned by user1
-      for (let i = 1; i <= 10; i++) {
+      for (let i = 1; i <= 11; i++) {
         const ship = await ships.read.ships([BigInt(i)]);
         expect(ship[6].toLocaleLowerCase()).to.equal(
           user1.account.address.toLocaleLowerCase()
         );
       }
 
-      // Check referral count increased by 10 ships
+      // Check referral count increased by 11 ships
       const referralCount = await ships.read.referralCount([
         user2.account.address,
       ]);
-      expect(referralCount).to.equal(10n);
+      expect(referralCount).to.equal(11n);
     });
 
-    it("Should revert ten pack with invalid payment", async function () {
+    it("Should revert tier 1 with invalid payment", async function () {
       const { ships, user1, user2 } = await loadFixture(deployShipsFixture);
 
-      const tenPackPrice = await ships.read.tenPackPrice();
-      const invalidPayment = tenPackPrice - parseEther("1"); // Pay 1 Flow less than required
+      const invalidPayment = parseEther("3.99"); // Pay 1 Flow less than required
 
       await expect(
-        ships.write.mintTenPack(
-          [user1.account.address, user2.account.address],
+        ships.write.purchaseWithFlow(
+          [user1.account.address, 0n, user2.account.address],
           { value: invalidPayment }
         )
-      ).to.be.rejectedWith("InvalidPayment");
+      ).to.be.rejectedWith("InvalidPurchase");
     });
 
-    it("Should revert ten pack with zero address referral", async function () {
+    it("Should revert tier 1 with zero address referral", async function () {
       const { ships, user1 } = await loadFixture(deployShipsFixture);
 
-      const tenPackPrice = await ships.read.tenPackPrice();
-
       await expect(
-        ships.write.mintTenPack(
-          [user1.account.address, "0x0000000000000000000000000000000000000000"],
-          { value: tenPackPrice }
+        ships.write.purchaseWithFlow(
+          [
+            user1.account.address,
+            0n,
+            "0x0000000000000000000000000000000000000000",
+          ],
+          { value: parseEther("4.99") }
         )
       ).to.be.rejectedWith("InvalidReferral");
     });
@@ -204,19 +230,24 @@ describe("Ships", function () {
       const { ships, user1, user2 } = await loadFixture(deployShipsFixture);
 
       await expect(
-        ships.write.mintShip([user1.account.address, user2.account.address], {
-          value: parseEther("0.5"),
-        })
-      ).to.be.rejectedWith("InvalidPayment");
+        ships.write.purchaseWithFlow(
+          [user1.account.address, 0n, user2.account.address],
+          { value: parseEther("0.5") }
+        )
+      ).to.be.rejectedWith("InvalidPurchase");
     });
 
     it("Should revert with zero address referral", async function () {
       const { ships, user1 } = await loadFixture(deployShipsFixture);
 
       await expect(
-        ships.write.mintShip(
-          [user1.account.address, "0x0000000000000000000000000000000000000000"],
-          { value: parseEther("1") }
+        ships.write.purchaseWithFlow(
+          [
+            user1.account.address,
+            0n,
+            "0x0000000000000000000000000000000000000000",
+          ],
+          { value: parseEther("4.99") }
         )
       ).to.be.rejectedWith("InvalidReferral");
     });

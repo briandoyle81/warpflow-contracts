@@ -11,9 +11,9 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 // import "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 
 import "./Types.sol";
-import "./IOnchainRandomShipNames.sol";
 import "./IRenderer.sol";
 import "./IRandomManager.sol";
+import "./IGenerateNewShip.sol";
 
 contract Ships is ERC721, Ownable, ReentrancyGuard {
     using EnumerableSet for EnumerableSet.UintSet;
@@ -28,9 +28,10 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
     mapping(address => uint) public referralCount;
 
-    uint[] public referralPercentages = [0, 10, 20, 35, 50];
+    // Static - Contract with the world
+    uint8[] public referralPercentages = [0, 10, 20, 35, 50];
     // Amount of Ships sold to reach each tier
-    uint[] public referralStages = [
+    uint32[] public referralStages = [
         100, // 100 ships sold
         1000, // 1000 ships sold
         10000, // 10000 ships sold
@@ -38,7 +39,6 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         100000 // 100000 ships sold
     ];
 
-    error InvalidPayment();
     error InvalidReferral();
     error NotAuthorized(address);
     error NotYourShip(uint);
@@ -47,25 +47,27 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     error ShipInGame();
     error ShipInLobby();
     error OldShipCost();
-    error BadTeamCost();
     error MintPaused();
     error InvalidRenderer();
     error ShipConstructed(uint);
     error ShipInFleet(uint);
     error NotAllowedToTransfer(address);
+    error InvalidPurchase(uint _tier, uint _amount);
+    error ArrayLengthMismatch();
 
     struct ContractConfig {
         address gameAddress;
         address lobbyAddress;
-        IOnchainRandomShipNames shipNames;
         IRenderMetadata metadataRenderer;
         IRandomManager randomManager;
+        IGenerateNewShip shipGenerator;
     }
 
     ContractConfig public config;
 
-    uint public shipPrice = 1 ether; // 1 Flow
-    uint public tenPackPrice = 8 ether; // 8 Flow
+    uint8[] public purchaseTiers;
+    uint8[] public tierShips;
+    uint[] public tierPrices;
 
     Costs public costs;
     uint public costsVersion;
@@ -82,10 +84,8 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     // Withdrawal
 
     constructor(
-        address _shipNames,
         address _renderer
     ) ERC721("Warpflow Ships", "SHIP") Ownable(msg.sender) {
-        config.shipNames = IOnchainRandomShipNames(_shipNames);
         config.metadataRenderer = IRenderMetadata(_renderer);
 
         costs.version = 1;
@@ -101,45 +101,40 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         costs.special = [0, 10, 20, 15];
 
         // Variant 0 has no modifiers, already exists as zeroes
+
+        purchaseTiers = [1, 2, 3, 4, 5];
+        tierShips = [5, 11, 28, 60, 125];
+        //              0%, 10%, 15%, 20%, 25%
+        tierPrices = [
+            4.99 ether,
+            9.99 ether,
+            24.99 ether,
+            49.99 ether,
+            99.99 ether
+        ];
     }
 
     /**
      * @dev PUBLIC
      */
 
-    function mintShip(
+    function purchaseWithFlow(
         address _to,
+        uint _tier,
         address _referral
     ) public payable nonReentrant {
-        if (msg.value != shipPrice) {
-            revert InvalidPayment();
+        if (msg.value != tierPrices[_tier]) {
+            revert InvalidPurchase(_tier, msg.value);
         }
 
-        if (_referral == address(0)) {
-            revert InvalidReferral();
-        }
+        uint totalShips = tierShips[_tier];
 
-        _mintShip(_to);
-        _processReferral(_referral, 1, shipPrice);
-    }
-
-    function mintTenPack(
-        address _to,
-        address _referral
-    ) public payable nonReentrant {
-        if (msg.value != tenPackPrice) {
-            revert InvalidPayment();
-        }
-
-        if (_referral == address(0)) {
-            revert InvalidReferral();
-        }
-
-        for (uint i = 0; i < 10; i++) {
+        for (uint i = 0; i < totalShips; i++) {
             _mintShip(_to);
         }
 
-        _processReferral(_referral, 10, tenPackPrice);
+        _processReferral(_referral, totalShips, tierPrices[_tier]);
+
         allowedToTransfer[_to] = true;
     }
 
@@ -177,120 +172,18 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
             newShip.traits.serialNumber
         );
 
-        randomBase++;
-        newShip.name = config.shipNames.getRandomShipName(
-            bytes32(uint256(keccak256(abi.encodePacked(randomBase))))
+        Ship memory generatedShip = config.shipGenerator.generateShip(
+            randomBase,
+            _id,
+            numberOfVariants
         );
 
-        // r g b 1 and 2 values are 0 to 255
-        randomBase++;
-        newShip.traits.r1 = uint8(
-            uint(keccak256(abi.encodePacked(randomBase))) % 256
-        );
-
-        randomBase++;
-        newShip.traits.g1 = uint8(
-            uint(keccak256(abi.encodePacked(randomBase))) % 256
-        );
-
-        randomBase++;
-        newShip.traits.b1 = uint8(
-            uint(keccak256(abi.encodePacked(randomBase))) % 256
-        );
-
-        randomBase++;
-        newShip.traits.r2 = uint8(
-            uint(keccak256(abi.encodePacked(randomBase))) % 256
-        );
-
-        randomBase++;
-        newShip.traits.g2 = uint8(
-            uint(keccak256(abi.encodePacked(randomBase))) % 256
-        );
-
-        randomBase++;
-        newShip.traits.b2 = uint8(
-            uint(keccak256(abi.encodePacked(randomBase))) % 256
-        );
-
-        randomBase++;
-        newShip.traits.accuracy = uint8(
-            getTierOfTrait(uint(keccak256(abi.encodePacked(randomBase))) % 100)
-        );
-
-        randomBase++;
-        newShip.traits.hull = uint8(
-            getTierOfTrait(uint(keccak256(abi.encodePacked(randomBase))) % 100)
-        );
-
-        randomBase++;
-        newShip.traits.speed = uint8(
-            getTierOfTrait(uint(keccak256(abi.encodePacked(randomBase))) % 100)
-        );
-
-        randomBase++;
-        newShip.traits.variant = uint8(
-            uint(keccak256(abi.encodePacked(randomBase))) % numberOfVariants
-        );
-
-        randomBase++;
-        newShip.equipment.mainWeapon = MainWeapon(
-            uint(keccak256(abi.encodePacked(randomBase))) % 4
-        );
-
-        // Flip a coin to determine if a ship has armor or shields
-        randomBase++;
-        bool hasArmor = uint(keccak256(abi.encodePacked(randomBase))) % 2 == 0;
-        randomBase++;
-        if (hasArmor) {
-            newShip.equipment.armor = Armor(
-                uint(keccak256(abi.encodePacked(randomBase))) % 4
-            );
-        } else {
-            newShip.equipment.shields = Shields(
-                uint(keccak256(abi.encodePacked(randomBase))) % 4
-            );
-        }
-
-        randomBase++;
-        newShip.equipment.special = Special(
-            uint(keccak256(abi.encodePacked(randomBase))) % 4
-        );
-
-        // TODO: Should it be adjustable chance for shiny?
-        uint shinyChance = uint(keccak256(abi.encodePacked(randomBase))) % 100;
-        if (shinyChance == 0) {
-            newShip.shipData.shiny = true;
-        }
-
-        // Generated a weighted random number to determine the starting number of enemies destroyed
-        // 75% chance that the number is between 1 and 5
-        // 15% chance that the number is between 6 and 10
-        // 5% chance that the number is between 11 and 50
-        // 4% chance that the number is between 51 and 100
-        // 1% chance that the number is between 101 and 150
-
-        randomBase++;
-        uint shipsDestroyed = uint(keccak256(abi.encodePacked(randomBase))) %
-            100;
-        if (shipsDestroyed < 75) {
-            newShip.shipData.shipsDestroyed = uint16(1 + (shipsDestroyed % 5));
-        } else if (shipsDestroyed < 90) {
-            newShip.shipData.shipsDestroyed = uint16(6 + (shipsDestroyed % 5));
-        } else if (shipsDestroyed < 95) {
-            newShip.shipData.shipsDestroyed = uint16(
-                11 + (shipsDestroyed % 40)
-            );
-        } else if (shipsDestroyed < 99) {
-            newShip.shipData.shipsDestroyed = uint16(
-                51 + (shipsDestroyed % 50)
-            );
-        } else {
-            newShip.shipData.shipsDestroyed = uint16(
-                101 + (shipsDestroyed % 50)
-            );
-        }
-
+        // Copy generated ship data to storage
+        newShip.name = generatedShip.name;
+        newShip.traits = generatedShip.traits;
+        newShip.equipment = generatedShip.equipment;
+        newShip.shipData.shiny = generatedShip.shipData.shiny;
+        newShip.shipData.shipsDestroyed = generatedShip.shipData.shipsDestroyed;
         newShip.shipData.costsVersion = costs.version;
 
         _setCostOfShip(_id);
@@ -444,42 +337,44 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         emit MetadataUpdate(_id);
     }
 
-    function setShipPrice(uint _price) public onlyOwner {
-        shipPrice = _price;
-    }
-
-    function setTenPackPrice(uint _price) public onlyOwner {
-        tenPackPrice = _price;
-    }
-
-    function setGameAddress(address _gameAddress) public onlyOwner {
-        config.gameAddress = _gameAddress;
-    }
-
-    function setLobbyAddress(address _lobbyAddress) public onlyOwner {
-        config.lobbyAddress = _lobbyAddress;
-    }
-
-    function setShipNames(address _shipNames) public onlyOwner {
-        config.shipNames = IOnchainRandomShipNames(_shipNames);
-    }
-
-    function setRandomManager(address _randomManager) public onlyOwner {
-        config.randomManager = IRandomManager(_randomManager);
-    }
-
-    function setMetadataRenderer(address _metadataRenderer) public onlyOwner {
-        config.metadataRenderer = IRenderMetadata(_metadataRenderer);
-    }
-
-    function setReferralStages(uint[] memory _referralStages) public onlyOwner {
-        referralStages = _referralStages;
-    }
-
-    function setReferralPercentages(
-        uint[] memory _referralPercentages
+    function setPurchaseInfo(
+        uint8[] memory _purchaseTiers,
+        uint8[] memory _tierShips,
+        uint[] memory _tierPrices
     ) public onlyOwner {
-        referralPercentages = _referralPercentages;
+        if (
+            _purchaseTiers.length != _tierShips.length ||
+            _tierShips.length != _tierPrices.length
+        ) {
+            revert ArrayLengthMismatch();
+        }
+        purchaseTiers = _purchaseTiers;
+        tierShips = _tierShips;
+        tierPrices = _tierPrices;
+    }
+
+    function setConfig(
+        address _gameAddress,
+        address _lobbyAddress,
+        address _shipGenerator,
+        address _randomManager,
+        address _metadataRenderer
+    ) public onlyOwner {
+        if (_gameAddress != address(0)) {
+            config.gameAddress = _gameAddress;
+        }
+        if (_lobbyAddress != address(0)) {
+            config.lobbyAddress = _lobbyAddress;
+        }
+        if (_shipGenerator != address(0)) {
+            config.shipGenerator = IGenerateNewShip(_shipGenerator);
+        }
+        if (_randomManager != address(0)) {
+            config.randomManager = IRandomManager(_randomManager);
+        }
+        if (_metadataRenderer != address(0)) {
+            config.metadataRenderer = IRenderMetadata(_metadataRenderer);
+        }
     }
 
     function setCosts(Costs memory _costs) public onlyOwner {
@@ -506,28 +401,24 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
      * @dev VIEW
      */
 
-    function getCosts() public view returns (Costs memory) {
-        return costs;
-    }
-
-    function getCostsVersion() public view returns (uint) {
-        return costsVersion;
+    function getCosts() public view returns (uint, Costs memory) {
+        return (costsVersion, costs);
     }
 
     function getShip(uint _id) public view returns (Ship memory) {
         return ships[_id];
     }
 
-    function getShipCount() public view returns (uint) {
-        return shipCount;
-    }
-
-    function getShipPrice() public view returns (uint) {
-        return shipPrice;
-    }
-
-    function getTenPackPrice() public view returns (uint) {
-        return tenPackPrice;
+    function getPurchaseInfo()
+        public
+        view
+        returns (
+            uint8[] memory _purchaseTiers,
+            uint8[] memory _tierShips,
+            uint[] memory _tierPrices
+        )
+    {
+        return (purchaseTiers, tierShips, tierPrices);
     }
 
     function tokenURI(uint _id) public view override returns (string memory) {
@@ -540,14 +431,15 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         return shipsOwned[_owner].values();
     }
 
-    function getShipsOwned(address _owner) public view returns (Ship[] memory) {
-        uint[] memory ids = getShipIdsOwned(_owner);
-        Ship[] memory shipsFetched = new Ship[](ids.length);
-        for (uint i = 0; i < ids.length; i++) {
-            shipsFetched[i] = ships[ids[i]];
-        }
-        return shipsFetched;
-    }
+    // // TODO CRITICAL: This almost certainly needs to be paginated
+    // function getShipsOwned(address _owner) public view returns (Ship[] memory) {
+    //     uint[] memory ids = getShipIdsOwned(_owner);
+    //     Ship[] memory shipsFetched = new Ship[](ids.length);
+    //     for (uint i = 0; i < ids.length; i++) {
+    //         shipsFetched[i] = ships[ids[i]];
+    //     }
+    //     return shipsFetched;
+    // }
 
     function getShipsByIds(
         uint[] memory _ids

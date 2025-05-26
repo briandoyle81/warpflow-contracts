@@ -82,11 +82,20 @@ const DeployModule = buildModule("DeployModule", (m) => {
   // For testnet use
   // const shipNames = "0x9E433A07D283d56E8243EA25b7358521b1922df5";
 
-  // Finally deploy Ships with all dependencies
-  const ships = m.contract("Ships", [shipNames, metadataRenderer]);
+  // Deploy GenerateNewShip with ship names
+  const generateNewShip = m.contract("GenerateNewShip", [shipNames]);
 
-  // Set the random manager in Ships
-  m.call(ships, "setRandomManager", [randomManager]);
+  // Finally deploy Ships with all dependencies
+  const ships = m.contract("Ships", [metadataRenderer]);
+
+  // Set all config values in a single call
+  m.call(ships, "setConfig", [
+    "0x0000000000000000000000000000000000000000", // gameAddress - set to zero for now
+    "0x0000000000000000000000000000000000000000", // lobbyAddress - set to zero for now
+    generateNewShip,
+    randomManager,
+    metadataRenderer,
+  ]);
 
   return {
     randomManager,
@@ -118,6 +127,7 @@ const DeployModule = buildModule("DeployModule", (m) => {
     imageRenderer,
     metadataRenderer,
     shipNames,
+    generateNewShip,
     ships,
   };
 });

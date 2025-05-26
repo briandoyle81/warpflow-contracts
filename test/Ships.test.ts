@@ -134,11 +134,11 @@ describe("Ships", function () {
         user1.account.address.toLocaleLowerCase()
       ); // owner is at index 6 in the Ship struct
 
-      // Check referral count increased
+      // Check referral count increased by 1 ship
       const referralCount = await ships.read.referralCount([
         user2.account.address,
       ]);
-      expect(referralCount).to.equal(parseEther("1"));
+      expect(referralCount).to.equal(1n);
     });
 
     it("Should mint ten ships with correct payment", async function () {
@@ -166,11 +166,11 @@ describe("Ships", function () {
         );
       }
 
-      // Check referral count increased by 10
+      // Check referral count increased by 10 ships
       const referralCount = await ships.read.referralCount([
         user2.account.address,
       ]);
-      expect(referralCount).to.equal(parseEther("8"));
+      expect(referralCount).to.equal(10n);
     });
 
     it("Should revert ten pack with invalid payment", async function () {
@@ -283,6 +283,12 @@ describe("Ships", function () {
 
       // Check that referral received 1% (first tier)
       expect(finalBalance - initialBalance).to.equal(parseEther("0.01"));
+
+      // Check that referral count increased by 1 ship
+      const referralCount = await ships.read.referralCount([
+        user2.account.address,
+      ]);
+      expect(referralCount).to.equal(1n);
     });
 
     it("Should process referral payment correctly for ten pack", async function () {
@@ -307,20 +313,39 @@ describe("Ships", function () {
       // Check that referral received 1% of ten pack price (first tier)
       // For 8 Flow, 1% is 0.08 Flow
       expect(finalBalance - initialBalance).to.equal(parseEther("0.08"));
+
+      // Check that referral count increased by 10 ships
+      const referralCount = await ships.read.referralCount([
+        user2.account.address,
+      ]);
+      expect(referralCount).to.equal(10n);
     });
 
     it("Should update referral count correctly", async function () {
       const { ships, user1, user2 } = await loadFixture(deployShipsFixture);
 
+      // Mint a single ship
       await ships.write.mintShip(
         [user1.account.address, user2.account.address],
         { value: parseEther("1") }
       );
 
-      const referralCount = await ships.read.referralCount([
+      // Check referral count is 1
+      let referralCount = await ships.read.referralCount([
         user2.account.address,
       ]);
-      expect(referralCount).to.equal(parseEther("1"));
+      expect(referralCount).to.equal(1n);
+
+      // Mint a ten pack
+      const tenPackPrice = await ships.read.tenPackPrice();
+      await ships.write.mintTenPack(
+        [user1.account.address, user2.account.address],
+        { value: tenPackPrice }
+      );
+
+      // Check referral count is now 11 (1 + 10)
+      referralCount = await ships.read.referralCount([user2.account.address]);
+      expect(referralCount).to.equal(11n);
     });
   });
 

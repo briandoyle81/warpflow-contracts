@@ -29,13 +29,13 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     mapping(address => uint) public referralCount;
 
     uint[] public referralPercentages = [0, 10, 20, 35, 50];
-    // Amount of Flow sold to reach each tier
+    // Amount of Ships sold to reach each tier
     uint[] public referralStages = [
-        100 ether,
-        1000 ether,
-        10000 ether,
-        50000 ether,
-        100000 ether
+        100, // 100 ships sold
+        1000, // 1000 ships sold
+        10000, // 10000 ships sold
+        50000, // 50000 ships sold
+        100000 // 100000 ships sold
     ];
 
     error InvalidPayment();
@@ -120,7 +120,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         }
 
         _mintShip(_to);
-        _processReferral(_referral, shipPrice);
+        _processReferral(_referral, 1, shipPrice);
     }
 
     function mintTenPack(
@@ -139,7 +139,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
             _mintShip(_to);
         }
 
-        _processReferral(_referral, tenPackPrice);
+        _processReferral(_referral, 10, tenPackPrice);
         allowedToTransfer[_to] = true;
     }
 
@@ -408,8 +408,12 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         newShip.owner = _to;
     }
 
-    function _processReferral(address _referrer, uint _amount) internal {
-        referralCount[_referrer] += _amount;
+    function _processReferral(
+        address _referrer,
+        uint _shipsSold,
+        uint _salePrice
+    ) internal {
+        referralCount[_referrer] += _shipsSold;
 
         uint referralPercentage = 1; // For testing, maybe leave and see what happens
 
@@ -420,7 +424,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
             }
         }
 
-        uint referralAmount = (_amount * referralPercentage) / 100;
+        uint referralAmount = (_salePrice * referralPercentage) / 100;
 
         (bool success, ) = payable(_referrer).call{value: referralAmount}("");
         require(success, "Referral transfer failed");

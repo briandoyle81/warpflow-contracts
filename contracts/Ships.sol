@@ -319,10 +319,16 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         );
 
         // TODO: Cap for rank to cost
-        // For now cost is reduced by  0% for rank 1, 10% for rank 2, 20% for rank 3, 30% for rank 4
+        // For now cost is reduced by  0% for rank 1, 10% for rank 2, 20% for rank 3, 30% for rank 4 and above
         uint16 rank = getRank(ship.shipData.shipsDestroyed);
-        uint16 rankCost = (unadjustedCost * rank) / 100;
-        if (rankCost > (unadjustedCost * 30) / 100) {
+        uint16 rankCost;
+        if (rank == 1) {
+            rankCost = (unadjustedCost * 0) / 100;
+        } else if (rank == 2) {
+            rankCost = (unadjustedCost * 10) / 100;
+        } else if (rank == 3) {
+            rankCost = (unadjustedCost * 20) / 100;
+        } else if (rank >= 4) {
             rankCost = (unadjustedCost * 30) / 100;
         }
 
@@ -332,7 +338,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Lobby Functions
+     * @dev Lobby and GameFunctions
      */
 
     function setInFleet(uint _id, bool _inFleet) public {

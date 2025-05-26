@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Base64.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
+
 // TODO: CRITICAL Confirm which reentrancy guard to use
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 // import "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
@@ -23,6 +22,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     uint public shipCount;
 
     mapping(address => EnumerableSet.UintSet) private shipsOwned;
+    mapping(address => bool) public allowedToTransfer;
 
     mapping(address => uint) public onboardingStep;
 
@@ -52,6 +52,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     error InvalidRenderer();
     error ShipConstructed(uint);
     error ShipInFleet(uint);
+    error NotAllowedToTransfer(address);
 
     struct ContractConfig {
         address gameAddress;
@@ -79,13 +80,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
     // Only Owner TODO
     // Withdrawal
-    // Set costs
-    // Set prices
-    // Set game address
-    // Set lobby address
-    // Set ship names
-    // Set referral stages
-    // Set referral percentages
+
     constructor(
         address _shipNames,
         address _renderer
@@ -145,6 +140,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         }
 
         _processReferral(_referral, tenPackPrice);
+        allowedToTransfer[_to] = true;
     }
 
     function constructShips(uint[] memory _ids) public {
@@ -361,10 +357,17 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
             revert ShipInFleet(tokenId);
         }
 
-        // Handle ownership list
         address oldOwner = ships[tokenId].owner;
+
+        // Skip transfer check for minting (when oldOwner is address(0))
         if (oldOwner != address(0)) {
-            // Only remove if there was a previous owner
+            if (!allowedToTransfer[oldOwner]) {
+                revert NotAllowedToTransfer(oldOwner);
+            }
+            if (!allowedToTransfer[to]) {
+                revert NotAllowedToTransfer(to);
+            }
+            // Handle ownership list
             shipsOwned[oldOwner].remove(tokenId);
         }
 
@@ -382,11 +385,13 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         shipCount++;
         Ship storage newShip = ships[shipCount];
         newShip.id = shipCount;
-        newShip.owner = _to;
 
         newShip.traits.serialNumber = config.randomManager.requestRandomness();
 
         _safeMint(_to, shipCount);
+
+        // Set owner after minting to avoid check in _update
+        newShip.owner = _to;
     }
 
     function _processReferral(address _referrer, uint _amount) internal {
@@ -443,6 +448,10 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
     function setRandomManager(address _randomManager) public onlyOwner {
         config.randomManager = IRandomManager(_randomManager);
+    }
+
+    function setMetadataRenderer(address _metadataRenderer) public onlyOwner {
+        config.metadataRenderer = IRenderMetadata(_metadataRenderer);
     }
 
     function setReferralStages(uint[] memory _referralStages) public onlyOwner {

@@ -42,8 +42,26 @@ describe("Ships", function () {
       renderFore2,
     } = await hre.ignition.deploy(DeployModule);
 
+    // Create a separate contract instance for user1
+    const user1Ships = await hre.viem.getContractAt("Ships", ships.address, {
+      client: { wallet: user1 },
+    });
+
+    // Create a separate contract instance for user2
+    const user2Ships = await hre.viem.getContractAt("Ships", ships.address, {
+      client: { wallet: user2 },
+    });
+
+    // Create a separate contract instance for user3
+    const user3Ships = await hre.viem.getContractAt("Ships", ships.address, {
+      client: { wallet: user3 },
+    });
+
     return {
       ships,
+      user1Ships,
+      user2Ships,
+      user3Ships,
       shipNames,
       metadataRenderer,
       randomManager,
@@ -540,10 +558,16 @@ describe("Ships", function () {
   });
 
   describe("Ownership Changes", function () {
-    it("Should allow owner to transfer their ship", async function () {
-      const { ships, user1, user2, publicClient } = await loadFixture(
+    it("Should not allow transfer without purchasing a 10-pack", async function () {
+      const { ships, user1, user2, user3 } = await loadFixture(
         deployShipsFixture
       );
+
+      // Verify user1 is not allowed to transfer initially
+      const isAllowed = await ships.read.allowedToTransfer([
+        user1.account.address,
+      ]);
+      expect(isAllowed).to.be.false;
 
       // Mint a ship to user1
       await ships.write.mintShip(
@@ -551,11 +575,56 @@ describe("Ships", function () {
         { value: parseEther("1") }
       );
 
-      // Transfer the ship from user1 to user2
-      await ships.write.transferFrom(
-        [user1.account.address, user2.account.address, 1n],
-        { account: user1.account }
+      // Verify user1 is still not allowed to transfer
+      const isAllowedAfter = await ships.read.allowedToTransfer([
+        user1.account.address,
+      ]);
+      expect(isAllowedAfter).to.be.false;
+
+      // Try to transfer without purchasing a 10-pack
+      await expect(
+        ships.write.transferFrom(
+          [user1.account.address, user3.account.address, 1n],
+          { account: user1.account }
+        )
+      ).to.be.rejectedWith("NotAllowedToTransfer");
+    });
+
+    it("Should allow owner to transfer their ship after purchasing a 10-pack", async function () {
+      const { ships, user1Ships, user2Ships, user1, user2, publicClient } =
+        await loadFixture(deployShipsFixture);
+
+      // First purchase a 10-pack to enable trading
+      const tenPackPrice = await ships.read.tenPackPrice();
+      await user1Ships.write.mintTenPack(
+        [user1.account.address, user2.account.address],
+        { value: tenPackPrice }
       );
+
+      // Mint a 10-pack to user2 so they can transfer
+      await user2Ships.write.mintTenPack(
+        [user2.account.address, user2.account.address],
+        { value: tenPackPrice }
+      );
+
+      // Confirm user1 is allowed to transfer
+      const isAllowed = await user1Ships.read.allowedToTransfer([
+        user1.account.address,
+      ]);
+      expect(isAllowed).to.be.true;
+
+      // Confirm user2 is allowed to transfer
+      const isAllowed2 = await user2Ships.read.allowedToTransfer([
+        user2.account.address,
+      ]);
+      expect(isAllowed2).to.be.true;
+
+      // Transfer the ship from user1 to user2
+      await user1Ships.write.transferFrom([
+        user1.account.address,
+        user2.account.address,
+        1n,
+      ]);
 
       // Verify new owner
       const newOwner = await ships.read.ownerOf([1n]);
@@ -564,27 +633,52 @@ describe("Ships", function () {
       );
     });
 
-    it("Should allow approved address to transfer ship", async function () {
-      const { ships, user1, user2, user3, publicClient } = await loadFixture(
-        deployShipsFixture
+    it("Should allow approved address to transfer ship after purchasing a 10-pack", async function () {
+      const {
+        ships,
+        user1Ships,
+        user2Ships,
+        user3Ships,
+        user1,
+        user2,
+        user3,
+        publicClient,
+      } = await loadFixture(deployShipsFixture);
+
+      // First purchase a 10-pack to enable trading for user1 (the owner)
+      const tenPackPrice = await ships.read.tenPackPrice();
+      await user1Ships.write.mintTenPack(
+        [user1.account.address, user2.account.address],
+        { value: tenPackPrice }
       );
 
-      // Mint a ship to user1
-      await ships.write.mintShip(
-        [user1.account.address, user2.account.address],
-        { value: parseEther("1") }
+      // Purchase a 10-pack for user3 (the receiver)
+      await user3Ships.write.mintTenPack(
+        [user3.account.address, user2.account.address],
+        { value: tenPackPrice }
       );
+
+      // Confirm user1 is allowed to transfer
+      const isAllowed = await user1Ships.read.allowedToTransfer([
+        user1.account.address,
+      ]);
+      expect(isAllowed).to.be.true;
+
+      // Confirm user3 is allowed to receive
+      const isAllowed3 = await user3Ships.read.allowedToTransfer([
+        user3.account.address,
+      ]);
+      expect(isAllowed3).to.be.true;
 
       // User1 approves user2 to transfer their ship
-      await ships.write.approve([user2.account.address, 1n], {
-        account: user1.account,
-      });
+      await user1Ships.write.approve([user2.account.address, 1n]);
 
       // User2 transfers the ship to user3
-      await ships.write.transferFrom(
-        [user1.account.address, user3.account.address, 1n],
-        { account: user2.account }
-      );
+      await user2Ships.write.transferFrom([
+        user1.account.address,
+        user3.account.address,
+        1n,
+      ]);
 
       // Verify new owner
       const newOwner = await ships.read.ownerOf([1n]);
@@ -593,27 +687,52 @@ describe("Ships", function () {
       );
     });
 
-    it("Should allow operator to transfer ship", async function () {
-      const { ships, user1, user2, user3, publicClient } = await loadFixture(
-        deployShipsFixture
+    it("Should allow operator to transfer ship after purchasing a 10-pack", async function () {
+      const {
+        ships,
+        user1Ships,
+        user2Ships,
+        user3Ships,
+        user1,
+        user2,
+        user3,
+        publicClient,
+      } = await loadFixture(deployShipsFixture);
+
+      // First purchase a 10-pack to enable trading for user1 (the owner)
+      const tenPackPrice = await ships.read.tenPackPrice();
+      await user1Ships.write.mintTenPack(
+        [user1.account.address, user2.account.address],
+        { value: tenPackPrice }
       );
 
-      // Mint a ship to user1
-      await ships.write.mintShip(
-        [user1.account.address, user2.account.address],
-        { value: parseEther("1") }
+      // Purchase a 10-pack for user3 (the receiver)
+      await user3Ships.write.mintTenPack(
+        [user3.account.address, user2.account.address],
+        { value: tenPackPrice }
       );
+
+      // Confirm user1 is allowed to transfer
+      const isAllowed = await user1Ships.read.allowedToTransfer([
+        user1.account.address,
+      ]);
+      expect(isAllowed).to.be.true;
+
+      // Confirm user3 is allowed to receive
+      const isAllowed3 = await user3Ships.read.allowedToTransfer([
+        user3.account.address,
+      ]);
+      expect(isAllowed3).to.be.true;
 
       // User1 sets user2 as operator
-      await ships.write.setApprovalForAll([user2.account.address, true], {
-        account: user1.account,
-      });
+      await user1Ships.write.setApprovalForAll([user2.account.address, true]);
 
       // User2 transfers the ship to user3
-      await ships.write.transferFrom(
-        [user1.account.address, user3.account.address, 1n],
-        { account: user2.account }
-      );
+      await user2Ships.write.transferFrom([
+        user1.account.address,
+        user3.account.address,
+        1n,
+      ]);
 
       // Verify new owner
       const newOwner = await ships.read.ownerOf([1n]);
@@ -622,29 +741,71 @@ describe("Ships", function () {
       );
     });
 
-    it("Should not allow non-owner to transfer ship", async function () {
-      const { ships, user1, user2, user3, publicClient } = await loadFixture(
-        deployShipsFixture
+    it("Should not allow non-owner to transfer ship even with 10-pack", async function () {
+      const {
+        ships,
+        user1Ships,
+        user2Ships,
+        user3Ships,
+        user1,
+        user2,
+        user3,
+        publicClient,
+      } = await loadFixture(deployShipsFixture);
+
+      // First purchase a 10-pack to enable trading for user1 (the owner)
+      const tenPackPrice = await ships.read.tenPackPrice();
+      await user1Ships.write.mintTenPack(
+        [user1.account.address, user2.account.address],
+        { value: tenPackPrice }
       );
 
-      // Mint a ship to user1
-      await ships.write.mintShip(
-        [user1.account.address, user2.account.address],
-        { value: parseEther("1") }
+      // Purchase a 10-pack for user2 (the non-owner)
+      await user2Ships.write.mintTenPack(
+        [user2.account.address, user1.account.address],
+        { value: tenPackPrice }
       );
+
+      // Purchase a 10-pack for user3 (the receiver)
+      await user3Ships.write.mintTenPack(
+        [user3.account.address, user2.account.address],
+        { value: tenPackPrice }
+      );
+
+      // Confirm all users are allowed to transfer
+      const isAllowed1 = await user1Ships.read.allowedToTransfer([
+        user1.account.address,
+      ]);
+      const isAllowed2 = await user2Ships.read.allowedToTransfer([
+        user2.account.address,
+      ]);
+      const isAllowed3 = await user3Ships.read.allowedToTransfer([
+        user3.account.address,
+      ]);
+      expect(isAllowed1).to.be.true;
+      expect(isAllowed2).to.be.true;
+      expect(isAllowed3).to.be.true;
 
       // Try to transfer as non-owner
       await expect(
-        ships.write.transferFrom(
-          [user1.account.address, user3.account.address, 1n],
-          { account: user2.account }
-        )
+        user2Ships.write.transferFrom([
+          user1.account.address,
+          user3.account.address,
+          1n,
+        ])
       ).to.be.rejectedWith("ERC721InsufficientApproval");
     });
 
-    it("Should not allow transfer of destroyed ship", async function () {
+    it("Should not allow transfer of destroyed ship even with 10-pack", async function () {
       const { ships, user1, user2, owner, publicClient } = await loadFixture(
         deployShipsFixture
+      );
+
+      // First purchase a 10-pack to enable trading
+      const tenPackPrice = await ships.read.tenPackPrice();
+      await ships.write.mintTenPack(
+        [user1.account.address, user2.account.address],
+        { value: tenPackPrice }
       );
 
       // Mint a ship to user1
@@ -665,43 +826,61 @@ describe("Ships", function () {
       ).to.be.rejectedWith("Ship destroyed");
     });
 
-    it("Should update shipsOwned mapping on transfer", async function () {
-      const { ships, user1, user2, publicClient } = await loadFixture(
-        deployShipsFixture
+    it("Should update shipsOwned mapping on transfer after 10-pack purchase", async function () {
+      const { ships, user1Ships, user2Ships, user1, user2, publicClient } =
+        await loadFixture(deployShipsFixture);
+
+      // First purchase a 10-pack to enable trading for user1 (the owner)
+      const tenPackPrice = await ships.read.tenPackPrice();
+      await user1Ships.write.mintTenPack(
+        [user1.account.address, user2.account.address],
+        { value: tenPackPrice }
       );
 
-      // Mint a ship to user1
-      await ships.write.mintShip(
-        [user1.account.address, user2.account.address],
-        { value: parseEther("1") }
+      // Purchase a 10-pack for user2 (the receiver)
+      await user2Ships.write.mintTenPack(
+        [user2.account.address, user1.account.address],
+        { value: tenPackPrice }
       );
+
+      // Confirm both users are allowed to transfer
+      const isAllowed1 = await user1Ships.read.allowedToTransfer([
+        user1.account.address,
+      ]);
+      const isAllowed2 = await user2Ships.read.allowedToTransfer([
+        user2.account.address,
+      ]);
+      expect(isAllowed1).to.be.true;
+      expect(isAllowed2).to.be.true;
 
       // Verify initial state
       const initialUser1Ships = await ships.read.getShipsOwned([
         user1.account.address,
       ]);
-      expect(initialUser1Ships[0].id).to.equal(1n);
+      expect(initialUser1Ships.length).to.equal(10); // 10 from ten pack
 
       // Transfer the ship
-      const tx = await ships.write.transferFrom(
-        [user1.account.address, user2.account.address, 1n],
-        { account: user1.account }
-      );
+      const tx = await user1Ships.write.transferFrom([
+        user1.account.address,
+        user2.account.address,
+        1n,
+      ]);
 
       // Wait for the transaction to be mined
       await publicClient.waitForTransactionReceipt({ hash: tx });
 
       // Check shipsOwned mapping
-      const user1Ships = await ships.read.getShipsOwned([
+      const user1ShipsList = await ships.read.getShipsOwned([
         user1.account.address,
       ]);
-      const user2Ships = await ships.read.getShipsOwned([
+      const user2ShipsList = await ships.read.getShipsOwned([
         user2.account.address,
       ]);
 
       // Verify the ship is only in user2's list after transfer
-      expect(user1Ships.length).to.equal(0);
-      expect(user2Ships[0].id).to.equal(1n);
+      expect(user1ShipsList.length).to.equal(9); // Should have 9 ships left
+      expect(user2ShipsList.length).to.equal(11); // Should have 10 from ten pack + 1 transferred
+      expect(user2ShipsList[10].id).to.equal(1n); // The transferred ship should be id 1
 
       // Verify the actual owner is user2
       const owner = await ships.read.ownerOf([1n]);
@@ -710,9 +889,16 @@ describe("Ships", function () {
       );
     });
 
-    it("Should allow owner to approve and revoke approval", async function () {
+    it("Should allow owner to approve and revoke approval after 10-pack purchase", async function () {
       const { ships, user1, user2, publicClient } = await loadFixture(
         deployShipsFixture
+      );
+
+      // First purchase a 10-pack to enable trading
+      const tenPackPrice = await ships.read.tenPackPrice();
+      await ships.write.mintTenPack(
+        [user1.account.address, user2.account.address],
+        { value: tenPackPrice }
       );
 
       // Mint a ship to user1
@@ -745,9 +931,16 @@ describe("Ships", function () {
       );
     });
 
-    it("Should allow owner to set and revoke operator", async function () {
+    it("Should allow owner to set and revoke operator after 10-pack purchase", async function () {
       const { ships, user1, user2, publicClient } = await loadFixture(
         deployShipsFixture
+      );
+
+      // First purchase a 10-pack to enable trading
+      const tenPackPrice = await ships.read.tenPackPrice();
+      await ships.write.mintTenPack(
+        [user1.account.address, user2.account.address],
+        { value: tenPackPrice }
       );
 
       // Mint a ship to user1

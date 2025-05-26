@@ -293,10 +293,18 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
         newShip.shipData.costsVersion = costs.version;
 
-        newShip.shipData.cost = setCostOfShip(_id);
+        _setCostOfShip(_id);
     }
 
-    function setCostOfShip(uint _id) public view returns (uint16) {
+    function setCostOfShip(uint _id) public {
+        if (msg.sender != owner() && msg.sender != config.gameAddress) {
+            revert NotAuthorized(msg.sender);
+        }
+
+        _setCostOfShip(_id);
+    }
+
+    function _setCostOfShip(uint _id) internal {
         Ship storage ship = ships[_id];
 
         uint16 unadjustedCost = uint16(
@@ -320,7 +328,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
         uint16 finalCost = unadjustedCost - rankCost;
 
-        return finalCost;
+        ship.shipData.cost = finalCost;
     }
 
     /**

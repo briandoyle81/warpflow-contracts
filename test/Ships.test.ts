@@ -135,6 +135,62 @@ describe("Ships", function () {
       expect(shipsPerTier[4]).to.equal(125);
       expect(prices[4]).to.equal(parseEther("99.99"));
     });
+
+    it("Should allow owner to set purchase info", async function () {
+      const { ships, owner } = await loadFixture(deployShipsFixture);
+
+      const newTiers = [1, 2, 3];
+      const newShipsPerTier = [5, 10, 15];
+      const newPrices = [
+        parseEther("5.99"),
+        parseEther("10.99"),
+        parseEther("15.99"),
+      ];
+
+      await ships.write.setPurchaseInfo([newTiers, newShipsPerTier, newPrices]);
+
+      const [tiers, shipsPerTier, prices] = await ships.read.getPurchaseInfo();
+      expect(tiers).to.deep.equal(newTiers);
+      expect(shipsPerTier).to.deep.equal(newShipsPerTier);
+      expect(prices).to.deep.equal(newPrices);
+    });
+
+    it("Should not allow non-owner to set purchase info", async function () {
+      const { ships, user1 } = await loadFixture(deployShipsFixture);
+
+      const newTiers = [1, 2, 3];
+      const newShipsPerTier = [5, 10, 15];
+      const newPrices = [
+        parseEther("5.99"),
+        parseEther("10.99"),
+        parseEther("15.99"),
+      ];
+
+      await expect(
+        ships.write.setPurchaseInfo([newTiers, newShipsPerTier, newPrices], {
+          account: user1.account,
+        })
+      ).to.be.rejectedWith(
+        'OwnableUnauthorizedAccount("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")'
+      );
+    });
+
+    it("Should allow owner to set game address", async function () {
+      const { ships, owner, user1 } = await loadFixture(deployShipsFixture);
+
+      await ships.write.setConfig([
+        user1.account.address,
+        "0x0000000000000000000000000000000000000000",
+        "0x0000000000000000000000000000000000000000",
+        "0x0000000000000000000000000000000000000000",
+        "0x0000000000000000000000000000000000000000",
+      ]);
+
+      const config = await ships.read.config();
+      expect(config[0].toString().toLocaleLowerCase()).to.equal(
+        user1.account.address.toLocaleLowerCase()
+      );
+    });
   });
 
   describe("Minting", function () {
@@ -254,22 +310,60 @@ describe("Ships", function () {
   });
 
   describe("Owner Functions", function () {
-    it("Should allow owner to set ship price", async function () {
+    it("Should allow owner to set purchase info", async function () {
       const { ships, owner } = await loadFixture(deployShipsFixture);
 
-      await ships.write.setShipPrice([parseEther("2")]);
-      const newPrice = await ships.read.shipPrice();
-      expect(newPrice).to.equal(parseEther("2"));
+      const newTiers = [1, 2, 3];
+      const newShipsPerTier = [5, 10, 15];
+      const newPrices = [
+        parseEther("5.99"),
+        parseEther("10.99"),
+        parseEther("15.99"),
+      ];
+
+      await ships.write.setPurchaseInfo([newTiers, newShipsPerTier, newPrices]);
+
+      const [tiers, shipsPerTier, prices] = await ships.read.getPurchaseInfo();
+      expect(tiers).to.deep.equal(newTiers);
+      expect(shipsPerTier).to.deep.equal(newShipsPerTier);
+      expect(prices).to.deep.equal(newPrices);
+    });
+
+    it("Should not allow non-owner to set purchase info", async function () {
+      const { ships, user1 } = await loadFixture(deployShipsFixture);
+
+      const newTiers = [1, 2, 3];
+      const newShipsPerTier = [5, 10, 15];
+      const newPrices = [
+        parseEther("5.99"),
+        parseEther("10.99"),
+        parseEther("15.99"),
+      ];
+
+      await expect(
+        ships.write.setPurchaseInfo([newTiers, newShipsPerTier, newPrices], {
+          account: user1.account,
+        })
+      ).to.be.rejectedWith(
+        'OwnableUnauthorizedAccount("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")'
+      );
     });
 
     it("Should allow owner to set game address", async function () {
       const { ships, owner, user1 } = await loadFixture(deployShipsFixture);
 
-      await ships.write.setGameAddress([user1.account.address]);
+      await ships.write.setConfig([
+        user1.account.address,
+        "0x0000000000000000000000000000000000000000",
+        "0x0000000000000000000000000000000000000000",
+        "0x0000000000000000000000000000000000000000",
+        "0x0000000000000000000000000000000000000000",
+      ]);
+
       const config = await ships.read.config();
       expect(config[0].toString().toLocaleLowerCase()).to.equal(
         user1.account.address.toLocaleLowerCase()
-      ); // gameAddress is first element in config struct
+      );
     });
 
     it("Should allow owner to set paused state", async function () {
@@ -278,18 +372,6 @@ describe("Ships", function () {
       await ships.write.setPaused([true]);
       const paused = await ships.read.paused();
       expect(paused).to.be.true;
-    });
-
-    it("Should not allow non-owner to set ship price", async function () {
-      const { ships, user1 } = await loadFixture(deployShipsFixture);
-
-      await expect(
-        ships.write.setShipPrice([parseEther("2")], {
-          account: user1.account,
-        })
-      ).to.be.rejectedWith(
-        'OwnableUnauthorizedAccount("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")'
-      );
     });
   });
 

@@ -2,6 +2,7 @@ import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox-viem";
 import "hardhat-gas-reporter";
 
+require("hardhat-contract-sizer");
 require("dotenv").config();
 
 const config: HardhatUserConfig = {
@@ -13,6 +14,13 @@ const config: HardhatUserConfig = {
         runs: 200,
       },
     },
+  },
+  contractSizer: {
+    alphaSort: true,
+    disambiguatePaths: false,
+    runOnCompile: true,
+    strict: true,
+    // only: [":ERC20$"],
   },
   etherscan: {
     apiKey: {

@@ -385,9 +385,9 @@ describe("Ships", function () {
         address: user2.account.address,
       });
 
-      await ships.write.mintShip(
-        [user1.account.address, user2.account.address],
-        { value: parseEther("1") }
+      await ships.write.purchaseWithFlow(
+        [user1.account.address, 0n, user2.account.address],
+        { value: parseEther("4.99") }
       );
 
       const finalBalance = await publicClient.getBalance({
@@ -395,70 +395,68 @@ describe("Ships", function () {
       });
 
       // Check that referral received 1% (first tier)
-      expect(finalBalance - initialBalance).to.equal(parseEther("0.01"));
+      expect(finalBalance - initialBalance).to.equal(parseEther("0.0499"));
 
-      // Check that referral count increased by 1 ship
+      // Check that referral count increased by 5 ships
       const referralCount = await ships.read.referralCount([
         user2.account.address,
       ]);
-      expect(referralCount).to.equal(1n);
+      expect(referralCount).to.equal(5n);
     });
 
-    it("Should process referral payment correctly for ten pack", async function () {
+    it("Should process referral payment correctly for tier 1", async function () {
       const { ships, user1, user2, publicClient } = await loadFixture(
         deployShipsFixture
       );
 
-      const tenPackPrice = await ships.read.tenPackPrice();
       const initialBalance = await publicClient.getBalance({
         address: user2.account.address,
       });
 
-      await ships.write.mintTenPack(
-        [user1.account.address, user2.account.address],
-        { value: tenPackPrice }
+      await ships.write.purchaseWithFlow(
+        [user1.account.address, 0n, user2.account.address],
+        { value: parseEther("4.99") }
       );
 
       const finalBalance = await publicClient.getBalance({
         address: user2.account.address,
       });
 
-      // Check that referral received 1% of ten pack price (first tier)
-      // For 8 Flow, 1% is 0.08 Flow
-      expect(finalBalance - initialBalance).to.equal(parseEther("0.08"));
+      // Check that referral received 1% of tier 1 price (4.99 Flow)
+      // For 4.99 Flow, 1% is 0.0499 Flow
+      expect(finalBalance - initialBalance).to.equal(parseEther("0.0499"));
 
-      // Check that referral count increased by 10 ships
+      // Check that referral count increased by 5 ships
       const referralCount = await ships.read.referralCount([
         user2.account.address,
       ]);
-      expect(referralCount).to.equal(10n);
+      expect(referralCount).to.equal(5n);
     });
 
     it("Should update referral count correctly", async function () {
       const { ships, user1, user2 } = await loadFixture(deployShipsFixture);
 
-      // Mint a single ship
-      await ships.write.mintShip(
-        [user1.account.address, user2.account.address],
-        { value: parseEther("1") }
+      // Purchase tier 1 (5 ships)
+      await ships.write.purchaseWithFlow(
+        [user1.account.address, 0n, user2.account.address],
+        { value: parseEther("4.99") }
       );
 
-      // Check referral count is 1
+      // Check referral count is 5
       let referralCount = await ships.read.referralCount([
         user2.account.address,
       ]);
-      expect(referralCount).to.equal(1n);
+      expect(referralCount).to.equal(5n);
 
-      // Mint a ten pack
-      const tenPackPrice = await ships.read.tenPackPrice();
-      await ships.write.mintTenPack(
-        [user1.account.address, user2.account.address],
-        { value: tenPackPrice }
+      // Purchase another tier 1
+      await ships.write.purchaseWithFlow(
+        [user1.account.address, 0n, user2.account.address],
+        { value: parseEther("4.99") }
       );
 
-      // Check referral count is now 11 (1 + 10)
+      // Check referral count is now 10 (5 + 5)
       referralCount = await ships.read.referralCount([user2.account.address]);
-      expect(referralCount).to.equal(11n);
+      expect(referralCount).to.equal(10n);
     });
   });
 
@@ -468,9 +466,9 @@ describe("Ships", function () {
         await loadFixture(deployShipsFixture);
 
       // Mint a ship first
-      await ships.write.mintShip(
-        [user1.account.address, user2.account.address],
-        { value: parseEther("1") }
+      await ships.write.purchaseWithFlow(
+        [user1.account.address, 0n, user2.account.address],
+        { value: parseEther("4.99") }
       );
 
       // Get the ship's serial number
@@ -495,32 +493,63 @@ describe("Ships", function () {
       expect(constructedShip[5].cost).to.be.greaterThan(0); // shipData.cost
     });
 
+    it("Should allow owner to construct all tier 5 ships at once", async function () {
+      const { ships, user1, user2, publicClient, randomManager } =
+        await loadFixture(deployShipsFixture);
+
+      // Purchase tier 5 (125 ships)
+      await ships.write.purchaseWithFlow(
+        [user1.account.address, 4n, user2.account.address],
+        { value: parseEther("99.99") }
+      );
+
+      // Get all ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 125; i++) {
+        const ship = await ships.read.ships([BigInt(i)]);
+        const serialNumber = ship[3].serialNumber; // traits is at index 3
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships at once using constructAllMyShips
+      await ships.write.constructAllMyShips({
+        account: user1.account,
+      });
+
+      // Verify all ships are constructed
+      for (let i = 1; i <= 125; i++) {
+        const ship = await ships.read.ships([BigInt(i)]);
+        expect(ship[5].constructed).to.be.true; // shipData is at index 5
+        expect(ship[0]).to.equal("Mock Ship"); // name is at index 0
+        expect(ship[5].costsVersion).to.equal(1); // shipData.costsVersion
+        expect(ship[5].cost).to.be.greaterThan(0); // shipData.cost
+      }
+    });
+
     it("Should allow owner to construct multiple ships at once", async function () {
       const { ships, user1, user2, publicClient, randomManager } =
         await loadFixture(deployShipsFixture);
 
-      // Mint a 10-pack
-      const tenPackPrice = await ships.read.tenPackPrice();
-      await ships.write.mintTenPack(
-        [user1.account.address, user2.account.address],
-        { value: tenPackPrice }
+      // Purchase tier 1 (5 ships)
+      await ships.write.purchaseWithFlow(
+        [user1.account.address, 0n, user2.account.address],
+        { value: parseEther("4.99") }
       );
 
       // Get all ships' serial numbers
-      for (let i = 1; i <= 10; i++) {
+      for (let i = 1; i <= 5; i++) {
         const ship = await ships.read.ships([BigInt(i)]);
         const serialNumber = ship[3].serialNumber; // traits is at index 3
         await randomManager.write.fulfillRandomRequest([serialNumber]);
       }
 
       // Construct all ships at once
-      const shipIds = Array.from({ length: 10 }, (_, i) => BigInt(i + 1));
+      const shipIds = Array.from({ length: 5 }, (_, i) => BigInt(i + 1));
       await ships.write.constructShips([shipIds], {
         account: user1.account,
       });
 
       // Verify all ships are constructed
-      for (let i = 1; i <= 10; i++) {
+      for (let i = 1; i <= 5; i++) {
         const ship = await ships.read.ships([BigInt(i)]);
         expect(ship[5].constructed).to.be.true; // shipData is at index 5
         expect(ship[0]).to.equal("Mock Ship"); // name is at index 0
@@ -535,9 +564,9 @@ describe("Ships", function () {
       );
 
       // Mint a ship first
-      await ships.write.mintShip(
-        [user1.account.address, user2.account.address],
-        { value: parseEther("1") }
+      await ships.write.purchaseWithFlow(
+        [user1.account.address, 0n, user2.account.address],
+        { value: parseEther("4.99") }
       );
 
       // Get the ship's serial number
@@ -561,9 +590,9 @@ describe("Ships", function () {
       );
 
       // Mint a ship first
-      await ships.write.mintShip(
-        [user1.account.address, user2.account.address],
-        { value: parseEther("1") }
+      await ships.write.purchaseWithFlow(
+        [user1.account.address, 0n, user2.account.address],
+        { value: parseEther("4.99") }
       );
 
       // Get the ship's serial number
@@ -593,9 +622,9 @@ describe("Ships", function () {
         await loadFixture(deployShipsFixture);
 
       // Mint and construct a ship
-      await ships.write.mintShip(
-        [user1.account.address, user2.account.address],
-        { value: parseEther("1") }
+      await ships.write.purchaseWithFlow(
+        [user1.account.address, 0n, user2.account.address],
+        { value: parseEther("4.99") }
       );
 
       // Get the ship's serial number
@@ -696,7 +725,7 @@ describe("Ships", function () {
   });
 
   describe("Ownership Changes", function () {
-    it("Should not allow transfer without purchasing a 10-pack", async function () {
+    it("Should not allow transfer without purchasing a tier", async function () {
       const { ships, user1, user2, user3 } = await loadFixture(
         deployShipsFixture
       );
@@ -708,18 +737,18 @@ describe("Ships", function () {
       expect(isAllowed).to.be.false;
 
       // Mint a ship to user1
-      await ships.write.mintShip(
-        [user1.account.address, user2.account.address],
-        { value: parseEther("1") }
+      await ships.write.purchaseWithFlow(
+        [user1.account.address, 0n, user2.account.address],
+        { value: parseEther("4.99") }
       );
 
-      // Verify user1 is still not allowed to transfer
+      // Verify user1 is now allowed to transfer (since they purchased a tier)
       const isAllowedAfter = await ships.read.allowedToTransfer([
         user1.account.address,
       ]);
-      expect(isAllowedAfter).to.be.false;
+      expect(isAllowedAfter).to.be.true;
 
-      // Try to transfer without purchasing a 10-pack
+      // Try to transfer without purchasing a tier for user3
       await expect(
         ships.write.transferFrom(
           [user1.account.address, user3.account.address, 1n],
@@ -728,21 +757,20 @@ describe("Ships", function () {
       ).to.be.rejectedWith("NotAllowedToTransfer");
     });
 
-    it("Should allow owner to transfer their ship after purchasing a 10-pack", async function () {
+    it("Should allow owner to transfer their ship after purchasing a tier", async function () {
       const { ships, user1Ships, user2Ships, user1, user2, publicClient } =
         await loadFixture(deployShipsFixture);
 
-      // First purchase a 10-pack to enable trading
-      const tenPackPrice = await ships.read.tenPackPrice();
-      await user1Ships.write.mintTenPack(
-        [user1.account.address, user2.account.address],
-        { value: tenPackPrice }
+      // First purchase tier 1 to enable trading
+      await user1Ships.write.purchaseWithFlow(
+        [user1.account.address, 0n, user2.account.address],
+        { value: parseEther("4.99") }
       );
 
-      // Mint a 10-pack to user2 so they can transfer
-      await user2Ships.write.mintTenPack(
-        [user2.account.address, user2.account.address],
-        { value: tenPackPrice }
+      // Mint tier 1 to user2 so they can transfer
+      await user2Ships.write.purchaseWithFlow(
+        [user2.account.address, 0n, user2.account.address],
+        { value: parseEther("4.99") }
       );
 
       // Confirm user1 is allowed to transfer
@@ -771,7 +799,7 @@ describe("Ships", function () {
       );
     });
 
-    it("Should allow approved address to transfer ship after purchasing a 10-pack", async function () {
+    it("Should allow approved address to transfer ship after purchasing a tier", async function () {
       const {
         ships,
         user1Ships,
@@ -783,17 +811,16 @@ describe("Ships", function () {
         publicClient,
       } = await loadFixture(deployShipsFixture);
 
-      // First purchase a 10-pack to enable trading for user1 (the owner)
-      const tenPackPrice = await ships.read.tenPackPrice();
-      await user1Ships.write.mintTenPack(
-        [user1.account.address, user2.account.address],
-        { value: tenPackPrice }
+      // First purchase tier 1 to enable trading for user1 (the owner)
+      await user1Ships.write.purchaseWithFlow(
+        [user1.account.address, 0n, user2.account.address],
+        { value: parseEther("4.99") }
       );
 
-      // Purchase a 10-pack for user3 (the receiver)
-      await user3Ships.write.mintTenPack(
-        [user3.account.address, user2.account.address],
-        { value: tenPackPrice }
+      // Purchase tier 1 for user3 (the receiver)
+      await user3Ships.write.purchaseWithFlow(
+        [user3.account.address, 0n, user2.account.address],
+        { value: parseEther("4.99") }
       );
 
       // Confirm user1 is allowed to transfer
@@ -825,7 +852,7 @@ describe("Ships", function () {
       );
     });
 
-    it("Should allow operator to transfer ship after purchasing a 10-pack", async function () {
+    it("Should allow operator to transfer ship after purchasing a tier", async function () {
       const {
         ships,
         user1Ships,
@@ -837,17 +864,16 @@ describe("Ships", function () {
         publicClient,
       } = await loadFixture(deployShipsFixture);
 
-      // First purchase a 10-pack to enable trading for user1 (the owner)
-      const tenPackPrice = await ships.read.tenPackPrice();
-      await user1Ships.write.mintTenPack(
-        [user1.account.address, user2.account.address],
-        { value: tenPackPrice }
+      // First purchase tier 1 to enable trading for user1 (the owner)
+      await user1Ships.write.purchaseWithFlow(
+        [user1.account.address, 0n, user2.account.address],
+        { value: parseEther("4.99") }
       );
 
-      // Purchase a 10-pack for user3 (the receiver)
-      await user3Ships.write.mintTenPack(
-        [user3.account.address, user2.account.address],
-        { value: tenPackPrice }
+      // Purchase tier 1 for user3 (the receiver)
+      await user3Ships.write.purchaseWithFlow(
+        [user3.account.address, 0n, user2.account.address],
+        { value: parseEther("4.99") }
       );
 
       // Confirm user1 is allowed to transfer
@@ -879,7 +905,7 @@ describe("Ships", function () {
       );
     });
 
-    it("Should not allow non-owner to transfer ship even with 10-pack", async function () {
+    it("Should not allow non-owner to transfer ship even with tier purchase", async function () {
       const {
         ships,
         user1Ships,
@@ -891,23 +917,22 @@ describe("Ships", function () {
         publicClient,
       } = await loadFixture(deployShipsFixture);
 
-      // First purchase a 10-pack to enable trading for user1 (the owner)
-      const tenPackPrice = await ships.read.tenPackPrice();
-      await user1Ships.write.mintTenPack(
-        [user1.account.address, user2.account.address],
-        { value: tenPackPrice }
+      // First purchase tier 1 to enable trading for user1 (the owner)
+      await user1Ships.write.purchaseWithFlow(
+        [user1.account.address, 0n, user2.account.address],
+        { value: parseEther("4.99") }
       );
 
-      // Purchase a 10-pack for user2 (the non-owner)
-      await user2Ships.write.mintTenPack(
-        [user2.account.address, user1.account.address],
-        { value: tenPackPrice }
+      // Purchase tier 1 for user2 (the non-owner)
+      await user2Ships.write.purchaseWithFlow(
+        [user2.account.address, 0n, user1.account.address],
+        { value: parseEther("4.99") }
       );
 
-      // Purchase a 10-pack for user3 (the receiver)
-      await user3Ships.write.mintTenPack(
-        [user3.account.address, user2.account.address],
-        { value: tenPackPrice }
+      // Purchase tier 1 for user3 (the receiver)
+      await user3Ships.write.purchaseWithFlow(
+        [user3.account.address, 0n, user2.account.address],
+        { value: parseEther("4.99") }
       );
 
       // Confirm all users are allowed to transfer
@@ -934,22 +959,21 @@ describe("Ships", function () {
       ).to.be.rejectedWith("ERC721InsufficientApproval");
     });
 
-    it("Should not allow transfer of destroyed ship even with 10-pack", async function () {
+    it("Should not allow transfer of destroyed ship even with tier purchase", async function () {
       const { ships, user1, user2, owner, publicClient } = await loadFixture(
         deployShipsFixture
       );
 
-      // First purchase a 10-pack to enable trading
-      const tenPackPrice = await ships.read.tenPackPrice();
-      await ships.write.mintTenPack(
-        [user1.account.address, user2.account.address],
-        { value: tenPackPrice }
+      // First purchase tier 1 to enable trading
+      await ships.write.purchaseWithFlow(
+        [user1.account.address, 0n, user2.account.address],
+        { value: parseEther("4.99") }
       );
 
       // Mint a ship to user1
-      await ships.write.mintShip(
-        [user1.account.address, user2.account.address],
-        { value: parseEther("1") }
+      await ships.write.purchaseWithFlow(
+        [user1.account.address, 0n, user2.account.address],
+        { value: parseEther("4.99") }
       );
 
       // Destroy the ship (simulate by setting timestampDestroyed)
@@ -964,21 +988,20 @@ describe("Ships", function () {
       ).to.be.rejectedWith("Ship destroyed");
     });
 
-    it("Should update shipsOwned mapping on transfer after 10-pack purchase", async function () {
+    it("Should update shipsOwned mapping on transfer after tier purchase", async function () {
       const { ships, user1Ships, user2Ships, user1, user2, publicClient } =
         await loadFixture(deployShipsFixture);
 
-      // First purchase a 10-pack to enable trading for user1 (the owner)
-      const tenPackPrice = await ships.read.tenPackPrice();
-      await user1Ships.write.mintTenPack(
-        [user1.account.address, user2.account.address],
-        { value: tenPackPrice }
+      // First purchase tier 1 to enable trading for user1 (the owner)
+      await user1Ships.write.purchaseWithFlow(
+        [user1.account.address, 0n, user2.account.address],
+        { value: parseEther("4.99") }
       );
 
-      // Purchase a 10-pack for user2 (the receiver)
-      await user2Ships.write.mintTenPack(
-        [user2.account.address, user1.account.address],
-        { value: tenPackPrice }
+      // Purchase tier 1 for user2 (the receiver)
+      await user2Ships.write.purchaseWithFlow(
+        [user2.account.address, 0n, user1.account.address],
+        { value: parseEther("4.99") }
       );
 
       // Confirm both users are allowed to transfer
@@ -992,10 +1015,10 @@ describe("Ships", function () {
       expect(isAllowed2).to.be.true;
 
       // Verify initial state
-      const initialUser1Ships = await ships.read.getShipsOwned([
+      const initialUser1Ships = await ships.read.getShipIdsOwned([
         user1.account.address,
       ]);
-      expect(initialUser1Ships.length).to.equal(10); // 10 from ten pack
+      expect(initialUser1Ships.length).to.equal(5); // 5 from tier 1
 
       // Transfer the ship
       const tx = await user1Ships.write.transferFrom([
@@ -1008,17 +1031,17 @@ describe("Ships", function () {
       await publicClient.waitForTransactionReceipt({ hash: tx });
 
       // Check shipsOwned mapping
-      const user1ShipsList = await ships.read.getShipsOwned([
+      const user1ShipsList = await ships.read.getShipIdsOwned([
         user1.account.address,
       ]);
-      const user2ShipsList = await ships.read.getShipsOwned([
+      const user2ShipsList = await ships.read.getShipIdsOwned([
         user2.account.address,
       ]);
 
       // Verify the ship is only in user2's list after transfer
-      expect(user1ShipsList.length).to.equal(9); // Should have 9 ships left
-      expect(user2ShipsList.length).to.equal(11); // Should have 10 from ten pack + 1 transferred
-      expect(user2ShipsList[10].id).to.equal(1n); // The transferred ship should be id 1
+      expect(user1ShipsList.length).to.equal(4); // Should have 4 ships left
+      expect(user2ShipsList.length).to.equal(6); // Should have 5 from tier 1 + 1 transferred
+      expect(user2ShipsList[5]).to.equal(1n); // The transferred ship should be id 1
 
       // Verify the actual owner is user2
       const owner = await ships.read.ownerOf([1n]);
@@ -1027,22 +1050,21 @@ describe("Ships", function () {
       );
     });
 
-    it("Should allow owner to approve and revoke approval after 10-pack purchase", async function () {
+    it("Should allow owner to approve and revoke approval after tier purchase", async function () {
       const { ships, user1, user2, publicClient } = await loadFixture(
         deployShipsFixture
       );
 
-      // First purchase a 10-pack to enable trading
-      const tenPackPrice = await ships.read.tenPackPrice();
-      await ships.write.mintTenPack(
-        [user1.account.address, user2.account.address],
-        { value: tenPackPrice }
+      // First purchase tier 1 to enable trading
+      await ships.write.purchaseWithFlow(
+        [user1.account.address, 0n, user2.account.address],
+        { value: parseEther("4.99") }
       );
 
       // Mint a ship to user1
-      await ships.write.mintShip(
-        [user1.account.address, user2.account.address],
-        { value: parseEther("1") }
+      await ships.write.purchaseWithFlow(
+        [user1.account.address, 0n, user2.account.address],
+        { value: parseEther("4.99") }
       );
 
       // Approve user2
@@ -1069,22 +1091,21 @@ describe("Ships", function () {
       );
     });
 
-    it("Should allow owner to set and revoke operator after 10-pack purchase", async function () {
+    it("Should allow owner to set and revoke operator after tier purchase", async function () {
       const { ships, user1, user2, publicClient } = await loadFixture(
         deployShipsFixture
       );
 
-      // First purchase a 10-pack to enable trading
-      const tenPackPrice = await ships.read.tenPackPrice();
-      await ships.write.mintTenPack(
-        [user1.account.address, user2.account.address],
-        { value: tenPackPrice }
+      // First purchase tier 1 to enable trading
+      await ships.write.purchaseWithFlow(
+        [user1.account.address, 0n, user2.account.address],
+        { value: parseEther("4.99") }
       );
 
       // Mint a ship to user1
-      await ships.write.mintShip(
-        [user1.account.address, user2.account.address],
-        { value: parseEther("1") }
+      await ships.write.purchaseWithFlow(
+        [user1.account.address, 0n, user2.account.address],
+        { value: parseEther("4.99") }
       );
 
       // Set user2 as operator

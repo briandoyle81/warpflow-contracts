@@ -78,6 +78,8 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
     event MetadataUpdate(uint256 _tokenId);
 
+    mapping(address => bool) public isAllowedToCreateShips;
+
     // TODO: Should variants have different weapons or props?
 
     // Only Owner TODO
@@ -118,6 +120,19 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
      * @dev PUBLIC
      */
 
+    // For purchases with ERC20s such as Universal Credits
+    // or anything else I think of
+
+    function createShips(address _to, uint _amount) public {
+        if (!isAllowedToCreateShips[_to]) {
+            revert NotAuthorized(_to);
+        }
+
+        for (uint i = 0; i < _amount; i++) {
+            _mintShip(_to);
+        }
+    }
+
     function purchaseWithFlow(
         address _to,
         uint _tier,
@@ -157,6 +172,44 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         }
     }
 
+    // Used for bonuses, special ships, events, etc.
+    // TODO CRITICAL:
+    // This allows players to predict which ships to overwrite
+    // with special ships.
+    // I don't think I care, but should I?
+    function constructSpecificShip(uint _id, Ship memory _ship) public {
+        emit MetadataUpdate(_id);
+
+        Ship storage newShip = ships[_id];
+
+        if (!isAllowedToCreateShips[msg.sender]) {
+            revert NotAuthorized(msg.sender);
+        }
+
+        if (newShip.shipData.constructed) {
+            revert ShipConstructed(_id);
+        }
+
+        // TODO: I'm not sure what I'm saving/doing passing this
+        // to the other contract, but it gives me the ability to
+        // update it later.
+        Ship memory generatedShip = config.shipGenerator.generateSpecificShip(
+            _id,
+            newShip.traits.serialNumber,
+            _ship
+        );
+
+        newShip.name = generatedShip.name;
+        newShip.traits = generatedShip.traits;
+        newShip.equipment = generatedShip.equipment;
+        newShip.shipData.shiny = generatedShip.shipData.shiny;
+        newShip.shipData.shipsDestroyed = generatedShip.shipData.shipsDestroyed;
+        newShip.shipData.costsVersion = costs.version;
+        newShip.shipData.constructed = true;
+
+        _setCostOfShip(_id);
+    }
+
     function constructShip(uint _id) public {
         emit MetadataUpdate(_id);
 
@@ -170,15 +223,14 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
             revert ShipConstructed(_id);
         }
 
-        newShip.shipData.constructed = true;
-
         uint64 randomBase = config.randomManager.fulfillRandomRequest(
             newShip.traits.serialNumber
         );
 
         Ship memory generatedShip = config.shipGenerator.generateShip(
-            randomBase,
             _id,
+            newShip.traits.serialNumber,
+            randomBase,
             numberOfVariants
         );
 
@@ -189,6 +241,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         newShip.shipData.shiny = generatedShip.shipData.shiny;
         newShip.shipData.shipsDestroyed = generatedShip.shipData.shipsDestroyed;
         newShip.shipData.costsVersion = costs.version;
+        newShip.shipData.constructed = true;
 
         _setCostOfShip(_id);
     }
@@ -330,6 +383,13 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     /**
      * @dev OWNER
      */
+
+    function setIsAllowedToCreateShips(
+        address _address,
+        bool _isAllowed
+    ) public onlyOwner {
+        isAllowedToCreateShips[_address] = _isAllowed;
+    }
 
     function setTimestampDestroyed(uint _id) public {
         if (msg.sender != owner() && msg.sender != config.gameAddress) {

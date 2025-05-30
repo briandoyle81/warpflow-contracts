@@ -34,18 +34,21 @@ enum Special {
 // Raw Traits Will Never Change
 struct Traits {
     uint256 serialNumber; // Id for random number in commit reveal
-    uint8 r1;
-    uint8 g1;
-    uint8 b1;
-    uint8 r2;
-    uint8 g2;
-    uint8 b2;
+    Colors colors;
     uint8 variant; // Which art to use for the ship
     uint8 accuracy;
     uint8 hull; // Hitpoints
     uint8 speed;
 }
 
+struct Colors {
+    uint8 r1;
+    uint8 g1;
+    uint8 b1;
+    uint8 r2;
+    uint8 g2;
+    uint8 b2;
+}
 struct Equipment {
     MainWeapon mainWeapon;
     Armor armor;
@@ -54,8 +57,9 @@ struct Equipment {
 }
 
 // Attributes Change on Version
+// Attributes will live in the game contract
 struct Attributes {
-    uint8 version;
+    uint8 version; // Attributes version not cost version
     uint8 range;
     uint8 gunDamage;
     uint8 hullPoints;
@@ -64,7 +68,8 @@ struct Attributes {
 }
 
 struct GameData {
-    uint gameId; // 0 if not in a game
+    uint gameId;
+    Ship ship;
     Attributes attributes;
     uint8 damageTaken;
     bool inLobby;
@@ -77,7 +82,6 @@ struct Ship {
     uint id;
     Equipment equipment;
     Traits traits;
-    GameData gameData;
     ShipData shipData;
     address owner;
 }

@@ -11,14 +11,25 @@ contract GenerateNewShip {
         shipNames = IOnchainRandomShipNames(_shipNames);
     }
 
-    function generateShip(
-        uint64 randomBase,
+    function generateSpecificShip(
         uint id,
+        uint,
+        Ship memory ship
+    ) external pure returns (Ship memory) {
+        ship.id = id;
+        ship.traits.serialNumber = 0;
+        return ship;
+    }
+
+    function generateShip(
+        uint id,
+        uint serialNumber,
+        uint64 randomBase,
         uint16 numberOfVariants
     ) external view returns (Ship memory) {
         Ship memory newShip;
         newShip.id = id;
-
+        newShip.traits.serialNumber = serialNumber;
         randomBase++;
         newShip.name = shipNames.getRandomShipName(
             bytes32(uint256(keccak256(abi.encodePacked(randomBase))))
@@ -26,32 +37,32 @@ contract GenerateNewShip {
 
         // r g b 1 and 2 values are 0 to 255
         randomBase++;
-        newShip.traits.r1 = uint8(
+        newShip.traits.colors.r1 = uint8(
             uint(keccak256(abi.encodePacked(randomBase))) % 256
         );
 
         randomBase++;
-        newShip.traits.g1 = uint8(
+        newShip.traits.colors.g1 = uint8(
             uint(keccak256(abi.encodePacked(randomBase))) % 256
         );
 
         randomBase++;
-        newShip.traits.b1 = uint8(
+        newShip.traits.colors.b1 = uint8(
             uint(keccak256(abi.encodePacked(randomBase))) % 256
         );
 
         randomBase++;
-        newShip.traits.r2 = uint8(
+        newShip.traits.colors.r2 = uint8(
             uint(keccak256(abi.encodePacked(randomBase))) % 256
         );
 
         randomBase++;
-        newShip.traits.g2 = uint8(
+        newShip.traits.colors.g2 = uint8(
             uint(keccak256(abi.encodePacked(randomBase))) % 256
         );
 
         randomBase++;
-        newShip.traits.b2 = uint8(
+        newShip.traits.colors.b2 = uint8(
             uint(keccak256(abi.encodePacked(randomBase))) % 256
         );
 

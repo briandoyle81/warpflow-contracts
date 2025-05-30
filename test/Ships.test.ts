@@ -3,6 +3,14 @@ import { loadFixture } from "@nomicfoundation/hardhat-toolbox-viem/network-helpe
 import hre from "hardhat";
 import { parseEther } from "viem";
 import DeployModule from "../ignition/modules/DeployAndConfig";
+import {
+  Ship,
+  ShipData,
+  ShipEquipment,
+  ShipTraits,
+  ShipTuple,
+  tupleToShip,
+} from "./types";
 
 describe("Ships", function () {
   // Deploy function to set up the initial state
@@ -211,10 +219,11 @@ describe("Ships", function () {
 
       // Check all ships are owned by user1
       for (let i = 1; i <= 5; i++) {
-        const ship = await ships.read.ships([BigInt(i)]);
-        expect(ship[6].toString().toLocaleLowerCase()).to.equal(
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        expect(ship.owner.toString().toLocaleLowerCase()).to.equal(
           user1.account.address.toLocaleLowerCase()
-        ); // owner is at index 6 in the Ship struct
+        );
       }
 
       // Check referral count increased by 5 ships
@@ -241,8 +250,9 @@ describe("Ships", function () {
 
       // Check all ships are owned by user1
       for (let i = 1; i <= 11; i++) {
-        const ship = await ships.read.ships([BigInt(i)]);
-        expect(ship[6].toLocaleLowerCase()).to.equal(
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        expect(ship.owner.toString().toLocaleLowerCase()).to.equal(
           user1.account.address.toLocaleLowerCase()
         );
       }
@@ -472,8 +482,9 @@ describe("Ships", function () {
       );
 
       // Get the ship's serial number
-      const ship = await ships.read.ships([1n]);
-      const serialNumber = ship[3].serialNumber; // traits is at index 3
+      const shipTuple = (await ships.read.ships([1n])) as ShipTuple;
+      const ship = tupleToShip(shipTuple);
+      const serialNumber = ship.traits.serialNumber; // traits is at index 3
 
       // Fulfill the random request
       await randomManager.write.fulfillRandomRequest([serialNumber]);
@@ -484,13 +495,14 @@ describe("Ships", function () {
       });
 
       // Get the ship data
-      const constructedShip = await ships.read.ships([1n]);
+      const constructedShipTuple = (await ships.read.ships([1n])) as ShipTuple;
+      const constructedShip = tupleToShip(constructedShipTuple);
 
       // Verify construction
-      expect(constructedShip[5].constructed).to.be.true; // shipData is at index 5
-      expect(constructedShip[0]).to.equal("Mock Ship"); // name is at index 0
-      expect(constructedShip[5].costsVersion).to.equal(1); // shipData.costsVersion
-      expect(constructedShip[5].cost).to.be.greaterThan(0); // shipData.cost
+      expect(constructedShip.shipData.constructed).to.be.true; // shipData is at index 5
+      expect(constructedShip.name).to.equal("Mock Ship"); // name is at index 0
+      expect(constructedShip.shipData.costsVersion).to.equal(1); // shipData.costsVersion
+      expect(constructedShip.shipData.cost).to.be.greaterThan(0); // shipData.cost
     });
 
     it("Should allow owner to construct all tier 5 ships at once", async function () {
@@ -505,8 +517,9 @@ describe("Ships", function () {
 
       // Get all ships' serial numbers and fulfill random requests
       for (let i = 1; i <= 125; i++) {
-        const ship = await ships.read.ships([BigInt(i)]);
-        const serialNumber = ship[3].serialNumber; // traits is at index 3
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber; // traits is at index 3
         await randomManager.write.fulfillRandomRequest([serialNumber]);
       }
 
@@ -517,11 +530,12 @@ describe("Ships", function () {
 
       // Verify all ships are constructed
       for (let i = 1; i <= 125; i++) {
-        const ship = await ships.read.ships([BigInt(i)]);
-        expect(ship[5].constructed).to.be.true; // shipData is at index 5
-        expect(ship[0]).to.equal("Mock Ship"); // name is at index 0
-        expect(ship[5].costsVersion).to.equal(1); // shipData.costsVersion
-        expect(ship[5].cost).to.be.greaterThan(0); // shipData.cost
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        expect(ship.shipData.constructed).to.be.true; // shipData is at index 5
+        expect(ship.name).to.equal("Mock Ship"); // name is at index 0
+        expect(ship.shipData.costsVersion).to.equal(1); // shipData.costsVersion
+        expect(ship.shipData.cost).to.be.greaterThan(0); // shipData.cost
       }
     });
 
@@ -537,8 +551,9 @@ describe("Ships", function () {
 
       // Get all ships' serial numbers
       for (let i = 1; i <= 5; i++) {
-        const ship = await ships.read.ships([BigInt(i)]);
-        const serialNumber = ship[3].serialNumber; // traits is at index 3
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber; // traits is at index 3
         await randomManager.write.fulfillRandomRequest([serialNumber]);
       }
 
@@ -550,11 +565,12 @@ describe("Ships", function () {
 
       // Verify all ships are constructed
       for (let i = 1; i <= 5; i++) {
-        const ship = await ships.read.ships([BigInt(i)]);
-        expect(ship[5].constructed).to.be.true; // shipData is at index 5
-        expect(ship[0]).to.equal("Mock Ship"); // name is at index 0
-        expect(ship[5].costsVersion).to.equal(1); // shipData.costsVersion
-        expect(ship[5].cost).to.be.greaterThan(0); // shipData.cost
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        expect(ship.shipData.constructed).to.be.true; // shipData is at index 5
+        expect(ship.name).to.equal("Mock Ship"); // name is at index 0
+        expect(ship.shipData.costsVersion).to.equal(1); // shipData.costsVersion
+        expect(ship.shipData.cost).to.be.greaterThan(0); // shipData.cost
       }
     });
 
@@ -570,8 +586,9 @@ describe("Ships", function () {
       );
 
       // Get the ship's serial number
-      const ship = await ships.read.ships([1n]);
-      const serialNumber = ship[3].serialNumber; // traits is at index 3
+      const shipTuple = (await ships.read.ships([1n])) as ShipTuple;
+      const ship = tupleToShip(shipTuple);
+      const serialNumber = ship.traits.serialNumber; // traits is at index 3
 
       // Fulfill the random request
       await randomManager.write.fulfillRandomRequest([serialNumber]);
@@ -596,8 +613,9 @@ describe("Ships", function () {
       );
 
       // Get the ship's serial number
-      const ship = await ships.read.ships([1n]);
-      const serialNumber = ship[3].serialNumber; // traits is at index 3
+      const shipTuple = (await ships.read.ships([1n])) as ShipTuple;
+      const ship = tupleToShip(shipTuple);
+      const serialNumber = ship.traits.serialNumber; // traits is at index 3
 
       // Fulfill the random request
       await randomManager.write.fulfillRandomRequest([serialNumber]);
@@ -628,8 +646,9 @@ describe("Ships", function () {
       );
 
       // Get the ship's serial number
-      const ship = await ships.read.ships([1n]);
-      const serialNumber = ship[3].serialNumber; // traits is at index 3
+      const shipTuple = (await ships.read.ships([1n])) as ShipTuple;
+      const ship = tupleToShip(shipTuple);
+      const serialNumber = ship.traits.serialNumber; // traits is at index 3
 
       // Fulfill the random request
       await randomManager.write.fulfillRandomRequest([serialNumber]);
@@ -1131,6 +1150,405 @@ describe("Ships", function () {
         user2.account.address,
       ]);
       expect(isOperatorAfter).to.be.false;
+    });
+  });
+
+  describe("Ship Creation", function () {
+    it("Should allow authorized address to create ships", async function () {
+      const { ships, user1, owner } = await loadFixture(deployShipsFixture);
+
+      // Authorize user1 to create ships
+      await ships.write.setIsAllowedToCreateShips(
+        [user1.account.address, true],
+        {
+          account: owner.account,
+        }
+      );
+
+      // Create 3 ships for user1
+      await ships.write.createShips([user1.account.address, 3n], {
+        account: user1.account,
+      });
+
+      // Verify ships were created
+      const shipCount = await ships.read.shipCount();
+      expect(shipCount).to.equal(3n);
+
+      // Verify all ships are owned by user1
+      for (let i = 1; i <= 3; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        expect(ship.owner.toString().toLocaleLowerCase()).to.equal(
+          user1.account.address.toLocaleLowerCase()
+        );
+      }
+    });
+
+    it("Should not allow unauthorized address to create ships", async function () {
+      const { ships, user1, user2 } = await loadFixture(deployShipsFixture);
+
+      // Try to create ships without authorization
+      await expect(
+        ships.write.createShips([user1.account.address, 3n], {
+          account: user2.account,
+        })
+      ).to.be.rejectedWith("NotAuthorized");
+    });
+
+    it("Should allow creating multiple ships in one transaction", async function () {
+      const { ships, user1, owner } = await loadFixture(deployShipsFixture);
+
+      // Authorize user1 to create ships
+      await ships.write.setIsAllowedToCreateShips(
+        [user1.account.address, true],
+        {
+          account: owner.account,
+        }
+      );
+
+      // Create 10 ships for user1
+      await ships.write.createShips([user1.account.address, 10n], {
+        account: user1.account,
+      });
+
+      // Verify ships were created
+      const shipCount = await ships.read.shipCount();
+      expect(shipCount).to.equal(10n);
+
+      // Verify all ships are owned by user1
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        expect(ship.owner.toString().toLocaleLowerCase()).to.equal(
+          user1.account.address.toLocaleLowerCase()
+        );
+      }
+    });
+
+    it("Should allow owner to create ships for any address", async function () {
+      const { ships, user1, owner } = await loadFixture(deployShipsFixture);
+
+      // First authorize user1 to create ships
+      await ships.write.setIsAllowedToCreateShips(
+        [user1.account.address, true],
+        {
+          account: owner.account,
+        }
+      );
+
+      // Create 5 ships for user1 using owner account
+      await ships.write.createShips([user1.account.address, 5n], {
+        account: user1.account,
+      });
+
+      // Verify ships were created
+      const shipCount = await ships.read.shipCount();
+      expect(shipCount).to.equal(5n);
+
+      // Verify all ships are owned by user1
+      for (let i = 1; i <= 5; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        expect(ship.owner.toString().toLocaleLowerCase()).to.equal(
+          user1.account.address.toLocaleLowerCase()
+        );
+      }
+    });
+
+    it("Should update shipsOwned mapping correctly", async function () {
+      const { ships, user1, owner } = await loadFixture(deployShipsFixture);
+
+      // First authorize user1 to create ships
+      await ships.write.setIsAllowedToCreateShips(
+        [user1.account.address, true],
+        {
+          account: owner.account,
+        }
+      );
+
+      // Create 3 ships for user1
+      await ships.write.createShips([user1.account.address, 3n], {
+        account: user1.account,
+      });
+
+      // Verify shipsOwned mapping
+      const user1Ships = await ships.read.getShipIdsOwned([
+        user1.account.address,
+      ]);
+      expect(user1Ships.length).to.equal(3);
+      expect(user1Ships[0]).to.equal(1n);
+      expect(user1Ships[1]).to.equal(2n);
+      expect(user1Ships[2]).to.equal(3n);
+    });
+  });
+
+  describe("Specific Ship Construction", function () {
+    it("Should allow authorized address to construct a specific ship", async function () {
+      const { ships, user1, owner } = await loadFixture(deployShipsFixture);
+
+      // First authorize user1 to create ships
+      await ships.write.setIsAllowedToCreateShips(
+        [user1.account.address, true],
+        {
+          account: owner.account,
+        }
+      );
+
+      // Create a ship first
+      await ships.write.createShips([user1.account.address, 1n], {
+        account: user1.account,
+      });
+
+      // Create a specific ship configuration
+      const specificShip = {
+        name: "Custom Ship",
+        id: 1n,
+        equipment: {
+          mainWeapon: 2,
+          armor: 2,
+          shields: 2,
+          special: 2,
+        },
+        traits: {
+          serialNumber: 123n,
+          colors: {
+            r1: 0,
+            g1: 0,
+            b1: 0,
+            r2: 0,
+            g2: 0,
+            b2: 0,
+          },
+          variant: 1,
+          accuracy: 2,
+          hull: 2,
+          speed: 2,
+        },
+        shipData: {
+          constructed: false,
+          inFleet: false,
+          timestampDestroyed: 0n,
+          shiny: true,
+          shipsDestroyed: 0,
+          costsVersion: 1,
+          cost: 0,
+        },
+        owner: user1.account.address,
+      };
+
+      // Construct the specific ship
+      await ships.write.constructSpecificShip([1n, specificShip], {
+        account: user1.account,
+      });
+
+      // Verify the ship was constructed with the specific attributes
+      const constructedShipTuple = (await ships.read.ships([1n])) as ShipTuple;
+      const constructedShip = tupleToShip(constructedShipTuple);
+      expect(constructedShip.name).to.equal("Custom Ship"); // name
+      expect(constructedShip.traits.serialNumber).to.equal(0n); // traits.serialNumber should be 0
+      expect(constructedShip.traits.variant).to.equal(1); // traits.variant
+      expect(constructedShip.traits.accuracy).to.equal(2); // traits.accuracy
+      expect(constructedShip.traits.hull).to.equal(2); // traits.hull
+      expect(constructedShip.traits.speed).to.equal(2); // traits.speed
+      expect(constructedShip.equipment.mainWeapon).to.equal(2); // equipment.mainWeapon
+      expect(constructedShip.equipment.armor).to.equal(2); // equipment.armor
+      expect(constructedShip.equipment.shields).to.equal(2); // equipment.shields
+      expect(constructedShip.equipment.special).to.equal(2); // equipment.special
+      expect(constructedShip.shipData.constructed).to.be.true; // shipData.constructed
+      expect(constructedShip.shipData.shiny).to.be.true; // shipData.shiny
+    });
+
+    it("Should not allow unauthorized address to construct a specific ship", async function () {
+      const { ships, user1, user2, owner } = await loadFixture(
+        deployShipsFixture
+      );
+
+      // First authorize user1 to create ships
+      await ships.write.setIsAllowedToCreateShips(
+        [user1.account.address, true],
+        {
+          account: owner.account,
+        }
+      );
+
+      // Create a ship first
+      await ships.write.createShips([user1.account.address, 1n], {
+        account: user1.account,
+      });
+
+      // Create a specific ship configuration
+      const specificShip = {
+        name: "Custom Ship",
+        id: 1n,
+        equipment: {
+          mainWeapon: 2,
+          armor: 2,
+          shields: 2,
+          special: 2,
+        },
+        traits: {
+          serialNumber: 123n,
+          colors: {
+            r1: 0,
+            g1: 0,
+            b1: 0,
+            r2: 0,
+            g2: 0,
+            b2: 0,
+          },
+          variant: 1,
+          accuracy: 2,
+          hull: 2,
+          speed: 2,
+        },
+        shipData: {
+          constructed: false,
+          inFleet: false,
+          timestampDestroyed: 0n,
+          shiny: true,
+          shipsDestroyed: 0,
+          costsVersion: 1,
+          cost: 0,
+        },
+        owner: user1.account.address,
+      };
+
+      // Try to construct the specific ship as unauthorized user2
+      await expect(
+        ships.write.constructSpecificShip([1n, specificShip], {
+          account: user2.account,
+        })
+      ).to.be.rejectedWith("NotAuthorized");
+    });
+
+    it("Should not allow constructing an already constructed ship", async function () {
+      const { ships, user1, owner } = await loadFixture(deployShipsFixture);
+
+      // First authorize user1 to create ships
+      await ships.write.setIsAllowedToCreateShips(
+        [user1.account.address, true],
+        {
+          account: owner.account,
+        }
+      );
+
+      // Create a ship first
+      await ships.write.createShips([user1.account.address, 1n], {
+        account: user1.account,
+      });
+
+      // Create a specific ship configuration
+      const specificShip = {
+        name: "Custom Ship",
+        id: 1n,
+        equipment: {
+          mainWeapon: 2,
+          armor: 2,
+          shields: 2,
+          special: 2,
+        },
+        traits: {
+          serialNumber: 123n,
+          colors: {
+            r1: 0,
+            g1: 0,
+            b1: 0,
+            r2: 0,
+            g2: 0,
+            b2: 0,
+          },
+          variant: 1,
+          accuracy: 2,
+          hull: 2,
+          speed: 2,
+        },
+        shipData: {
+          constructed: false,
+          inFleet: false,
+          timestampDestroyed: 0n,
+          shiny: true,
+          shipsDestroyed: 0,
+          costsVersion: 1,
+          cost: 0,
+        },
+        owner: user1.account.address,
+      };
+
+      // Construct the specific ship
+      await ships.write.constructSpecificShip([1n, specificShip], {
+        account: user1.account,
+      });
+
+      // Try to construct the same ship again
+      await expect(
+        ships.write.constructSpecificShip([1n, specificShip], {
+          account: user1.account,
+        })
+      ).to.be.rejectedWith("ShipConstructed");
+    });
+
+    it("Should update ship cost after construction", async function () {
+      const { ships, user1, owner } = await loadFixture(deployShipsFixture);
+
+      // First authorize user1 to create ships
+      await ships.write.setIsAllowedToCreateShips(
+        [user1.account.address, true],
+        {
+          account: owner.account,
+        }
+      );
+
+      // Create a ship first
+      await ships.write.createShips([user1.account.address, 1n], {
+        account: user1.account,
+      });
+
+      // Create a specific ship configuration
+      const specificShip = {
+        name: "Custom Ship",
+        id: 1n,
+        equipment: {
+          mainWeapon: 2,
+          armor: 2,
+          shields: 2,
+          special: 2,
+        },
+        traits: {
+          serialNumber: 123n,
+          colors: {
+            r1: 0,
+            g1: 0,
+            b1: 0,
+            r2: 0,
+            g2: 0,
+            b2: 0,
+          },
+          variant: 1,
+          accuracy: 2,
+          hull: 2,
+          speed: 2,
+        },
+        shipData: {
+          constructed: false,
+          inFleet: false,
+          timestampDestroyed: 0n,
+          shiny: true,
+          shipsDestroyed: 0,
+          costsVersion: 1,
+          cost: 0,
+        },
+        owner: user1.account.address,
+      };
+
+      // Construct the specific ship
+      await ships.write.constructSpecificShip([1n, specificShip], {
+        account: user1.account,
+      });
+
+      // Verify the ship cost was updated
+      const constructedShipTuple = (await ships.read.ships([1n])) as ShipTuple;
+      const constructedShip = tupleToShip(constructedShipTuple);
+      expect(constructedShip.shipData.cost).to.be.greaterThan(0); // shipData.cost should be set
     });
   });
 });

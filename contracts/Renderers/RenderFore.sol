@@ -8,22 +8,28 @@ contract RenderFore is IRenderComponent {
     IReturnSVG public immutable renderFore0; // Class 0
     IReturnSVG public immutable renderFore1; // Class 1
     IReturnSVG public immutable renderFore2; // Class 2
-    IReturnSVG public immutable renderForeShiny; // Shiny ship
+    IReturnSVG public immutable renderForePerfect; // Perfect ship
 
     constructor(address[] memory renderers) {
         require(renderers.length == 4, "Invalid renderers array in RenderFore");
         renderFore0 = IReturnSVG(renderers[0]);
         renderFore1 = IReturnSVG(renderers[1]);
         renderFore2 = IReturnSVG(renderers[2]);
-        renderForeShiny = IReturnSVG(renderers[3]);
+        renderForePerfect = IReturnSVG(renderers[3]);
     }
 
     function render(
         Ship memory ship
     ) external view override returns (string memory) {
-        // If the ship is shiny, use the shiny renderer
-        if (ship.shipData.shiny) {
-            return renderForeShiny.render();
+        // If the ship is perfect, use the perfect renderer
+        if (
+            ship.traits.accuracy == 2 &&
+            ship.traits.hull == 2 &&
+            ship.traits.speed == 2 &&
+            (ship.equipment.armor == Armor.Heavy ||
+                ship.equipment.shields == Shields.Heavy)
+        ) {
+            return renderForePerfect.render();
         }
         // Use the accuracy to determine which fore class to use
         if (ship.traits.accuracy == 0) {

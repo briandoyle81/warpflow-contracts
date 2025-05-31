@@ -1,13 +1,13 @@
 {
-  "name": "hardhat-project",
-  "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox-viem": "^3.0.0",
-    "hardhat": "^2.24.0",
-    "hardhat-contract-sizer": "^2.10.0"
+  "name": "warpflow-contracts",
+  "version": "1.0.0",
+  "description": "Color conversion script for Warpflow contracts",
+  "scripts": {
+    "convert-colors": "ts-node scripts/convertColors.ts"
   },
-  "dependencies": {
-    "@onflow/flow-sol-utils": "^0.0.1",
-    "@openzeppelin/contracts": "^5.3.0",
-    "dotenv": "^16.5.0"
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
   }
 }

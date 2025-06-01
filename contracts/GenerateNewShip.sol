@@ -37,33 +37,33 @@ contract GenerateNewShip {
 
         // r g b 1 and 2 values are 0 to 255
         randomBase++;
-        newShip.traits.colors.r1 = uint8(
-            uint(keccak256(abi.encodePacked(randomBase))) % 256
+        newShip.traits.colors.h1 = uint8(
+            uint(keccak256(abi.encodePacked(randomBase))) % 360
         );
 
         randomBase++;
-        newShip.traits.colors.g1 = uint8(
-            uint(keccak256(abi.encodePacked(randomBase))) % 256
+        newShip.traits.colors.s1 = uint8(
+            uint(keccak256(abi.encodePacked(randomBase))) % 100
         );
 
         randomBase++;
-        newShip.traits.colors.b1 = uint8(
-            uint(keccak256(abi.encodePacked(randomBase))) % 256
+        newShip.traits.colors.l1 = uint8(
+            uint(keccak256(abi.encodePacked(randomBase))) % 100
         );
 
         randomBase++;
-        newShip.traits.colors.r2 = uint8(
-            uint(keccak256(abi.encodePacked(randomBase))) % 256
+        newShip.traits.colors.h2 = uint8(
+            uint(keccak256(abi.encodePacked(randomBase))) % 360
         );
 
         randomBase++;
-        newShip.traits.colors.g2 = uint8(
-            uint(keccak256(abi.encodePacked(randomBase))) % 256
+        newShip.traits.colors.s2 = uint8(
+            uint(keccak256(abi.encodePacked(randomBase))) % 100
         );
 
         randomBase++;
-        newShip.traits.colors.b2 = uint8(
-            uint(keccak256(abi.encodePacked(randomBase))) % 256
+        newShip.traits.colors.l2 = uint8(
+            uint(keccak256(abi.encodePacked(randomBase))) % 100
         );
 
         randomBase++;

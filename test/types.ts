@@ -1,12 +1,12 @@
 export type ShipTraits = {
   serialNumber: bigint;
   colors: {
-    r1: number;
-    g1: number;
-    b1: number;
-    r2: number;
-    g2: number;
-    b2: number;
+    h1: number;
+    s1: number;
+    l1: number;
+    h2: number;
+    s2: number;
+    l2: number;
   };
   variant: number;
   accuracy: number;

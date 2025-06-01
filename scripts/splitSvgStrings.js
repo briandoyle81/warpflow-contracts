@@ -103,20 +103,49 @@ function processFile(filePath) {
     } = '${color}';\n`;
   });
 
-  // Add the render function
+  // Add the render function with chunked concatenation
   newContent +=
-    "\n    function render() public pure returns (string memory) {\n        return string.concat(\n";
+    "\n    function render() public pure returns (string memory) {\n";
 
-  // Add all parts and colors in order
-  let concatParts = [];
+  // Create an array of all parts and colors in order
+  let allParts = [];
   for (let i = 0; i < parts.length; i++) {
-    concatParts.push(`            PART_${i + 1}`);
+    allParts.push(`PART_${i + 1}`);
     if (i < colors.length) {
-      concatParts.push(`            COLOR_${i + 1}`);
+      allParts.push(`COLOR_${i + 1}`);
     }
   }
 
-  newContent += concatParts.join(",\n") + "\n        );\n    }\n}\n";
+  // Split into chunks of 8
+  const chunks = [];
+  for (let i = 0; i < allParts.length; i += 8) {
+    chunks.push(allParts.slice(i, i + 8));
+  }
+
+  // Generate intermediate concatenation functions if needed
+  if (chunks.length > 1) {
+    chunks.forEach((chunk, index) => {
+      newContent += `        string memory chunk${
+        index + 1
+      } = string.concat(\n`;
+      newContent += chunk.map((part) => `            ${part}`).join(",\n");
+      newContent += "\n        );\n";
+    });
+
+    // Combine all chunks
+    newContent += "        return string.concat(\n";
+    newContent += chunks
+      .map((_, index) => `            chunk${index + 1}`)
+      .join(",\n");
+    newContent += "\n        );\n";
+  } else {
+    // If only one chunk, just return it directly
+    newContent += "        return string.concat(\n";
+    newContent += chunks[0].map((part) => `            ${part}`).join(",\n");
+    newContent += "\n        );\n";
+  }
+
+  newContent += "    }\n}\n";
 
   // Write the new content back to the file
   fs.writeFileSync(filePath, newContent);

@@ -27,19 +27,36 @@ function processFile(filePath) {
   let inStyle = false;
 
   // Regular expression to match fill colors
-  const fillRegex = /style="fill:([^"]+)"/g;
+  const fillRegex = /(?:style="fill:([^"]+)"|fill="([^"]+)")/g;
   let fillMatch;
   let lastIndex = 0;
 
+  // First, find all the path data sections
+  const pathDataRegex = /d="([^"]+)"/g;
+  const pathDataMatches = [...svgString.matchAll(pathDataRegex)];
+
+  // Then process fill colors
   while ((fillMatch = fillRegex.exec(svgString)) !== null) {
+    // Skip if this is within a path data section
+    const isInPathData = pathDataMatches.some(
+      (match) =>
+        fillMatch.index > match.index &&
+        fillMatch.index < match.index + match[0].length
+    );
+
+    if (isInPathData) {
+      continue;
+    }
+
     // Add the part before the style
     const partBeforeStyle = svgString.substring(lastIndex, fillMatch.index);
     if (partBeforeStyle) {
       parts.push(partBeforeStyle);
     }
 
-    // Add the color
-    colors.push(fillMatch[1]);
+    // Add the color (either from style or direct fill)
+    const color = fillMatch[1] || fillMatch[2];
+    colors.push(color);
 
     // Add the closing part
     const closingPart = svgString.substring(

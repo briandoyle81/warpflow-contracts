@@ -21,11 +21,11 @@ contract RenderAft is IRenderComponent {
     ) external view override returns (string memory) {
         // Use the speed to determine which aft class to use
         if (ship.traits.speed == 0) {
-            return renderAft0.render(ship);
+            return renderAft0.render();
         } else if (ship.traits.speed == 1) {
-            return renderAft1.render(ship);
+            return renderAft1.render();
         } else {
-            return renderAft2.render(ship);
+            return renderAft2.render();
         }
     }
 }

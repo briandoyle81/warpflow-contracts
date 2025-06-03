@@ -118,6 +118,12 @@ function processFile(filePath) {
 
 function main() {
   const renderersDir = path.join(__dirname, "../contracts/Renderers");
+  const backupDir = path.join(__dirname, "/../Renderers_original");
+
+  // Create backup directory if it doesn't exist
+  if (!fs.existsSync(backupDir)) {
+    fs.mkdirSync(backupDir, { recursive: true });
+  }
 
   // Get all .sol files
   const files = fs
@@ -129,6 +135,13 @@ function main() {
   // Process each file
   files.forEach((file) => {
     const filePath = path.join(renderersDir, file);
+    const backupPath = path.join(backupDir, file);
+
+    // Create backup before processing
+    fs.copyFileSync(filePath, backupPath);
+    console.log(`Created backup at ${backupPath}`);
+
+    // Process the file
     processFile(filePath);
   });
 

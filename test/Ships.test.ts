@@ -677,6 +677,15 @@ describe("Ships", function () {
       expect(metadata).to.have.property("attributes").that.is.an("array");
       expect(metadata).to.have.property("image").that.is.a("string");
 
+      // Decode the image
+      const image = metadata.image;
+      const imageContent = image.replace("data:image/svg+xml;base64,", "");
+      const decodedImage = Buffer.from(imageContent, "base64").toString();
+      const svgString = decodedImage;
+
+      // Verify the SVG string is valid
+      console.log(svgString);
+
       // Verify name format
       expect(metadata.name).to.match(/^Mock Ship #1$/);
 

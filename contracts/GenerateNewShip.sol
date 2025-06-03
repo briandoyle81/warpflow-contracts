@@ -112,7 +112,7 @@ contract GenerateNewShip {
 
         // TODO: Should it be adjustable chance for shiny?
         uint shinyChance = uint(keccak256(abi.encodePacked(randomBase))) % 100;
-        if (shinyChance == 0) {
+        if (shinyChance <= 8) {
             newShip.shipData.shiny = true;
         }
 

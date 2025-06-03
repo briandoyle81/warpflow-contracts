@@ -20,59 +20,15 @@ function processFile(filePath) {
   const [_, constantName, svgString] = match;
   const [__, contractName] = contractMatch;
 
-  // Split the SVG into parts and colors
-  const parts = [];
+  // First pass: Split the string by HSL colors and collect the parts
+  const hslRegex = /hsl\([^)]+\)/g;
+  const parts = svgString.split(hslRegex);
+
+  // Second pass: Collect all HSL colors
   const colors = [];
-  let currentPart = "";
-  let inStyle = false;
-
-  // Regular expression to match fill colors
-  const fillRegex = /(?:style="fill:([^"]+)"|fill="([^"]+)")/g;
-  let fillMatch;
-  let lastIndex = 0;
-
-  // First, find all the path data sections
-  const pathDataRegex = /d="([^"]+)"/g;
-  const pathDataMatches = [...svgString.matchAll(pathDataRegex)];
-
-  // Then process fill colors
-  while ((fillMatch = fillRegex.exec(svgString)) !== null) {
-    // Skip if this is within a path data section
-    const isInPathData = pathDataMatches.some(
-      (match) =>
-        fillMatch.index > match.index &&
-        fillMatch.index < match.index + match[0].length
-    );
-
-    if (isInPathData) {
-      continue;
-    }
-
-    // Add the part before the style
-    const partBeforeStyle = svgString.substring(lastIndex, fillMatch.index);
-    if (partBeforeStyle) {
-      parts.push(partBeforeStyle);
-    }
-
-    // Add the color (either from style or direct fill)
-    const color = fillMatch[1] || fillMatch[2];
-    colors.push(color);
-
-    // Add the closing part
-    const closingPart = svgString.substring(
-      fillMatch.index + fillMatch[0].length,
-      fillMatch.index + fillMatch[0].length + 2
-    );
-    if (closingPart) {
-      parts.push(closingPart);
-    }
-
-    lastIndex = fillMatch.index + fillMatch[0].length + 2;
-  }
-
-  // Add any remaining part
-  if (lastIndex < svgString.length) {
-    parts.push(svgString.substring(lastIndex));
+  let hslMatch;
+  while ((hslMatch = hslRegex.exec(svgString)) !== null) {
+    colors.push(hslMatch[0]);
   }
 
   // Generate the new content
@@ -85,9 +41,6 @@ function processFile(filePath) {
   if (imports) {
     newContent += imports.join("\n") + "\n";
   }
-
-  // Add RenderUtils import after IRenderer
-  newContent += 'import "./RenderUtils.sol";\n\n';
 
   // Add the contract declaration
   newContent += `contract ${contractName} {\n`;
@@ -106,21 +59,16 @@ function processFile(filePath) {
     } = '${color}';\n`;
   });
 
-  // Add the render function with chunked concatenation and shiny handling
+  // Add the render function with chunked concatenation
   newContent +=
-    "\n    function render(Ship memory _ship) public pure returns (string memory) {\n";
+    "\n    function render() external pure returns (string memory) {\n";
 
   // Create an array of all parts and colors in order
   let allParts = [];
   for (let i = 0; i < parts.length; i++) {
     allParts.push(`PART_${i + 1}`);
     if (i < colors.length) {
-      // Add color with shiny check
-      allParts.push(
-        `_ship.shipData.shiny ? blendHSL(_ship.traits.colors.h1, _ship.traits.colors.s1, _ship.traits.colors.l1, COLOR_${
-          i + 1
-        }) : COLOR_${i + 1}`
-      );
+      allParts.push(`COLOR_${i + 1}`);
     }
   }
 

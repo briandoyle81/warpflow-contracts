@@ -684,6 +684,7 @@ describe("Ships", function () {
       const svgString = decodedImage;
 
       // Verify the SVG string is valid
+      console.log("SHIP SHINY STATUS:", ship.shipData.shiny);
       console.log(svgString);
 
       // Verify name format

@@ -88,10 +88,17 @@ function blendHSL(
 
     // Blend the values according to the specified ratios
     // H: 50/50 blend
-    uint blendedH = (h + h2) / 2;
 
-    // S: 75% old, 25% new
-    uint blendedS = (s2 * 75 + s * 25) / 100;
+    uint blendedH;
+
+    if (h2 > 40) {
+        blendedH = (h2 * 95 + h * 5) / 100;
+    } else {
+        blendedH = (h2 * 25 + h * 75) / 100;
+    }
+
+    // S: Blend the two values 50/50 for half and add 50 resulting in values between 50 and 100
+    uint blendedS = (s2 * 10 + s * 90) / 2 / 100 + 50;
 
     // L: 95% old, 5% new
     uint blendedL = (l2 * 95 + l * 5) / 100;

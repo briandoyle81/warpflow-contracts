@@ -684,7 +684,15 @@ describe("Ships", function () {
       const svgString = decodedImage;
 
       // Verify the SVG string is valid
-      console.log("SHIP SHINY STATUS:", ship.shipData.shiny);
+      // Log if the ship is shiny according to the metadata
+      console.log(
+        "SHIP SHINY STATUS:",
+        metadata.attributes.find(
+          (attr: { trait_type: string; value: string | number | boolean }) =>
+            attr.trait_type === "Shiny"
+        )?.value
+      );
+
       console.log(svgString);
 
       // Verify name format

@@ -8,7 +8,7 @@ interface IRenderComponent {
 }
 
 interface IReturnSVG {
-    function render() external view returns (string memory);
+    function render(Ship memory ship) external view returns (string memory);
 }
 
 interface IRenderMetadata {

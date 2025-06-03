@@ -57,3 +57,95 @@ function toHexString(uint8 value) pure returns (string memory) {
     buffer[1] = bytes1(uint8((value & 0x0F) + ((value & 0x0F) < 10 ? 48 : 87)));
     return string(buffer);
 }
+
+function blendHSL(
+    uint h,
+    uint s,
+    uint l,
+    string memory hslString
+) pure returns (string memory) {
+    // Parse the HSL string (format: "hsl(200, 40%, 47%)")
+    bytes memory b = bytes(hslString);
+    require(b.length >= 10, "Invalid HSL string format");
+
+    // Find the numbers in the string
+    uint start = 4; // Skip "hsl("
+    uint end = start;
+    while (end < b.length && b[end] != ",") end++;
+    uint h2 = parseUint(b, start, end);
+
+    start = end + 1;
+    while (start < b.length && (b[start] == " " || b[start] == ",")) start++;
+    end = start;
+    while (end < b.length && b[end] != "%") end++;
+    uint s2 = parseUint(b, start, end);
+
+    start = end + 1;
+    while (start < b.length && (b[start] == " " || b[start] == ",")) start++;
+    end = start;
+    while (end < b.length && b[end] != "%") end++;
+    uint l2 = parseUint(b, start, end);
+
+    // Blend the values according to the specified ratios
+    // H: 50/50 blend
+
+    uint blendedH;
+
+    if (h2 > 40) {
+        blendedH = (h2 * 95 + h * 5) / 100;
+    } else {
+        blendedH = (h2 * 25 + h * 75) / 100;
+    }
+
+    // S: Blend the two values 50/50 for half and add 50 resulting in values between 50 and 100
+    uint blendedS = (s2 * 10 + s * 90) / 2 / 100 + 50;
+
+    // L: 95% old, 5% new
+    uint blendedL = (l2 * 95 + l * 5) / 100;
+
+    // Return the blended HSL string
+    return
+        string(
+            abi.encodePacked(
+                "hsl(",
+                uintToString(blendedH),
+                ", ",
+                uintToString(blendedS),
+                "%, ",
+                uintToString(blendedL),
+                "%)"
+            )
+        );
+}
+
+function parseUint(bytes memory b, uint start, uint end) pure returns (uint) {
+    uint result = 0;
+    for (uint i = start; i < end; i++) {
+        if (uint8(b[i]) >= 48 && uint8(b[i]) <= 57) {
+            result = result * 10 + (uint8(b[i]) - 48);
+        }
+    }
+    return result;
+}
+
+function uintToString(uint value) pure returns (string memory) {
+    if (value == 0) {
+        return "0";
+    }
+
+    uint temp = value;
+    uint digits;
+    while (temp != 0) {
+        digits++;
+        temp /= 10;
+    }
+
+    bytes memory buffer = new bytes(digits);
+    while (value != 0) {
+        digits -= 1;
+        buffer[digits] = bytes1(uint8(48 + uint(value % 10)));
+        value /= 10;
+    }
+
+    return string(buffer);
+}

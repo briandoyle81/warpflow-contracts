@@ -42,12 +42,12 @@ struct Traits {
 }
 
 struct Colors {
-    uint8 r1;
-    uint8 g1;
-    uint8 b1;
-    uint8 r2;
-    uint8 g2;
-    uint8 b2;
+    uint8 h1;
+    uint8 s1;
+    uint8 l1;
+    uint8 h2;
+    uint8 s2;
+    uint8 l2;
 }
 struct Equipment {
     MainWeapon mainWeapon;

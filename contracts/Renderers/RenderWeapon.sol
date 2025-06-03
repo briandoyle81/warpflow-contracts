@@ -25,13 +25,13 @@ contract RenderWeapon is IRenderComponent {
         Ship memory ship
     ) external view override returns (string memory) {
         if (ship.equipment.mainWeapon == MainWeapon.Laser) {
-            return renderWeapon1.render();
+            return renderWeapon1.render(ship);
         } else if (ship.equipment.mainWeapon == MainWeapon.Railgun) {
-            return renderWeapon2.render();
+            return renderWeapon2.render(ship);
         } else if (ship.equipment.mainWeapon == MainWeapon.MissileLauncher) {
-            return renderWeapon3.render();
+            return renderWeapon3.render(ship);
         } else if (ship.equipment.mainWeapon == MainWeapon.PlasmaCannon) {
-            return renderWeapon4.render();
+            return renderWeapon4.render(ship);
         }
         return "";
     }

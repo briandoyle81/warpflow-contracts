@@ -677,6 +677,24 @@ describe("Ships", function () {
       expect(metadata).to.have.property("attributes").that.is.an("array");
       expect(metadata).to.have.property("image").that.is.a("string");
 
+      // Decode the image
+      const image = metadata.image;
+      const imageContent = image.replace("data:image/svg+xml;base64,", "");
+      const decodedImage = Buffer.from(imageContent, "base64").toString();
+      const svgString = decodedImage;
+
+      // Verify the SVG string is valid
+      // Log if the ship is shiny according to the metadata
+      console.log(
+        "SHIP SHINY STATUS:",
+        metadata.attributes.find(
+          (attr: { trait_type: string; value: string | number | boolean }) =>
+            attr.trait_type === "Shiny"
+        )?.value
+      );
+
+      console.log(svgString);
+
       // Verify name format
       expect(metadata.name).to.match(/^Mock Ship #1$/);
 
@@ -1312,12 +1330,12 @@ describe("Ships", function () {
         traits: {
           serialNumber: 123n,
           colors: {
-            r1: 0,
-            g1: 0,
-            b1: 0,
-            r2: 0,
-            g2: 0,
-            b2: 0,
+            h1: 200,
+            s1: 40,
+            l1: 47,
+            h2: 180,
+            s2: 50,
+            l2: 60,
           },
           variant: 1,
           accuracy: 2,
@@ -1389,12 +1407,12 @@ describe("Ships", function () {
         traits: {
           serialNumber: 123n,
           colors: {
-            r1: 0,
-            g1: 0,
-            b1: 0,
-            r2: 0,
-            g2: 0,
-            b2: 0,
+            h1: 200,
+            s1: 40,
+            l1: 47,
+            h2: 180,
+            s2: 50,
+            l2: 60,
           },
           variant: 1,
           accuracy: 2,
@@ -1450,12 +1468,12 @@ describe("Ships", function () {
         traits: {
           serialNumber: 123n,
           colors: {
-            r1: 0,
-            g1: 0,
-            b1: 0,
-            r2: 0,
-            g2: 0,
-            b2: 0,
+            h1: 200,
+            s1: 40,
+            l1: 47,
+            h2: 180,
+            s2: 50,
+            l2: 60,
           },
           variant: 1,
           accuracy: 2,
@@ -1516,12 +1534,12 @@ describe("Ships", function () {
         traits: {
           serialNumber: 123n,
           colors: {
-            r1: 0,
-            g1: 0,
-            b1: 0,
-            r2: 0,
-            g2: 0,
-            b2: 0,
+            h1: 200,
+            s1: 40,
+            l1: 47,
+            h2: 180,
+            s2: 50,
+            l2: 60,
           },
           variant: 1,
           accuracy: 2,

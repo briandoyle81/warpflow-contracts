@@ -29,15 +29,15 @@ contract RenderFore is IRenderComponent {
             (ship.equipment.armor == Armor.Heavy ||
                 ship.equipment.shields == Shields.Heavy)
         ) {
-            return renderForePerfect.render();
+            return renderForePerfect.render(ship);
         }
         // Use the accuracy to determine which fore class to use
         if (ship.traits.accuracy == 0) {
-            return renderFore0.render();
+            return renderFore0.render(ship);
         } else if (ship.traits.accuracy == 1) {
-            return renderFore1.render();
+            return renderFore1.render(ship);
         } else {
-            return renderFore2.render();
+            return renderFore2.render(ship);
         }
     }
 }

@@ -33,31 +33,31 @@ contract RenderBody is IRenderComponent {
             ship.equipment.shields == Shields.None &&
             ship.equipment.armor == Armor.None
         ) {
-            return renderBaseBody.render();
+            return renderBaseBody.render(ship);
         }
 
         // If shields are present, render shield
         if (ship.equipment.shields != Shields.None) {
             if (ship.equipment.shields == Shields.Light) {
-                return renderShield1.render();
+                return renderShield1.render(ship);
             } else if (ship.equipment.shields == Shields.Medium) {
-                return renderShield2.render();
+                return renderShield2.render(ship);
             } else if (ship.equipment.shields == Shields.Heavy) {
-                return renderShield3.render();
+                return renderShield3.render(ship);
             }
         }
 
         // If armor is present, render armor
         if (ship.equipment.armor != Armor.None) {
             if (ship.equipment.armor == Armor.Light) {
-                return renderArmor1.render();
+                return renderArmor1.render(ship);
             } else if (ship.equipment.armor == Armor.Medium) {
-                return renderArmor2.render();
+                return renderArmor2.render(ship);
             } else if (ship.equipment.armor == Armor.Heavy) {
-                return renderArmor3.render();
+                return renderArmor3.render(ship);
             }
         }
 
-        return renderBaseBody.render();
+        return renderBaseBody.render(ship);
     }
 }

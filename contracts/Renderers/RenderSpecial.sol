@@ -23,11 +23,11 @@ contract RenderSpecial is IRenderComponent {
         if (ship.equipment.special == Special.None) {
             return "";
         } else if (ship.equipment.special == Special.EMP) {
-            return renderSpecial1.render();
+            return renderSpecial1.render(ship);
         } else if (ship.equipment.special == Special.RepairDrones) {
-            return renderSpecial2.render();
+            return renderSpecial2.render(ship);
         } else if (ship.equipment.special == Special.FlakArray) {
-            return renderSpecial3.render();
+            return renderSpecial3.render(ship);
         }
         return "";
     }

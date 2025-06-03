@@ -42,6 +42,9 @@ function processFile(filePath) {
     newContent += imports.join("\n") + "\n";
   }
 
+  // Add RenderUtils import
+  newContent += 'import "./RenderUtils.sol";\n\n';
+
   // Add the contract declaration
   newContent += `contract ${contractName} {\n`;
 
@@ -59,16 +62,21 @@ function processFile(filePath) {
     } = '${color}';\n`;
   });
 
-  // Add the render function with chunked concatenation
+  // Add the render function with chunked concatenation and shiny handling
   newContent +=
-    "\n    function render() external pure returns (string memory) {\n";
+    "\n    function render(Ship memory ship) external pure returns (string memory) {\n";
 
   // Create an array of all parts and colors in order
   let allParts = [];
   for (let i = 0; i < parts.length; i++) {
     allParts.push(`PART_${i + 1}`);
     if (i < colors.length) {
-      allParts.push(`COLOR_${i + 1}`);
+      // Add color with shiny check
+      allParts.push(
+        `ship.shipData.shiny ? blendHSL(ship.traits.colors.h1, ship.traits.colors.s1, ship.traits.colors.l1, COLOR_${
+          i + 1
+        }) : COLOR_${i + 1}`
+      );
     }
   }
 

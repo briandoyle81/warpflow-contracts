@@ -120,14 +120,23 @@ describe("Ships", function () {
     ]);
 
     // Mint some UC tokens to users for testing
-    await universalCredits.write.mint([user1.account.address, 10000n]);
-    await universalCredits.write.mint([user2.account.address, 10000n]);
-    await universalCredits.write.mint([user3.account.address, 10000n]);
+    await universalCredits.write.mint([
+      user1.account.address,
+      parseEther("1000"),
+    ]);
+    await universalCredits.write.mint([
+      user2.account.address,
+      parseEther("1000"),
+    ]);
+    await universalCredits.write.mint([
+      user3.account.address,
+      parseEther("1000"),
+    ]);
 
     // Approve ShipPurchaser to spend UC tokens
-    await user1UC.write.approve([shipPurchaser.address, 10000n]);
-    await user2UC.write.approve([shipPurchaser.address, 10000n]);
-    await user3UC.write.approve([shipPurchaser.address, 10000n]);
+    await user1UC.write.approve([shipPurchaser.address, parseEther("1000")]);
+    await user2UC.write.approve([shipPurchaser.address, parseEther("1000")]);
+    await user3UC.write.approve([shipPurchaser.address, parseEther("1000")]);
 
     return {
       ships,
@@ -1668,8 +1677,8 @@ describe("Ships", function () {
       ]);
       const shipCount = await ships.read.shipCount();
 
-      // Check that 499 UC tokens were spent (4.99 UC)
-      expect(initialBalance - finalBalance).to.equal(499n);
+      // Check that 4.99 UC tokens were spent
+      expect(initialBalance - finalBalance).to.equal(parseEther("4.99"));
       // Check that 5 ships were minted
       expect(shipCount).to.equal(5n);
 
@@ -1707,9 +1716,9 @@ describe("Ships", function () {
         user2.account.address,
       ]);
 
-      // Check that referral received 1% of tier 1 price (499 UC)
-      // For 499 UC, 1% is 4.99 UC
-      expect(finalBalance - initialBalance).to.equal(4n); // Rounded down to 4 UC
+      // Check that referral received 1% of tier 1 price (4.99 UC)
+      // For 4.99 UC, 1% is 0.0499 UC
+      expect(finalBalance - initialBalance).to.equal(parseEther("0.0499"));
 
       // Check referral count
       const referralCount = await shipPurchaser.read.referralCount([
@@ -1724,7 +1733,7 @@ describe("Ships", function () {
 
       // Burn all UC tokens from user1
       await universalCredits.write.transfer(
-        ["0x000000000000000000000000000000000000dEaD", 10000n],
+        ["0x000000000000000000000000000000000000dEaD", parseEther("1000")],
         {
           account: user1.account,
         }
@@ -1756,7 +1765,11 @@ describe("Ships", function () {
 
       const newTiers = [1, 2, 3];
       const newShipsPerTier = [5, 10, 15];
-      const newPrices = [500n, 1000n, 2500n];
+      const newPrices = [
+        parseEther("5.99"),
+        parseEther("10.99"),
+        parseEther("15.99"),
+      ];
 
       await shipPurchaser.write.setPurchaseInfo(
         [newTiers, newShipsPerTier, newPrices],
@@ -1777,7 +1790,11 @@ describe("Ships", function () {
 
       const updatedTiers = [1, 2, 3];
       const updatedShipsPerTier = [5, 10, 15];
-      const updatedPrices = [500n, 1000n, 2500n];
+      const updatedPrices = [
+        parseEther("5.99"),
+        parseEther("10.99"),
+        parseEther("15.99"),
+      ];
 
       await expect(
         shipPurchaser.write.setPurchaseInfo(
@@ -1794,9 +1811,12 @@ describe("Ships", function () {
         await loadFixture(deployShipsFixture);
 
       // Purchase some ships to get UC tokens in the contract
-      await universalCredits.write.approve([shipPurchaser.address, 1000n], {
-        account: user1.account,
-      });
+      await universalCredits.write.approve(
+        [shipPurchaser.address, parseEther("100")],
+        {
+          account: user1.account,
+        }
+      );
 
       await shipPurchaser.write.purchaseWithUC(
         [user1.account.address, 0n, owner.account.address],

@@ -41,11 +41,11 @@ contract ShipPurchaser is Ownable, ReentrancyGuard {
         tierShips = [5, 11, 28, 60, 125];
         // Using same tier structure but with UC tokens instead of ether
         tierPrices = [
-            499, // 4.99 UC
-            999, // 9.99 UC
-            2499, // 24.99 UC
-            4999, // 49.99 UC
-            9999 // 99.99 UC
+            4.99 ether, // 4.99 UC
+            9.99 ether, // 9.99 UC
+            24.99 ether, // 24.99 UC
+            49.99 ether, // 49.99 UC
+            99.99 ether // 99.99 UC
         ];
     }
 

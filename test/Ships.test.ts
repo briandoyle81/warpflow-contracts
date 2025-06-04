@@ -48,6 +48,8 @@ describe("Ships", function () {
       renderFore0,
       renderFore1,
       renderFore2,
+      universalCredits,
+      shipPurchaser,
     } = await hre.ignition.deploy(DeployModule);
 
     // Create a separate contract instance for user1
@@ -64,6 +66,68 @@ describe("Ships", function () {
     const user3Ships = await hre.viem.getContractAt("Ships", ships.address, {
       client: { wallet: user3 },
     });
+
+    // Create separate contract instances for UniversalCredits
+    const user1UC = await hre.viem.getContractAt(
+      "UniversalCredits",
+      universalCredits.address,
+      {
+        client: { wallet: user1 },
+      }
+    );
+    const user2UC = await hre.viem.getContractAt(
+      "UniversalCredits",
+      universalCredits.address,
+      {
+        client: { wallet: user2 },
+      }
+    );
+    const user3UC = await hre.viem.getContractAt(
+      "UniversalCredits",
+      universalCredits.address,
+      {
+        client: { wallet: user3 },
+      }
+    );
+
+    // Create separate contract instances for ShipPurchaser
+    const user1Purchaser = await hre.viem.getContractAt(
+      "ShipPurchaser",
+      shipPurchaser.address,
+      {
+        client: { wallet: user1 },
+      }
+    );
+    const user2Purchaser = await hre.viem.getContractAt(
+      "ShipPurchaser",
+      shipPurchaser.address,
+      {
+        client: { wallet: user2 },
+      }
+    );
+    const user3Purchaser = await hre.viem.getContractAt(
+      "ShipPurchaser",
+      shipPurchaser.address,
+      {
+        client: { wallet: user3 },
+      }
+    );
+
+    // Approve the owner address to mint UC tokens
+    await universalCredits.write.setAuthorizedToMint([
+      owner.account.address,
+      true,
+    ]);
+
+    // Mint some UC tokens to users for testing
+    await universalCredits.write.mint([user1.account.address, 10000n]);
+    await universalCredits.write.mint([user2.account.address, 10000n]);
+    await universalCredits.write.mint([user3.account.address, 10000n]);
+
+    // Approve ShipPurchaser to spend UC tokens
+    await user1UC.write.approve([shipPurchaser.address, 10000n]);
+    await user2UC.write.approve([shipPurchaser.address, 10000n]);
+    await user3UC.write.approve([shipPurchaser.address, 10000n]);
 
     return {
       ships,
@@ -102,6 +166,14 @@ describe("Ships", function () {
       user2,
       user3,
       publicClient,
+      universalCredits,
+      shipPurchaser,
+      user1UC,
+      user2UC,
+      user3UC,
+      user1Purchaser,
+      user2Purchaser,
+      user3Purchaser,
     };
   }
 
@@ -685,15 +757,15 @@ describe("Ships", function () {
 
       // Verify the SVG string is valid
       // Log if the ship is shiny according to the metadata
-      console.log(
-        "SHIP SHINY STATUS:",
-        metadata.attributes.find(
-          (attr: { trait_type: string; value: string | number | boolean }) =>
-            attr.trait_type === "Shiny"
-        )?.value
-      );
+      // console.log(
+      //   "SHIP SHINY STATUS:",
+      //   metadata.attributes.find(
+      //     (attr: { trait_type: string; value: string | number | boolean }) =>
+      //       attr.trait_type === "Shiny"
+      //   )?.value
+      // );
 
-      console.log(svgString);
+      // console.log(svgString);
 
       // Verify name format
       expect(metadata.name).to.match(/^Mock Ship #1$/);
@@ -1567,6 +1639,189 @@ describe("Ships", function () {
       const constructedShipTuple = (await ships.read.ships([1n])) as ShipTuple;
       const constructedShip = tupleToShip(constructedShipTuple);
       expect(constructedShip.shipData.cost).to.be.greaterThan(0); // shipData.cost should be set
+    });
+  });
+
+  describe("Token-based Purchasing", function () {
+    it("Should purchase tier 1 with UC tokens", async function () {
+      const {
+        ships,
+        user1,
+        user2,
+        universalCredits,
+        shipPurchaser,
+        user1Purchaser,
+      } = await loadFixture(deployShipsFixture);
+
+      const initialBalance = await universalCredits.read.balanceOf([
+        user1.account.address,
+      ]);
+
+      await user1Purchaser.write.purchaseWithUC([
+        user1.account.address,
+        0n,
+        user2.account.address,
+      ]);
+
+      const finalBalance = await universalCredits.read.balanceOf([
+        user1.account.address,
+      ]);
+      const shipCount = await ships.read.shipCount();
+
+      // Check that 499 UC tokens were spent (4.99 UC)
+      expect(initialBalance - finalBalance).to.equal(499n);
+      // Check that 5 ships were minted
+      expect(shipCount).to.equal(5n);
+
+      // Check all ships are owned by user1
+      for (let i = 1; i <= 5; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        expect(ship.owner.toString().toLocaleLowerCase()).to.equal(
+          user1.account.address.toLocaleLowerCase()
+        );
+      }
+    });
+
+    it("Should process referral payment correctly with UC tokens", async function () {
+      const {
+        user1,
+        user2,
+        universalCredits,
+        user1Purchaser,
+        user2UC,
+        shipPurchaser,
+      } = await loadFixture(deployShipsFixture);
+
+      const initialBalance = await universalCredits.read.balanceOf([
+        user2.account.address,
+      ]);
+
+      await user1Purchaser.write.purchaseWithUC([
+        user1.account.address,
+        0n,
+        user2.account.address,
+      ]);
+
+      const finalBalance = await universalCredits.read.balanceOf([
+        user2.account.address,
+      ]);
+
+      // Check that referral received 1% of tier 1 price (499 UC)
+      // For 499 UC, 1% is 4.99 UC
+      expect(finalBalance - initialBalance).to.equal(4n); // Rounded down to 4 UC
+
+      // Check referral count
+      const referralCount = await shipPurchaser.read.referralCount([
+        user2.account.address,
+      ]);
+      expect(referralCount).to.equal(5n);
+    });
+
+    it("Should revert with insufficient UC balance", async function () {
+      const { user1, user2, universalCredits, user1Purchaser } =
+        await loadFixture(deployShipsFixture);
+
+      // Burn all UC tokens from user1
+      await universalCredits.write.transfer(
+        ["0x000000000000000000000000000000000000dEaD", 10000n],
+        {
+          account: user1.account,
+        }
+      );
+
+      await expect(
+        user1Purchaser.write.purchaseWithUC([
+          user1.account.address,
+          0n,
+          user2.account.address,
+        ])
+      ).to.be.rejectedWith("InvalidPurchase");
+    });
+
+    it("Should revert with zero address referral", async function () {
+      const { user1, user1Purchaser } = await loadFixture(deployShipsFixture);
+
+      await expect(
+        user1Purchaser.write.purchaseWithUC([
+          user1.account.address,
+          0n,
+          "0x0000000000000000000000000000000000000000",
+        ])
+      ).to.be.rejectedWith("InvalidReferral");
+    });
+
+    it("Should allow owner to update purchase info", async function () {
+      const { shipPurchaser, owner } = await loadFixture(deployShipsFixture);
+
+      const newTiers = [1, 2, 3];
+      const newShipsPerTier = [5, 10, 15];
+      const newPrices = [500n, 1000n, 2500n];
+
+      await shipPurchaser.write.setPurchaseInfo(
+        [newTiers, newShipsPerTier, newPrices],
+        {
+          account: owner.account,
+        }
+      );
+
+      const [tiers, shipsPerTier, prices] =
+        await shipPurchaser.read.getPurchaseInfo();
+      expect(tiers).to.deep.equal(newTiers);
+      expect(shipsPerTier).to.deep.equal(newShipsPerTier);
+      expect(prices).to.deep.equal(newPrices);
+    });
+
+    it("Should not allow non-owner to update purchase info", async function () {
+      const { shipPurchaser, user1 } = await loadFixture(deployShipsFixture);
+
+      const updatedTiers = [1, 2, 3];
+      const updatedShipsPerTier = [5, 10, 15];
+      const updatedPrices = [500n, 1000n, 2500n];
+
+      await expect(
+        shipPurchaser.write.setPurchaseInfo(
+          [updatedTiers, updatedShipsPerTier, updatedPrices],
+          {
+            account: user1.account,
+          }
+        )
+      ).to.be.rejectedWith("OwnableUnauthorizedAccount");
+    });
+
+    it("Should allow owner to withdraw UC tokens", async function () {
+      const { shipPurchaser, universalCredits, owner, user1 } =
+        await loadFixture(deployShipsFixture);
+
+      // Purchase some ships to get UC tokens in the contract
+      await universalCredits.write.approve([shipPurchaser.address, 1000n], {
+        account: user1.account,
+      });
+
+      await shipPurchaser.write.purchaseWithUC(
+        [user1.account.address, 0n, owner.account.address],
+        {
+          account: user1.account,
+        }
+      );
+
+      const initialBalance = await universalCredits.read.balanceOf([
+        owner.account.address,
+      ]);
+      await shipPurchaser.write.withdrawUC({ account: owner.account });
+      const finalBalance = await universalCredits.read.balanceOf([
+        owner.account.address,
+      ]);
+
+      expect(finalBalance > initialBalance).to.be.true;
+    });
+
+    it("Should not allow non-owner to withdraw UC tokens", async function () {
+      const { shipPurchaser, user1 } = await loadFixture(deployShipsFixture);
+
+      await expect(
+        shipPurchaser.write.withdrawUC({ account: user1.account })
+      ).to.be.rejectedWith("OwnableUnauthorizedAccount");
     });
   });
 });

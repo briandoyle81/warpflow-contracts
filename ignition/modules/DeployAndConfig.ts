@@ -77,16 +77,22 @@ const DeployModule = buildModule("DeployModule", (m) => {
   const metadataRenderer = m.contract("RenderMetadata", [imageRenderer]);
 
   // Deploy mock ship names
-  // const shipNames = m.contract("MockOnchainRandomShipNames");
+  const shipNames = m.contract("MockOnchainRandomShipNames");
 
   // For testnet use
-  const shipNames = "0x9E433A07D283d56E8243EA25b7358521b1922df5";
+  // const shipNames = "0x9E433A07D283d56E8243EA25b7358521b1922df5";
 
   // Deploy GenerateNewShip with ship names
   const generateNewShip = m.contract("GenerateNewShip", [shipNames]);
 
+  // Deploy UniversalCredits token
+  const universalCredits = m.contract("UniversalCredits");
+
   // Finally deploy Ships with all dependencies
   const ships = m.contract("Ships", [metadataRenderer]);
+
+  // Deploy ShipPurchaser
+  const shipPurchaser = m.contract("ShipPurchaser", [ships, universalCredits]);
 
   // Set all config values in a single call
   m.call(ships, "setConfig", [
@@ -96,6 +102,15 @@ const DeployModule = buildModule("DeployModule", (m) => {
     randomManager,
     metadataRenderer,
   ]);
+
+  // Allow ShipPurchaser to create ships
+  m.call(ships, "setIsAllowedToCreateShips", [shipPurchaser, true]);
+
+  // Enable minting for UniversalCredits
+  m.call(universalCredits, "setMintIsActive", [true]);
+
+  // Allow ShipPurchaser to mint UniversalCredits
+  m.call(universalCredits, "setAuthorizedToMint", [shipPurchaser, true]);
 
   return {
     randomManager,
@@ -129,6 +144,8 @@ const DeployModule = buildModule("DeployModule", (m) => {
     shipNames,
     generateNewShip,
     ships,
+    universalCredits,
+    shipPurchaser,
   };
 });
 

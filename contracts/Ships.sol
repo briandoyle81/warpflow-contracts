@@ -124,8 +124,8 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     // or anything else I think of
 
     function createShips(address _to, uint _amount) public {
-        if (!isAllowedToCreateShips[_to]) {
-            revert NotAuthorized(_to);
+        if (!isAllowedToCreateShips[msg.sender]) {
+            revert NotAuthorized(msg.sender);
         }
 
         for (uint i = 0; i < _amount; i++) {

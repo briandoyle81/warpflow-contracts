@@ -1745,7 +1745,7 @@ describe("Ships", function () {
           0n,
           user2.account.address,
         ])
-      ).to.be.rejectedWith("InvalidPurchase");
+      ).to.be.rejectedWith("InsufficientFunds");
     });
 
     it("Should revert with zero address referral", async function () {

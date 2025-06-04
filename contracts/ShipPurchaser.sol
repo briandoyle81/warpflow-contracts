@@ -11,6 +11,7 @@ contract ShipPurchaser is Ownable, ReentrancyGuard {
     error InvalidPurchase(uint _tier, uint _amount);
     error ArrayLengthMismatch();
     error NotAuthorized(address);
+    error InsufficientFunds(uint _required, uint _available);
 
     IShips public immutable ships;
     IERC20 public immutable universalCredits;
@@ -62,8 +63,9 @@ contract ShipPurchaser is Ownable, ReentrancyGuard {
         uint price = tierPrices[_tier];
 
         // Check balance before attempting transfer
-        if (universalCredits.balanceOf(msg.sender) < price) {
-            revert InvalidPurchase(_tier, price);
+        uint balance = universalCredits.balanceOf(msg.sender);
+        if (balance < price) {
+            revert InsufficientFunds(price, balance);
         }
 
         // Transfer UC tokens from buyer to this contract

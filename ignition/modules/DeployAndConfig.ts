@@ -109,8 +109,16 @@ const DeployModule = buildModule("DeployModule", (m) => {
   // Enable minting for UniversalCredits
   m.call(universalCredits, "setMintIsActive", [true]);
 
-  // Allow ShipPurchaser to mint UniversalCredits
-  m.call(universalCredits, "setAuthorizedToMint", [shipPurchaser, true]);
+  // Allow ShipPurchaser and Ships to mint UniversalCredits
+  m.call(universalCredits, "setAuthorizedToMint", [shipPurchaser, true], {
+    id: "AuthorizeShipPurchaserToMint",
+  });
+  m.call(universalCredits, "setAuthorizedToMint", [ships, true], {
+    id: "AuthorizeShipsToMint",
+  });
+
+  // Set UniversalCredits address in Ships contract
+  m.call(ships, "setUniversalCredits", [universalCredits]);
 
   return {
     randomManager,

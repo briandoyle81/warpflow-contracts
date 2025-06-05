@@ -1844,4 +1844,152 @@ describe("Ships", function () {
       ).to.be.rejectedWith("OwnableUnauthorizedAccount");
     });
   });
+
+  describe("Recycle System", function () {
+    it("Should allow owner to update recycle reward", async function () {
+      const { ships, owner } = await loadFixture(deployShipsFixture);
+
+      // Check initial reward
+      expect(await ships.read.recycleReward()).to.equal(parseEther("0.1"));
+
+      // Update reward
+      await ships.write.setRecycleReward([parseEther("0.5")], {
+        account: owner.account,
+      });
+
+      // Check new reward
+      expect(await ships.read.recycleReward()).to.equal(parseEther("0.5"));
+    });
+
+    it("Should not allow non-owner to update recycle reward", async function () {
+      const { ships, user1 } = await loadFixture(deployShipsFixture);
+
+      await expect(
+        ships.write.setRecycleReward([parseEther("0.5")], {
+          account: user1.account,
+        })
+      ).to.be.rejectedWith("OwnableUnauthorizedAccount");
+    });
+
+    it("Should allow users to recycle their ships and receive UC tokens", async function () {
+      const { ships, universalCredits, user1, user2, shipPurchaser } =
+        await loadFixture(deployShipsFixture);
+
+      // Purchase some ships for user1
+      await universalCredits.write.approve(
+        [shipPurchaser.address, parseEther("100")],
+        {
+          account: user1.account,
+        }
+      );
+
+      await shipPurchaser.write.purchaseWithUC(
+        [user1.account.address, 0n, user2.account.address],
+        {
+          account: user1.account,
+        }
+      );
+
+      // Get initial UC balance
+      const initialBalance = await universalCredits.read.balanceOf([
+        user1.account.address,
+      ]);
+
+      // Get ship IDs owned by user1
+      const shipIds = await ships.read.getShipIdsOwned([user1.account.address]);
+
+      // Recycle all ships
+      await ships.write.shipBreaker([shipIds], {
+        account: user1.account,
+      });
+
+      // Check final UC balance (should have received 0.1 UC per ship)
+      const finalBalance = await universalCredits.read.balanceOf([
+        user1.account.address,
+      ]);
+      expect(finalBalance - initialBalance).to.equal(
+        parseEther("0.1") * BigInt(shipIds.length)
+      );
+
+      // Verify ships are no longer owned by user1
+      const remainingShips = await ships.read.getShipIdsOwned([
+        user1.account.address,
+      ]);
+      expect(remainingShips.length).to.equal(0);
+    });
+
+    it("Should not allow recycling ships that are in a fleet", async function () {
+      const { ships, universalCredits, user1, user2, shipPurchaser, owner } =
+        await loadFixture(deployShipsFixture);
+
+      // Set up game address first
+      await ships.write.setConfig([
+        owner.account.address, // Set owner as game address
+        "0x0000000000000000000000000000000000000000",
+        "0x0000000000000000000000000000000000000000",
+        "0x0000000000000000000000000000000000000000",
+        "0x0000000000000000000000000000000000000000",
+      ]);
+
+      // Purchase some ships for user1
+      await universalCredits.write.approve(
+        [shipPurchaser.address, parseEther("100")],
+        {
+          account: user1.account,
+        }
+      );
+
+      await shipPurchaser.write.purchaseWithUC(
+        [user1.account.address, 0n, user2.account.address],
+        {
+          account: user1.account,
+        }
+      );
+
+      // Get ship IDs owned by user1
+      const shipIds = await ships.read.getShipIdsOwned([user1.account.address]);
+
+      // Set a ship to be in fleet
+      await ships.write.setInFleet([shipIds[0], true], {
+        account: owner.account,
+      });
+
+      // Try to recycle ships
+      await expect(
+        ships.write.shipBreaker([shipIds], {
+          account: user1.account,
+        })
+      ).to.be.rejectedWith("ShipInFleet");
+    });
+
+    it("Should not allow recycling ships owned by others", async function () {
+      const { ships, universalCredits, user1, user2, shipPurchaser } =
+        await loadFixture(deployShipsFixture);
+
+      // Purchase some ships for user1
+      await universalCredits.write.approve(
+        [shipPurchaser.address, parseEther("100")],
+        {
+          account: user1.account,
+        }
+      );
+
+      await shipPurchaser.write.purchaseWithUC(
+        [user1.account.address, 0n, user2.account.address],
+        {
+          account: user1.account,
+        }
+      );
+
+      // Get ship IDs owned by user1
+      const shipIds = await ships.read.getShipIdsOwned([user1.account.address]);
+
+      // Try to recycle ships as user2
+      await expect(
+        ships.write.shipBreaker([shipIds], {
+          account: user2.account,
+        })
+      ).to.be.rejectedWith("NotYourShip");
+    });
+  });
 });

@@ -14,6 +14,7 @@ import "./Types.sol";
 import "./IRenderer.sol";
 import "./IRandomManager.sol";
 import "./IGenerateNewShip.sol";
+import "./IUniversalCredits.sol";
 
 contract Ships is ERC721, Ownable, ReentrancyGuard {
     using EnumerableSet for EnumerableSet.UintSet;
@@ -54,6 +55,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     error NotAllowedToTransfer(address);
     error InvalidPurchase(uint _tier, uint _amount);
     error ArrayLengthMismatch();
+    error ShipAlreadyDestroyed(uint);
 
     struct ContractConfig {
         address gameAddress;
@@ -81,6 +83,9 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     mapping(address => bool) public isAllowedToCreateShips;
 
     // TODO: Should variants have different weapons or props?
+
+    IUniversalCredits public universalCredits;
+    uint public recycleReward = 0.1 ether; // 0.1 UC tokens
 
     // Only Owner TODO
     // Withdrawal
@@ -131,6 +136,10 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         for (uint i = 0; i < _amount; i++) {
             _mintShip(_to);
         }
+
+        // TODO: CRITICAL -> Evaluate side effects of this
+
+        allowedToTransfer[_to] = true;
     }
 
     function purchaseWithFlow(
@@ -312,11 +321,15 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         uint256 tokenId,
         address auth
     ) internal override(ERC721) returns (address) {
-        require(
-            ships[tokenId].shipData.timestampDestroyed == 0,
-            "Ship destroyed"
-        );
+        // Skip destroyed check for burning (when to is address(0))
+        if (to != address(0)) {
+            require(
+                ships[tokenId].shipData.timestampDestroyed == 0,
+                "Ship destroyed"
+            );
+        }
 
+        // Always check if ship is in fleet
         if (ships[tokenId].shipData.inFleet) {
             revert ShipInFleet(tokenId);
         }
@@ -328,15 +341,18 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
             if (!allowedToTransfer[oldOwner]) {
                 revert NotAllowedToTransfer(oldOwner);
             }
-            if (!allowedToTransfer[to]) {
+            if (to != address(0) && !allowedToTransfer[to]) {
                 revert NotAllowedToTransfer(to);
             }
             // Handle ownership list
             shipsOwned[oldOwner].remove(tokenId);
         }
 
-        shipsOwned[to].add(tokenId);
-        ships[tokenId].owner = to;
+        // Only add to shipsOwned if not burning
+        if (to != address(0)) {
+            shipsOwned[to].add(tokenId);
+            ships[tokenId].owner = to;
+        }
 
         return super._update(to, tokenId, auth);
     }
@@ -461,6 +477,14 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         numberOfVariants = _numberOfVariants;
     }
 
+    function setUniversalCredits(address _universalCredits) public onlyOwner {
+        universalCredits = IUniversalCredits(_universalCredits);
+    }
+
+    function setRecycleReward(uint _newReward) public onlyOwner {
+        recycleReward = _newReward;
+    }
+
     /**
      * @dev VIEW
      */
@@ -544,5 +568,31 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
             num /= 10;
         }
         return digits;
+    }
+
+    function shipBreaker(uint[] calldata _shipIds) public nonReentrant {
+        uint totalReward = 0;
+
+        for (uint i = 0; i < _shipIds.length; i++) {
+            uint shipId = _shipIds[i];
+
+            // Check if caller owns the ship
+            // TODO: I'm 85% sure this is redundant.
+            if (ships[shipId].owner != msg.sender) {
+                revert NotYourShip(shipId);
+            }
+
+            // Mark ship as destroyed and burn it
+            ships[shipId].shipData.timestampDestroyed = block.timestamp;
+            _burn(shipId);
+
+            // Add to total reward
+            totalReward += recycleReward;
+        }
+
+        // Mint reward tokens to the owner
+        if (totalReward > 0) {
+            universalCredits.mint(msg.sender, totalReward);
+        }
     }
 }

@@ -33,9 +33,9 @@ contract RenderShield3 {
     string private constant COLOR_2 = "hsl(187, 75%, 47%)";
     string private constant COLOR_3 = "hsl(195, 78%, 40%)";
     string private constant COLOR_4 = "hsl(205, 80%, 30%)";
-    string private constant COLOR_5 = "hsl(43, 3%, 73%)";
-    string private constant COLOR_6 = "hsl(53, 4%, 43%)";
-    string private constant COLOR_7 = "hsl(206, 47%, 20%)";
+    string private constant COLOR_5 = "hsl(220, 3%, 73%)";
+    string private constant COLOR_6 = "hsl(215, 4%, 43%)";
+    string private constant COLOR_7 = "hsl(206, 47%, 30%)";
     string private constant COLOR_8 = "hsl(213, 9%, 20%)";
     string private constant COLOR_9 = "hsl(213, 10%, 18%)";
     string private constant COLOR_10 = "hsl(223, 10%, 13%)";

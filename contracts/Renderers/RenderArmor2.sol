@@ -25,11 +25,11 @@ contract RenderArmor2 {
     string private constant PART_9 =
         '"/><path d="m165 104 1-1 2 2h-5l2-1Zm-26 0 24 1h-33l9-1Zm32 2v-1h1v1h-1Zm-2 0v-1h1v1h-1Zm-65 3 1-1h2v2h-3v-1Zm-4 0h1l1 1h-4l2-1Zm-4 0h1l1 1h-2v-1Zm-2 1v-1h1v1h-1Zm33-3 1-2-3 3v1h1l1-2Zm-3 3v-1l6-6-1 4-5 5v-2Zm-2 1v-1h1v1h-1Zm-14 0h1l1 1h-2v-1Zm63-1v-3l1 3-1 4v-4Zm-78 2v-1l1 1-1 1v-1Zm26 2v-2l2 1-1 2h-1v-1Zm-26 1v-1h1v1h-1Zm19 0v-1h4l1 2h-5v-1Zm-3 0v-2l2 1-1 2h-1v-1Zm-12 1v-1h1v1h-1Zm-2 0v-1h1v1h-1Zm-6 0v-1h1v1h-1Zm85 1v-1l2 1v1h-1l-1-1Zm-20 0h1l1 1h-3l1-1Zm-24 0-1-1-7-1h50l-1 1h-22l1 2h-2v-2h-4l-1 3-1-3h-4l-1 3-1-3h-4l-1 2-1-1Zm-60 3v-1h1v1h-1Zm40 1 1-1h1l-1 2h-1v-1Zm-33 1v-1h1v1h-1Zm33 2v-1h1v1h-1Zm-21-12v-1h-1v1h1Zm-16 11v-2l2-4 3-3h6l7-6 1 2h-3v3l-2-1-1 4h-7l-4 2-2 7v-2Zm43 5v-1h1v1h-1Zm-6 4v-1h1v1h-1Zm-33 0v-1l1 1-1 1v-1Zm22 2v-1h1v1h-1Zm11 1v-1l1 1-1 1v-1Zm-21-1 2-2h7l-7 1-4 4 2-3Zm6 2-3-1h6l1 2h-2l-2-1Zm-10 1v-1h1v1h-1Zm19 1v-2l1 2-1 1v-2Zm-21 0h1l1 1h-2v-1Zm27 2v-1h1v1h-1Zm-6 1v-1h1v1h-1Zm-15-1v-2l1-1v4h-1v-1Zm10 0v-2l1 2-1 3v-3Zm-12 0-1-2 2-1v5h-1v-2Zm17 3v-1h1v1h-1Zm-14 0v-1h1v1h-1Zm-10-7v-7l24 1 1 2-11-1H81l-1 13v-8Zm-13-2v-10l1 10-1 10v-10Zm17 9h-1v-3h2l-1 4v-1Zm32 1v-1l1 1-1 1v-1Zm-20 1v-1h1v1h-1Zm-29 0v-1h1v1h-1Zm22 1-1-1v-2l3 3-1 1-1-1Zm-9 0v-2l1 2-1 1v-2Zm96 0 2-1v-23l-3-3 4 1v25l-3 3h-2l2-2Zm-81 1 3-1 4-4-1-6 2 3v3l-6 6h-6l4-1Zm21 1v-2l1 2-1 3v-3Zm-14 1h1l1 1h-4l2-1Zm-5 0h1l2 1h-5l1-1h1Zm-6 1v-1h1v1h-1Zm-10-1h-1 7l3 1h-9v-1Zm-4-7v-8l1 8-1 9v-9Zm-10 7v-2l1 2-1 1v-2Zm100 2v-1h1v1h-1Zm-2 2v-1h1v1h-1Zm-56-1h1l1-9v10h-4l1-1h1Zm-36-13v-14l1 1 1 26 32 1H73v-14Zm-6 15v-3l1 3-1 3v-3Zm102 2v-1l5-6h2l-7 9v-2Zm-56-1-2-1 4 2v1h-1l-1-2Zm-45 4v-1h4v1l-3 1-1-1Zm58 1v-1l-7 1v-2h50l-1 2h-35v1h-7v-1Zm-36 4v-1h1v1h-1Zm30 0h2l3 1h-7l2-1Zm6 1v-1l1 1-1 1v-1Zm-45 1v-1h1v1h-1Zm23-4-1-1-3 1h4Zm-27 0v-1h-1v1h1Zm40 8v-1h-8l-5-6h-4l-4 3-5-3 6 1v-3H85v3l-2-3-3 1 1 3-3-3-1 2-4-5v-5l5 6h38v-2h2v8l-1-4h-11v2l4 4h7l2 2-1 1-1-1Zm41 4h-1l-1 1h2l-1-1h1Zm-3 1v-1h-6v3h5l1-2Zm-7 1v-2l-4 1-1 2h5v-2Zm-7 0 1-2h-11l1-1h31l5-3-2 4-6 1-6 2-13 1v-2Zm-12 0v-3l-3 1-3-4 3 1v-3l3 5 1 3h6l5 2h-11v-2Z" style="fill:';
     string private constant PART_10 = '"/>';
-    string private constant COLOR_1 = "hsl(43, 3%, 52%)";
+    string private constant COLOR_1 = "hsl(220, 3%, 52%)";
     string private constant COLOR_2 = "hsl(200, 40%, 47%)";
-    string private constant COLOR_3 = "hsl(0, 0%, 63%)";
-    string private constant COLOR_4 = "hsl(53, 4%, 43%)";
-    string private constant COLOR_5 = "hsl(60, 2%, 37%)";
+    string private constant COLOR_3 = "hsl(222, 0%, 63%)";
+    string private constant COLOR_4 = "hsl(215, 4%, 43%)";
+    string private constant COLOR_5 = "hsl(220, 2%, 37%)";
     string private constant COLOR_6 = "hsl(223, 6%, 24%)";
     string private constant COLOR_7 = "hsl(213, 9%, 20%)";
     string private constant COLOR_8 = "hsl(213, 10%, 18%)";

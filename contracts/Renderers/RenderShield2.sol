@@ -33,14 +33,14 @@ contract RenderShield2 {
     string private constant PART_13 = '"/>';
     string private constant COLOR_1 = "hsl(180, 94%, 74%)";
     string private constant COLOR_2 = "hsl(185, 85%, 64%)";
-    string private constant COLOR_3 = "hsl(43, 3%, 52%)";
+    string private constant COLOR_3 = "hsl(220, 3%, 63%)";
     string private constant COLOR_4 = "hsl(198, 77%, 42%)";
-    string private constant COLOR_5 = "hsl(53, 4%, 43%)";
+    string private constant COLOR_5 = "hsl(215, 4%, 52%)";
     string private constant COLOR_6 = "hsl(200, 83%, 36%)";
-    string private constant COLOR_7 = "hsl(60, 2%, 37%)";
-    string private constant COLOR_8 = "hsl(205, 86%, 30%)";
-    string private constant COLOR_9 = "hsl(213, 9%, 20%)";
-    string private constant COLOR_10 = "hsl(213, 10%, 18%)";
+    string private constant COLOR_7 = "hsl(220, 2%, 43%)";
+    string private constant COLOR_8 = "hsl(205, 9%, 37%)";
+    string private constant COLOR_9 = "hsl(213, 9%, 24%)";
+    string private constant COLOR_10 = "hsl(213, 10%, 20%)";
     string private constant COLOR_11 = "hsl(223, 10%, 13%)";
     string private constant COLOR_12 = "hsl(225, 17%, 9%)";
 

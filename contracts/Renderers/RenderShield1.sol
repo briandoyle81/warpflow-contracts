@@ -32,16 +32,16 @@ contract RenderShield1 {
     string private constant PART_13 = '"/>';
     string private constant COLOR_1 = "hsl(183, 89%, 64%)";
     string private constant COLOR_2 = "hsl(191, 83%, 53%)";
-    string private constant COLOR_3 = "hsl(43, 3%, 52%)";
+    string private constant COLOR_3 = "hsl(220, 0%, 63%)";
     string private constant COLOR_4 = "hsl(202, 79%, 46%)";
-    string private constant COLOR_5 = "hsl(60, 2%, 37%)";
-    string private constant COLOR_6 = "hsl(223, 6%, 24%)";
+    string private constant COLOR_5 = "hsl(220, 4%, 43%)";
+    string private constant COLOR_6 = "hsl(223, 2%, 37%)";
     string private constant COLOR_7 = "hsl(208, 81%, 30%)";
-    string private constant COLOR_8 = "hsl(213, 10%, 18%)";
-    string private constant COLOR_9 = "hsl(223, 10%, 13%)";
-    string private constant COLOR_10 = "hsl(225, 17%, 9%)";
-    string private constant COLOR_11 = "hsl(223, 7%, 14%)";
-    string private constant COLOR_12 = "hsl(225, 14%, 5%)";
+    string private constant COLOR_8 = "hsl(213, 6%, 24%)";
+    string private constant COLOR_9 = "hsl(223, 9%, 20%)";
+    string private constant COLOR_10 = "hsl(225, 10%, 18%)";
+    string private constant COLOR_11 = "hsl(223, 10%, 13%)";
+    string private constant COLOR_12 = "hsl(225, 17%, 9%)";
 
     function render(Ship memory ship) external pure returns (string memory) {
         string memory chunk1 = string.concat(

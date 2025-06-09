@@ -29,11 +29,11 @@ contract RenderFore1 {
     string private constant PART_11 =
         ';"/><path d="M60 106v-1h1v1h-1Zm-13 4v-1l7-7 1 1-4 4-4 4v-1Zm-35 5v-1h1v1h-1Zm45 2v-1h1v1h-1Zm3 0-1-1h2l1 2h-1l-1-1Zm-4 2v-1h1v1h-1Zm20-10v-1h-1v1h1Zm-51 8v-3l1 1h1l-1 1v2l7-8h38v-8l2 1 2 2h-2l-1 1v4h1l3-3 1 1v2h10v8l-2-6H32l-7 8v-3Zm39 3v-1h1v1h-1Zm-56-2 1-2h2l-4 4H6l2-2Zm42 3v-1h1v1h-1Zm34 0v-1l1-1 2-1v2l-1 2h-2v-1Zm-18 1v-1l1 1h1v1h-1l-1-1Zm-16 3 3-1-1-5 1-1 1-2h2l-3 2v7h-6 3Zm-12 0 2-1 2 1h2-7l1-1Zm-4 1 1-2h1l-3 4h-1l2-2Zm-10-2v-4l1 4-1 5v-5Zm-11 5v-1h1v1h-1Zm54 1 1-1v-3l1-2v6h-3 1Zm9 0v-1l-4-1h5v3h-1v-1Zm-12 1v-1h1v1h-1Zm-25 0v-1h1v1h-1Zm32 3v-1h6v1h-6Zm-13-3v-3l-1-2-2-1 2 1 2 1v6l-1 1h-1l1-3Zm26 0v-8l1 4v4l-1 8v-8Zm-52 7v-1l1 1h1v1h-1l-1-1Zm-14 1v-1h1l-1 2h-1l1-1Zm-7 1v-1h1v1h-1Zm43 1 3-2 3-2-2 2-2 2h-2Zm-11 0v-1h1v1h-1Zm41 2v-4l1 4-1 5v-5Zm0 7v-2l1 1v2l-1 1v-2Zm-71 2v-1h1v1h-1Zm71 1v-1h1v1h-1Zm-17 1 1-1 8 1h-5l-5 1 1-1Zm-29 0h-5l-8-7v-2l4 4 4 4 33 1-22 1-6-1Zm-12 1-2-2-5 1-1-1v-8h-6v7l-1-6-3-3v-6l1-6-1 1H7l-2-4v-4l1-3v8h6l-1 3v3h-1l-1-1v4l1 4 1 1v2l1-1h11l1-7v-7h-4v4l-1 4v-9h-2 8l-1 16h-5v4l-1 3 1 1 2-1h3v-3l1 2 1 2h4l-1 1h-1l1 1v1h-1l-2-1Zm53 2-1-1 2-1 2-1-3 1h-2v-2h3l2 1 1 2h-3l1 2h-2v-1Zm-45 2v-1h-1v1h1Zm-3 0-2-1 2-1h3v1l1 1-1 1-3-1Zm4 2v-1h1v1h-1Zm42 1v-1l3-2v1l-3 3v-1Zm-39 3-1-2v-1l6 3h23v-1h-1l2-4v5h3l2-1 3-2-1 2-2 2H40l-2-1Z" style="fill:';
     string private constant PART_12 = ';"/>';
-    string private constant COLOR_1 = "hsl(43, 3%, 52%)";
+    string private constant COLOR_1 = "hsl(220, 3%, 52%)";
     string private constant COLOR_2 = "hsl(197, 34%, 48%)";
     string private constant COLOR_3 = "hsl(39, 6%, 43%)";
-    string private constant COLOR_4 = "hsl(53, 4%, 43%)";
-    string private constant COLOR_5 = "hsl(60, 2%, 37%)";
+    string private constant COLOR_4 = "hsl(215, 4%, 43%)";
+    string private constant COLOR_5 = "hsl(220, 2%, 37%)";
     string private constant COLOR_6 = "hsl(223, 6%, 24%)";
     string private constant COLOR_7 = "hsl(213, 9%, 20%)";
     string private constant COLOR_8 = "hsl(213, 10%, 18%)";

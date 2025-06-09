@@ -28,9 +28,9 @@ contract RenderFore2 {
         '"/><path d="M44 111v-1l1 1v1h-2l1-1Zm-9 0h6-8 2Zm-4 1h2l-1 1h-1l1-1Zm41 1-1-1-12-1H47h24l1 1 2 2-1 1-1-2Zm-42 1h1v1h-1v-1Zm46 1v-1h1l2 1h-3Zm-17 0v-1l2 1h-2Zm-18 0h4-5 1Zm44 3v-1l-1-1-2-1-2 1 2-2 3 2 1 1v2l-1 1v-2Zm-64 1 6-5-5 5h-1Zm-1 1v1-1Zm64 2 1-1 1 1h-2Zm-3 0v-1l1 1h1-3 1Zm-2 0h1-1Zm-9 2v-1h1v1h-1Zm-52-1v-2 1l1 1h25l25 1H19v-1Zm19 8h1v1h-1v-1Zm-15 3v-1h1v1h-1Zm62-1-1-3h-2l-2-1-3 1-3 1 2 1 2 2h-2l-1-2-2-2h-3v3h-2v-2l-5-1-5-1v1l1 1 1 1-1 1-3-4h-3l4 5-3 2v-1l1-1-2-3-2-2H32l-10 1v2l-3-4h30l31 1 1-5h2l1-1-1 2-1 1 1 2 1 2 1 3 1 1h1l-2 1-1 1v-3Zm-18 3 1-2 1 1-2 1-2 2 2-2Zm15 2v-1l1 1h-1v1-1Zm6 1h1-1Zm-43 0h1-1Zm-21-1v-3l1 3v1l-1 1v-2Zm49 2 1-1 2 1h1-5 1Zm-37 2h1v1h-1v-1Zm-12 0 1-1 11 1h-7l-6 1 1-1Zm-3-1 2-2h1l-5 4h-1l3-2Zm54 2h1-1Zm-12-1v-2l1-1v-1h2l-2 2v2l-1 2v-2Zm-5 4h2l2-1 1-1v2h-2l-3 1h-3l3-1Zm-6 3 1-1 2-1-2 1-1 2h-1v-1Zm-39 1h1-1Zm9 0h1l-1 1h-1l1-1Zm55 3v-1l1 1h-2 1Zm-13 2v-1h1v1h-1Zm20-9v-1h-2v3h2v-2Zm3 6v-1l-1-1h-3v2l-1 2h5v-2Zm0 4v-1h-5v1l3 1h1l1-1Zm1 2H76h2l3-1v-3h-2l-2-1h2l1-2v-3l-1-2 1-1h1v-5 1l1 2v1h1l1-2h2l-1 2v5l1 1 2 2v5l-1 1Zm-16-2v-3h-4v4l-1-1v-3h6l3-3 3-3 1 1-2 2-3 2v1h-2l1 5h-2v-2Zm-14 3h1v1h-1v-1Zm-46 0-1-2h1l1 2 1 1-2-1Zm44 2v-1h1v1h-1Zm-6-1 3-1 3-2 3-2 1-3v-4 7l2-1h1l-1 1-1 1v1l9 1h-5l-6 1 1-2v-1h-1l-3 3-3 2h-5l2-1Zm-10 1 4-1v-6l5-3-2 2-3 2 1 3v3h-8 3Zm-11-3 1-4H18l-1 1v1-2h-5v-1l4 1v-2l1-2v-2l1-2-1 1h-1l1-1h1l1 2v2h-1v3h9v-1l-4-2 3-1 3 3v8h2l1 1h-4v-3Zm-6 2h-1 3l-1 1h-1v-1Zm-7 1-1-1h2v-2l3 2-1 1-2 1-1-1Z" style="fill:';
     string private constant PART_11 = '"/>';
     string private constant COLOR_1 = "hsl(34, 59%, 57%)";
-    string private constant COLOR_2 = "hsl(43, 3%, 63%)";
+    string private constant COLOR_2 = "hsl(220, 3%, 63%)";
     string private constant COLOR_3 = "hsl(22, 83%, 47%)";
-    string private constant COLOR_4 = "hsl(53, 4%, 43%)";
+    string private constant COLOR_4 = "hsl(215, 4%, 43%)";
     string private constant COLOR_5 = "hsl(18, 76%, 38%)";
     string private constant COLOR_6 = "hsl(223, 6%, 24%)";
     string private constant COLOR_7 = "hsl(213, 9%, 20%)";

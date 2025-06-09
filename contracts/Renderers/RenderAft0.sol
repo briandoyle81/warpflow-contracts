@@ -21,10 +21,10 @@ contract RenderAft0 {
     string private constant PART_7 =
         ';"/><path d="m185 100 4-1v2h-4v-1Zm6 1v-1l2-4v4h3v-2l1-1 2 2 1 3h-4l-5-1Zm7 4h1v1h-1v-1Zm-8 0h1v1h-1v-1Zm-15 8-2-1h-7v-5h12v-3h5v-2h2l-1 2h3v2h-8l1 9h-2v-6h-11v2h8l2 4h-1l-1-2Zm0 8h1v1h-1v-1Zm3 1h1v1h-1v-1Zm-1 28v-2l1 1 1 1h-1l-1 1v-1Zm6 1h1v1h-1v-1Zm-2 0-1-2 1 1 1 1v1h-1v-1Zm51-2h-1v1h1v-1Zm0 3-1-3 2-2h1v8h-1l-1-3Zm-48 3-1-2 1 1 1 1v1h-1v-1Zm-4 0h1v1h-1v-1Zm-1 3h1v1h-1v-1Zm6 1 1-1 1-1v-2 5h-3l1-1Zm-4 2v-1h1v2h-2l1-1Zm-5-2v-4 7-3Zm35 4h1v1h-1v-1Zm-12 1h6v-13h-12l-1 12h-3v-11h-2v-2h18l1 4v10h-13 6Zm-17 0h3l3-1v1l-1 1h-5v-1Zm-4 0-1-1h2l2 1v1h-3v-1Zm-7 2-2-1v-13l2-1 2 3v10l1 1 1 2h-3l-1-1Zm52-57 1-2v4h6v-5l-2-2h-12v7h7v-2Zm-44 16-1-1v1l-1 1h3l-1-1Zm68 0-1-2v4h1l1-1-1-1Zm-68 3v-1h-2v2h2v-1Zm1 4v-1h-4v3h4v-2Zm3 5h-2l-1 1h4l-1-1Zm53-18h1v1h-1v-1Zm6 9h1v1h-1v-1Zm-3 0-1-2 1 2 2 1h-1v1l-1-2Zm-2 7 1-4v5l1 2v1l4-2 3-2v-1l-1-2v-18l-6-3-2 1h-3v24l1 3h2v-4Zm-58 2v-1h-2v3h1l1-2Zm49-20v-2l1 2 1 1-1 1h-1v-2Zm0 5v-2l1 1 1 1h-1l-1 1v-1Zm-2 0h1v1h-1v-1Zm2 2h1v1h-1v-1Zm-2 0v-1l1 1 1 1h-3l1-1Zm-9 1-1-2 1 1 1 1v1h-1v-1Zm3 2h3l1 1h-6l2-1Zm9 7v-8 16h3v-29h-17l-1 29h14l1-8Zm-36-11h1v1h-1v-1Zm0 2h1v1h-1v-1Zm-5 2h1v1h-1v-1Zm8 3h1v1h-1v-1Zm6 7h3v-3h-10v-2l6 1h5v5l-7-1h3Zm-6 0h2l1 1h-4l1-1Zm6 5h10v-28l-2-1h-20l-4 3-4 4v14l4 4 4 5 2-1h10Zm-21 0v-1h2v1l-1 1h2v-3h-7v3h2l1 1h2l-1-2Zm36 18h1v1h-1v-1Zm3 4h-3v-2l4 1v-2l1-2 1 6v-18h-6v19l3-1 2-1h-2Zm-26 6h-2l-1 1h4l-1-1Zm-9 2-1-1h-7l-1-2-2-1 2-1h2v2h30l1-2v-2 4h5v-8l1-8v-7h-6v3l-1-1v-2h-32l-2 6h-1l-2-3 2-2 2-2v-22l5 1v-1l1-2v-1h-6l1-3h7l3-2h-3l2-2 2-1 13-1h14v-5h-10l3-3v-2h-3l1-4-7-1h7v4h3l1 4 19-1 2 1 1 2 1 2v2h10v2h4l1 1v1l1 15v-1h-1v4l1 5h-3l-4 4h-5l-6 2v2h-5v2h3l1 1v1l-1-1-2-1-1 2-1 1v12l1 2 1 1 3-2 3-1v-6h2v8l-5 2-6 2h-8v1l-1 1-5 1-4 1 2-2h-9l2 1h1v2h-2l-1-1-1-1-2 1-2 1-3-2-3-1h-1l-1 1h3v1h-3Z" style="fill:';
     string private constant PART_8 = ';"/></g>';
-    string private constant COLOR_1 = "hsl(43, 3%, 52%)";
+    string private constant COLOR_1 = "hsl(220, 3%, 52%)";
     string private constant COLOR_2 = "hsl(27, 30%, 50%)";
     string private constant COLOR_3 = "hsl(18, 40%, 39%)";
-    string private constant COLOR_4 = "hsl(53, 4%, 43%)";
+    string private constant COLOR_4 = "hsl(215, 4%, 43%)";
     string private constant COLOR_5 = "hsl(223, 6%, 24%)";
     string private constant COLOR_6 = "hsl(213, 10%, 18%)";
     string private constant COLOR_7 = "hsl(223, 10%, 13%)";

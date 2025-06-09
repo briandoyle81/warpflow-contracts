@@ -33,7 +33,7 @@ contract RenderFore0 {
     string private constant COLOR_2 = "hsl(45, 3%, 52%)";
     string private constant COLOR_3 = "hsl(25, 17%, 46%)";
     string private constant COLOR_4 = "hsl(21, 22%, 40%)";
-    string private constant COLOR_5 = "hsl(60, 2%, 37%)";
+    string private constant COLOR_5 = "hsl(220, 2%, 37%)";
     string private constant COLOR_6 = "hsl(223, 6%, 24%)";
     string private constant COLOR_7 = "hsl(213, 9%, 20%)";
     string private constant COLOR_8 = "hsl(213, 10%, 18%)";

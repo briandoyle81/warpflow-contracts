@@ -21,10 +21,10 @@ contract RenderWeapon2 {
     string private constant PART_7 =
         ';"/><path d="M127 86h1v1h-1v-1Zm-7 0h1v1h-1v-1Zm-12 0h6-8 2Zm-9 0 1-1 1 2h-2v-1Zm-4 0h1l3 1h-5l1-1Zm-3 0h1v1h-1v-1Zm-3 0 1-1 1 2h-2v-1Zm-2 0h1v1h-1v-1Zm-3 0h1v1h-1v-1Zm-5 0h1l3 1h-5l1-1Zm-4 0 1-1 1 2h-2v-1Zm-2 0h1v1h-1v-1Zm-6 0h1v1h-1v-1Zm75 1v-2l1 2-1 1v-1Zm2 1 1-1 1 2h-2v-1Zm-6-1v-1h2l-1 1v2h-1v-2Zm-7 1 1-2h6l-5 1-1 1-1 1v-1Zm-2 0h1v1h-1v-1Zm-44 0 1-1 1 2h-2v-1Zm-18 0h1v1h-1v-1Zm-5 0v-1h2v2h-2v-1Zm-3-1v-2l1-1h2l6-1h7l-1 1v1H60l-1 4v-2Zm103 2h1v1h-1v-1Zm-2 0v-2l1 2-1 1v-1Zm-13 0h1v1h-1v-1Zm31 1v-2l1 2-1 1v-1Zm4 0v-3l-1-1v-1h-8l-1-2h-3l1 1v2h-2v-3h-6v2l3 1h-6v-1l1-1-2-1-1-2h-15l-14 1h1l1-1 27-1 1 1v1h14l1 2h8l2 4-1 4v-2Zm-41 1h6-7 1Zm-8-1v-3l1 3-1 2v-2Zm-6 0-1-1h2v1l1 2h-1l-1-2Zm3 2h1v1h-1v-1Zm9 2 1-1 1 2h-2v-1Zm28 1h3l2 1h-3l-3-1h1ZM59 94v-2h1v2l1 2h-1l-1-2Zm80 2 1-1 1 2h-2v-1Zm-40 2-25-1-1-3 1 1 1 2h37v-3l1 1 1 2h16v2l-3-1H99Zm63-4-1-1v3l1-1v-1Zm-2 0-1-1v3l1-1v-1Zm-7 3v-1h-1l-1 2h1l1-1Zm0 6-1-2h-7l-7 1-2 1-1 1v-2l3-3h-2v-2l7 1h6l2-2 2-1 1 1-3 3h-12v2l5-1h9l3-4 3-3h11v-3l1-3v6l9-1 1 1v1h-18l3 2h-2l-2 1-2-1h-2l-3 2-2 3 1 1 1 2-1 1-1-2Z" style="fill:';
     string private constant PART_8 = ';"/>';
-    string private constant COLOR_1 = "hsl(43, 3%, 52%)";
+    string private constant COLOR_1 = "hsl(220, 3%, 52%)";
     string private constant COLOR_2 = "hsl(40, 4%, 43%)";
-    string private constant COLOR_3 = "hsl(53, 4%, 43%)";
-    string private constant COLOR_4 = "hsl(60, 2%, 37%)";
+    string private constant COLOR_3 = "hsl(215, 4%, 43%)";
+    string private constant COLOR_4 = "hsl(220, 2%, 37%)";
     string private constant COLOR_5 = "hsl(223, 6%, 24%)";
     string private constant COLOR_6 = "hsl(213, 10%, 18%)";
     string private constant COLOR_7 = "hsl(225, 17%, 9%)";

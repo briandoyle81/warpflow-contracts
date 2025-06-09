@@ -77,10 +77,10 @@ const DeployModule = buildModule("DeployModule", (m) => {
   const metadataRenderer = m.contract("RenderMetadata", [imageRenderer]);
 
   // Deploy mock ship names
-  const shipNames = m.contract("MockOnchainRandomShipNames");
+  // const shipNames = m.contract("MockOnchainRandomShipNames");
 
   // For testnet use
-  // const shipNames = "0x9E433A07D283d56E8243EA25b7358521b1922df5";
+  const shipNames = "0x9E433A07D283d56E8243EA25b7358521b1922df5";
 
   // Deploy GenerateNewShip with ship names
   const generateNewShip = m.contract("GenerateNewShip", [shipNames]);
@@ -119,6 +119,20 @@ const DeployModule = buildModule("DeployModule", (m) => {
 
   // Set UniversalCredits address in Ships contract
   m.call(ships, "setUniversalCredits", [universalCredits]);
+
+  // Purchase tier 4 for the deployer
+  m.call(
+    ships,
+    "purchaseWithFlow",
+    [
+      "0x69a5B3aE8598fC5A5419eaa1f2A59Db2D052e346",
+      4,
+      "0x69a5B3aE8598fC5A5419eaa1f2A59Db2D052e346",
+    ],
+    { value: 99_990_000_000_000_000_000n }
+  );
+
+  m.call(ships, "constructAllMyShips");
 
   return {
     randomManager,

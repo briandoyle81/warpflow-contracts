@@ -88,20 +88,24 @@ function blendHSL(
 
     // Blend the values according to the specified ratios
     // H: 50/50 blend
-
+    // Don't change hue too much if saturation is > 40
     uint blendedH;
-
-    if (h2 > 40) {
+    if (s2 > 40) {
         blendedH = (h2 * 95 + h * 5) / 100;
     } else {
-        blendedH = (h2 * 25 + h * 75) / 100;
+        blendedH = (h2 * 50 + h * 50) / 100;
     }
 
-    // S: Blend the two values 50/50 for half and add 50 resulting in values between 50 and 100
-    uint blendedS = (s2 * 10 + s * 90) / 2 / 100 + 50;
+    // S: Blend the two values with different ratios based on base saturation
+    uint blendedS;
+    if (s2 > 40) {
+        blendedS = (s2 * 95 + s * 5) / 100;
+    } else {
+        blendedS = (s2 * 35 + s * 65) / 100;
+    }
 
     // L: 95% old, 5% new
-    uint blendedL = (l2 * 95 + l * 5) / 100;
+    uint blendedL = (l2 * 85 + l * 15) / 100;
 
     // Return the blended HSL string
     return

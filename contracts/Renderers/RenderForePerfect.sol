@@ -27,10 +27,10 @@ contract RenderForePerfect {
     string private constant PART_10 =
         '"/><path d="m39 132 2-1v2l-2-1z" style="fill:';
     string private constant PART_11 = '"/>';
-    string private constant COLOR_1 = "hsl(43, 3%, 52%)";
-    string private constant COLOR_2 = "hsl(0, 0%, 63%)";
+    string private constant COLOR_1 = "hsl(220, 3%, 52%)";
+    string private constant COLOR_2 = "hsl(222, 0%, 63%)";
     string private constant COLOR_3 = "hsl(50, 3%, 49%)";
-    string private constant COLOR_4 = "hsl(53, 4%, 43%)";
+    string private constant COLOR_4 = "hsl(215, 4%, 43%)";
     string private constant COLOR_5 = "hsl(13, 67%, 40%)";
     string private constant COLOR_6 = "hsl(223, 6%, 24%)";
     string private constant COLOR_7 = "hsl(213, 9%, 20%)";

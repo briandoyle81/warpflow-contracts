@@ -47,9 +47,9 @@ contract RenderMetadata is IRenderMetadata {
         return
             string(
                 abi.encodePacked(
-                    '{"trait_type": "Shiny", "value": ',
-                    ship.shipData.shiny ? "true" : "false",
-                    "},",
+                    '{"trait_type": "Shiny", "value": "',
+                    ship.shipData.shiny ? "Yes" : "No",
+                    '"},',
                     '{"trait_type": "Ships Destroyed", "value": ',
                     Strings.toString(uint256(ship.shipData.shipsDestroyed)),
                     "},",

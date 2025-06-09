@@ -42,10 +42,10 @@ struct Traits {
 }
 
 struct Colors {
-    uint8 h1;
+    uint16 h1;
     uint8 s1;
     uint8 l1;
-    uint8 h2;
+    uint16 h2;
     uint8 s2;
     uint8 l2;
 }

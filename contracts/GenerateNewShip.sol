@@ -37,7 +37,7 @@ contract GenerateNewShip {
 
         // r g b 1 and 2 values are 0 to 255
         randomBase++;
-        newShip.traits.colors.h1 = uint8(
+        newShip.traits.colors.h1 = uint16(
             uint(keccak256(abi.encodePacked(randomBase))) % 360
         );
 
@@ -52,7 +52,7 @@ contract GenerateNewShip {
         );
 
         randomBase++;
-        newShip.traits.colors.h2 = uint8(
+        newShip.traits.colors.h2 = uint16(
             uint(keccak256(abi.encodePacked(randomBase))) % 360
         );
 

@@ -1992,4 +1992,39 @@ describe("Ships", function () {
       ).to.be.rejectedWith("NotYourShip");
     });
   });
+
+  describe("Flow-based Purchasing", function () {
+    it("Should allow non-owner to purchase ships with Flow", async function () {
+      const { ships, user1Ships, user1, user2, publicClient } =
+        await loadFixture(deployShipsFixture);
+
+      // Get initial ship count
+      const initialShipCount = await ships.read.shipCount();
+
+      // Non-owner (user1) purchases tier 1 with Flow using their contract instance
+      await user1Ships.write.purchaseWithFlow(
+        [user1.account.address, 0n, user2.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Verify ship count increased by 5 (tier 1 amount)
+      const finalShipCount = await ships.read.shipCount();
+      expect(finalShipCount - initialShipCount).to.equal(5n);
+
+      // Verify all new ships are owned by user1
+      for (let i = initialShipCount + 1n; i <= finalShipCount; i++) {
+        const shipTuple = (await ships.read.ships([i])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        expect(ship.owner.toString().toLocaleLowerCase()).to.equal(
+          user1.account.address.toLocaleLowerCase()
+        );
+      }
+
+      // Verify user1 is now allowed to transfer
+      const isAllowed = await ships.read.allowedToTransfer([
+        user1.account.address,
+      ]);
+      expect(isAllowed).to.be.true;
+    });
+  });
 });

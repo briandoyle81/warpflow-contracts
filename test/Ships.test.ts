@@ -826,7 +826,7 @@ describe("Ships", function () {
 
       // Verify boolean values
       const shinyValue = attributeMap.get("Shiny");
-      expect(shinyValue?.toString()).to.be.oneOf(["true", "false"]);
+      expect(shinyValue).to.be.oneOf(["Yes", "No"]);
 
       // Verify equipment values are strings
       expect(attributeMap.get("Main Weapon")).to.be.a("string");

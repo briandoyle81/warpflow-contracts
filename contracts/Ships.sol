@@ -493,6 +493,10 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         return (costsVersion, costs);
     }
 
+    function getCurrentCostsVersion() public view returns (uint16) {
+        return costs.version;
+    }
+
     function getShip(uint _id) public view returns (Ship memory) {
         return ships[_id];
     }

@@ -95,14 +95,23 @@ const DeployModule = buildModule("DeployModule", (m) => {
   // Deploy ShipPurchaser
   const shipPurchaser = m.contract("ShipPurchaser", [ships, universalCredits]);
 
+  // Deploy Game contract
+  const game = m.contract("Game", [ships]);
+
+  // Deploy Lobbies contract
+  const lobbies = m.contract("Lobbies", [ships]);
+
   // Set all config values in a single call
   m.call(ships, "setConfig", [
-    "0x0000000000000000000000000000000000000000", // gameAddress - set to zero for now
-    "0x0000000000000000000000000000000000000000", // lobbyAddress - set to zero for now
+    game, // gameAddress
+    lobbies, // lobbyAddress
     generateNewShip,
     randomManager,
     metadataRenderer,
   ]);
+
+  // Set Lobbies address in Game contract
+  m.call(game, "setLobbiesAddress", [lobbies]);
 
   // Allow ShipPurchaser to create ships
   m.call(ships, "setIsAllowedToCreateShips", [shipPurchaser, true]);
@@ -121,6 +130,7 @@ const DeployModule = buildModule("DeployModule", (m) => {
   // Set UniversalCredits address in Ships contract
   m.call(ships, "setUniversalCredits", [universalCredits]);
 
+  // WARNING: This works for deploying but breaks the tests for some reason.
   // Purchase tier 4 for the deployer
   // m.call(
   //   ships,
@@ -133,8 +143,7 @@ const DeployModule = buildModule("DeployModule", (m) => {
   //   { value: parseEther("99.99") }
   // );
 
-  // WARNING: Don't attempt to construct ships here, it will fail.
-  // You must call constructAllMyShips() after this deployment.
+  // m.call(ships, "constructAllMyShips");
 
   return {
     randomManager,
@@ -170,6 +179,8 @@ const DeployModule = buildModule("DeployModule", (m) => {
     ships,
     universalCredits,
     shipPurchaser,
+    game,
+    lobbies,
   };
 });
 

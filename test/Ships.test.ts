@@ -268,16 +268,17 @@ describe("Ships", function () {
       const { ships, owner, user1 } = await loadFixture(deployShipsFixture);
 
       await ships.write.setConfig([
-        user1.account.address,
-        "0x0000000000000000000000000000000000000000",
-        "0x0000000000000000000000000000000000000000",
-        "0x0000000000000000000000000000000000000000",
-        "0x0000000000000000000000000000000000000000",
+        user1.account.address, // gameAddress
+        "0x0000000000000000000000000000000000000000", // lobbyAddress
+        "0x0000000000000000000000000000000000000000", // fleetsAddress
+        "0x0000000000000000000000000000000000000000", // shipGenerator
+        "0x0000000000000000000000000000000000000000", // randomManager
+        "0x0000000000000000000000000000000000000000", // metadataRenderer
       ]);
 
       const config = await ships.read.config();
-      expect(config[0].toString().toLocaleLowerCase()).to.equal(
-        user1.account.address.toLocaleLowerCase()
+      expect(config[0].toString().toLowerCase()).to.equal(
+        user1.account.address.toLowerCase()
       );
     });
   });
@@ -444,16 +445,17 @@ describe("Ships", function () {
       const { ships, owner, user1 } = await loadFixture(deployShipsFixture);
 
       await ships.write.setConfig([
-        user1.account.address,
-        "0x0000000000000000000000000000000000000000",
-        "0x0000000000000000000000000000000000000000",
-        "0x0000000000000000000000000000000000000000",
-        "0x0000000000000000000000000000000000000000",
+        user1.account.address, // gameAddress
+        "0x0000000000000000000000000000000000000000", // lobbyAddress
+        "0x0000000000000000000000000000000000000000", // fleetsAddress
+        "0x0000000000000000000000000000000000000000", // shipGenerator
+        "0x0000000000000000000000000000000000000000", // randomManager
+        "0x0000000000000000000000000000000000000000", // metadataRenderer
       ]);
 
       const config = await ships.read.config();
-      expect(config[0].toString().toLocaleLowerCase()).to.equal(
-        user1.account.address.toLocaleLowerCase()
+      expect(config[0].toString().toLowerCase()).to.equal(
+        user1.account.address.toLowerCase()
       );
     });
 
@@ -1924,11 +1926,12 @@ describe("Ships", function () {
 
       // Set up game address first
       await ships.write.setConfig([
-        owner.account.address, // Set owner as game address
-        "0x0000000000000000000000000000000000000000",
-        "0x0000000000000000000000000000000000000000",
-        "0x0000000000000000000000000000000000000000",
-        "0x0000000000000000000000000000000000000000",
+        owner.account.address, // gameAddress
+        "0x0000000000000000000000000000000000000000", // lobbyAddress
+        "0x0000000000000000000000000000000000000000", // fleetsAddress
+        "0x0000000000000000000000000000000000000000", // shipGenerator
+        "0x0000000000000000000000000000000000000000", // randomManager
+        "0x0000000000000000000000000000000000000000", // metadataRenderer
       ]);
 
       // Purchase some ships for user1

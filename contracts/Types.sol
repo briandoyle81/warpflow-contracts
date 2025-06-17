@@ -166,7 +166,7 @@ struct Fleet {
 
 struct PlayerLobbyState {
     uint activeLobbyId;
-    uint freeGamesRemaining;
+    uint activeLobbiesCount; // Track number of active lobbies
     bool hasActiveLobby;
     uint kickCount;
     uint lastKickTime;

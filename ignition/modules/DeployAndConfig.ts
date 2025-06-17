@@ -98,6 +98,9 @@ const DeployModule = buildModule("DeployModule", (m) => {
   // Deploy Game contract
   const game = m.contract("Game", [ships]);
 
+  // Deploy Fleets contract
+  const fleets = m.contract("Fleets", [ships]);
+
   // Deploy Lobbies contract
   const lobbies = m.contract("Lobbies", [ships]);
 
@@ -105,6 +108,7 @@ const DeployModule = buildModule("DeployModule", (m) => {
   m.call(ships, "setConfig", [
     game, // gameAddress
     lobbies, // lobbyAddress
+    fleets, // fleetsAddress
     generateNewShip,
     randomManager,
     metadataRenderer,
@@ -112,6 +116,15 @@ const DeployModule = buildModule("DeployModule", (m) => {
 
   // Set Lobbies address in Game contract
   m.call(game, "setLobbiesAddress", [lobbies]);
+
+  // Set Game address in Lobbies contract
+  m.call(lobbies, "setGameAddress", [game]);
+
+  // Set Fleets address in Lobbies contract
+  m.call(lobbies, "setFleetsAddress", [fleets]);
+
+  // Set Lobbies address in Fleets contract
+  m.call(fleets, "setLobbiesAddress", [lobbies]);
 
   // Allow ShipPurchaser to create ships
   m.call(ships, "setIsAllowedToCreateShips", [shipPurchaser, true]);
@@ -180,6 +193,7 @@ const DeployModule = buildModule("DeployModule", (m) => {
     universalCredits,
     shipPurchaser,
     game,
+    fleets,
     lobbies,
   };
 });

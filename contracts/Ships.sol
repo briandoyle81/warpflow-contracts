@@ -60,6 +60,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     struct ContractConfig {
         address gameAddress;
         address lobbyAddress;
+        address fleetsAddress;
         IRenderMetadata metadataRenderer;
         IRandomManager randomManager;
         IGenerateNewShip shipGenerator;
@@ -303,7 +304,8 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     function setInFleet(uint _id, bool _inFleet) public {
         if (
             msg.sender != config.lobbyAddress &&
-            msg.sender != config.gameAddress
+            msg.sender != config.gameAddress &&
+            msg.sender != config.fleetsAddress
         ) {
             revert NotAuthorized(msg.sender);
         }
@@ -436,6 +438,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     function setConfig(
         address _gameAddress,
         address _lobbyAddress,
+        address _fleetsAddress,
         address _shipGenerator,
         address _randomManager,
         address _metadataRenderer
@@ -445,6 +448,9 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         }
         if (_lobbyAddress != address(0)) {
             config.lobbyAddress = _lobbyAddress;
+        }
+        if (_fleetsAddress != address(0)) {
+            config.fleetsAddress = _fleetsAddress;
         }
         if (_shipGenerator != address(0)) {
             config.shipGenerator = IGenerateNewShip(_shipGenerator);
@@ -491,6 +497,10 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
     function getCosts() public view returns (uint, Costs memory) {
         return (costsVersion, costs);
+    }
+
+    function getCurrentCostsVersion() public view returns (uint16) {
+        return costs.version;
     }
 
     function getShip(uint _id) public view returns (Ship memory) {

@@ -2,6 +2,7 @@
 // Learn more about it at https://hardhat.org/ignition
 
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
+import { parseEther } from "viem";
 
 const DeployModule = buildModule("DeployModule", (m) => {
   // Deploy helper contracts first
@@ -77,10 +78,10 @@ const DeployModule = buildModule("DeployModule", (m) => {
   const metadataRenderer = m.contract("RenderMetadata", [imageRenderer]);
 
   // Deploy mock ship names
-  // const shipNames = m.contract("MockOnchainRandomShipNames");
+  const shipNames = m.contract("MockOnchainRandomShipNames");
 
   // For testnet use
-  const shipNames = "0x9E433A07D283d56E8243EA25b7358521b1922df5";
+  // const shipNames = "0x9E433A07D283d56E8243EA25b7358521b1922df5";
 
   // Deploy GenerateNewShip with ship names
   const generateNewShip = m.contract("GenerateNewShip", [shipNames]);
@@ -94,14 +95,36 @@ const DeployModule = buildModule("DeployModule", (m) => {
   // Deploy ShipPurchaser
   const shipPurchaser = m.contract("ShipPurchaser", [ships, universalCredits]);
 
+  // Deploy Game contract
+  const game = m.contract("Game", [ships]);
+
+  // Deploy Fleets contract
+  const fleets = m.contract("Fleets", [ships]);
+
+  // Deploy Lobbies contract
+  const lobbies = m.contract("Lobbies", [ships]);
+
   // Set all config values in a single call
   m.call(ships, "setConfig", [
-    "0x0000000000000000000000000000000000000000", // gameAddress - set to zero for now
-    "0x0000000000000000000000000000000000000000", // lobbyAddress - set to zero for now
+    game, // gameAddress
+    lobbies, // lobbyAddress
+    fleets, // fleetsAddress
     generateNewShip,
     randomManager,
     metadataRenderer,
   ]);
+
+  // Set Lobbies address in Game contract
+  m.call(game, "setLobbiesAddress", [lobbies]);
+
+  // Set Game address in Lobbies contract
+  m.call(lobbies, "setGameAddress", [game]);
+
+  // Set Fleets address in Lobbies contract
+  m.call(lobbies, "setFleetsAddress", [fleets]);
+
+  // Set Lobbies address in Fleets contract
+  m.call(fleets, "setLobbiesAddress", [lobbies]);
 
   // Allow ShipPurchaser to create ships
   m.call(ships, "setIsAllowedToCreateShips", [shipPurchaser, true]);
@@ -120,19 +143,20 @@ const DeployModule = buildModule("DeployModule", (m) => {
   // Set UniversalCredits address in Ships contract
   m.call(ships, "setUniversalCredits", [universalCredits]);
 
+  // WARNING: This works for deploying but breaks the tests for some reason.
   // Purchase tier 4 for the deployer
-  m.call(
-    ships,
-    "purchaseWithFlow",
-    [
-      "0x69a5B3aE8598fC5A5419eaa1f2A59Db2D052e346",
-      4,
-      "0x69a5B3aE8598fC5A5419eaa1f2A59Db2D052e346",
-    ],
-    { value: 99_990_000_000_000_000_000n }
-  );
+  // m.call(
+  //   ships,
+  //   "purchaseWithFlow",
+  //   [
+  //     "0x69a5B3aE8598fC5A5419eaa1f2A59Db2D052e346",
+  //     4,
+  //     "0x69a5B3aE8598fC5A5419eaa1f2A59Db2D052e346",
+  //   ],
+  //   { value: parseEther("99.99") }
+  // );
 
-  m.call(ships, "constructAllMyShips");
+  // m.call(ships, "constructAllMyShips");
 
   return {
     randomManager,
@@ -168,6 +192,9 @@ const DeployModule = buildModule("DeployModule", (m) => {
     ships,
     universalCredits,
     shipPurchaser,
+    game,
+    fleets,
+    lobbies,
   };
 });
 

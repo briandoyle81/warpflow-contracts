@@ -69,12 +69,14 @@ struct Attributes {
 
 struct GameData {
     uint gameId;
-    Ship ship;
-    Attributes attributes;
-    uint8 damageTaken;
-    bool inLobby;
-    bool movedThisTurn;
-    bool firedThisTurn;
+    uint lobbyId;
+    address creator;
+    address joiner;
+    uint creatorFleetId;
+    uint joinerFleetId;
+    bool creatorGoesFirst;
+    uint startedAt;
+    address currentTurn;
 }
 
 struct Ship {
@@ -129,4 +131,43 @@ struct ArmorData {
 struct ShieldData {
     uint8 damageReduction;
     int8 movement;
+}
+
+enum LobbyStatus {
+    Open, // Lobby is open for joining
+    FleetSelection, // Both players have joined, selecting fleets
+    InGame // Game has started
+}
+
+struct Lobby {
+    uint id;
+    address creator;
+    address joiner;
+    uint costLimit;
+    LobbyStatus status;
+    uint createdAt;
+    uint gameStartedAt;
+    uint creatorFleetId;
+    uint joinerFleetId;
+    bool creatorGoesFirst;
+    uint turnTime; // Time in seconds for each turn
+    uint joinedAt; // When the joiner joined the lobby
+    uint joinerFleetSetAt; // When the joiner set their fleet
+}
+
+struct Fleet {
+    uint id;
+    uint lobbyId;
+    address owner;
+    uint[] shipIds;
+    uint totalCost;
+    bool isComplete;
+}
+
+struct PlayerLobbyState {
+    uint activeLobbyId;
+    uint activeLobbiesCount; // Track number of active lobbies
+    bool hasActiveLobby;
+    uint kickCount;
+    uint lastKickTime;
 }

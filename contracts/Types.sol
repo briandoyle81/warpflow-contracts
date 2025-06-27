@@ -133,6 +133,23 @@ struct ShieldData {
     int8 movement;
 }
 
+struct SpecialData {
+    uint8 range;
+    int8 movement;
+}
+
+struct AttributesVersion {
+    uint8 version;
+    uint8 baseHull;
+    uint8 baseSpeed;
+    uint8[] foreAccuracy;
+    uint8[] engineSpeeds;
+    GunData[] guns;
+    ArmorData[] armors;
+    ShieldData[] shields;
+    SpecialData[] specials;
+}
+
 enum LobbyStatus {
     Open, // Lobby is open for joining
     FleetSelection, // Both players have joined, selecting fleets

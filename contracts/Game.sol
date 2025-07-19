@@ -156,14 +156,14 @@ contract Game is Ownable, ReentrancyGuard {
         // Place creator ships on the left side (column 0)
         Fleet memory creatorFleet = fleets.getFleet(_creatorFleetId);
         for (uint i = 0; i < creatorFleet.shipIds.length; i++) {
-            uint8 row = uint8(i); // Start from top row (row 0) and move down
+            uint8 row = uint8(i * 2); // Skip a row between each ship (rows 0, 2, 4, ...)
             _placeShipOnGrid(_gameId, creatorFleet.shipIds[i], row, 0, true);
         }
 
         // Place joiner ships on the right side (column GRID_WIDTH - 1)
         Fleet memory joinerFleet = fleets.getFleet(_joinerFleetId);
         for (uint i = 0; i < joinerFleet.shipIds.length; i++) {
-            uint8 row = uint8(GRID_HEIGHT - 1 - i); // Start from bottom row (row GRID_HEIGHT - 1) and move up
+            uint8 row = uint8(GRID_HEIGHT - 1 - (i * 2)); // Skip a row between each ship (rows 49, 47, 45, ...)
             _placeShipOnGrid(
                 _gameId,
                 joinerFleet.shipIds[i],

@@ -1309,37 +1309,37 @@ describe("Lobbies", function () {
       // Verify creator ships are on the left side (column 0) and placed from top to bottom
       for (let i = 0; i < creatorShips.length; i++) {
         expect(creatorShips[i].position.col).to.equal(0); // Left side
-        expect(creatorShips[i].position.row).to.equal(i); // Top to bottom (rows 0, 1, 2)
+        expect(creatorShips[i].position.row).to.equal(i * 2); // Top to bottom with spacing (rows 0, 2, 4)
         expect(creatorShips[i].position.row).to.be.lessThan(50); // Within grid height
       }
 
       // Verify joiner ships are on the right side (column 99) and placed from bottom to top
       for (let i = 0; i < joinerShips.length; i++) {
         expect(joinerShips[i].position.col).to.equal(99); // Right side
-        expect(joinerShips[i].position.row).to.equal(49 - i); // Bottom to top (rows 49, 48, 47)
+        expect(joinerShips[i].position.row).to.equal(49 - i * 2); // Bottom to top with spacing (rows 49, 47, 45)
         expect(joinerShips[i].position.row).to.be.lessThan(50); // Within grid height
       }
 
       // Verify specific ship positions using grid queries
-      // Creator ships should be at (row 0, col 0), (row 1, col 0), (row 2, col 0)
+      // Creator ships should be at (row 0, col 0), (row 2, col 0), (row 4, col 0)
       expect((await game.read.getShipAtPosition([1n, 0, 0])) as any).to.equal(
         1n
       );
-      expect((await game.read.getShipAtPosition([1n, 1, 0])) as any).to.equal(
+      expect((await game.read.getShipAtPosition([1n, 2, 0])) as any).to.equal(
         2n
       );
-      expect((await game.read.getShipAtPosition([1n, 2, 0])) as any).to.equal(
+      expect((await game.read.getShipAtPosition([1n, 4, 0])) as any).to.equal(
         3n
       );
 
-      // Joiner ships should be at (row 49, col 99), (row 48, col 99), (row 47, col 99)
+      // Joiner ships should be at (row 49, col 99), (row 47, col 99), (row 45, col 99)
       expect((await game.read.getShipAtPosition([1n, 49, 99])) as any).to.equal(
         6n
       );
-      expect((await game.read.getShipAtPosition([1n, 48, 99])) as any).to.equal(
+      expect((await game.read.getShipAtPosition([1n, 47, 99])) as any).to.equal(
         7n
       );
-      expect((await game.read.getShipAtPosition([1n, 47, 99])) as any).to.equal(
+      expect((await game.read.getShipAtPosition([1n, 45, 99])) as any).to.equal(
         8n
       );
 

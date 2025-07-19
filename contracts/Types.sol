@@ -59,7 +59,7 @@ struct Equipment {
 // Attributes Change on Version
 // Attributes will live in the game contract
 struct Attributes {
-    uint8 version; // Attributes version not cost version
+    uint16 version; // Attributes version not cost version
     uint8 range;
     uint8 gunDamage;
     uint8 hullPoints;
@@ -77,6 +77,22 @@ struct GameData {
     bool creatorGoesFirst;
     uint startedAt;
     address currentTurn;
+    mapping(uint => Attributes) creatorShipAttributes; // shipId => attributes
+    mapping(uint => Attributes) joinerShipAttributes; // shipId => attributes
+}
+
+struct GameDataView {
+    uint gameId;
+    uint lobbyId;
+    address creator;
+    address joiner;
+    uint creatorFleetId;
+    uint joinerFleetId;
+    bool creatorGoesFirst;
+    uint startedAt;
+    address currentTurn;
+    Attributes[] creatorShipAttributes; // Array of creator's ship attributes
+    Attributes[] joinerShipAttributes; // Array of joiner's ship attributes
 }
 
 struct Ship {
@@ -139,7 +155,7 @@ struct SpecialData {
 }
 
 struct AttributesVersion {
-    uint8 version;
+    uint16 version;
     uint8 baseHull;
     uint8 baseSpeed;
     uint8[] foreAccuracy;

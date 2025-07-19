@@ -67,6 +67,19 @@ struct Attributes {
     uint8[] statusEffects;
 }
 
+// Grid position structure
+struct Position {
+    uint8 row;
+    uint8 col;
+}
+
+// Ship position on the grid
+struct ShipPosition {
+    uint shipId;
+    Position position;
+    bool isCreator;
+}
+
 struct GameData {
     uint gameId;
     uint lobbyId;
@@ -79,6 +92,11 @@ struct GameData {
     address currentTurn;
     mapping(uint => Attributes) creatorShipAttributes; // shipId => attributes
     mapping(uint => Attributes) joinerShipAttributes; // shipId => attributes
+    // Grid state - grid[row][column] = shipId (0 if empty)
+    mapping(uint8 row => mapping(uint8 column => uint shipId)) grid;
+    mapping(uint => Position) shipPositions; // shipId => position
+    uint8 gridWidth;
+    uint8 gridHeight;
 }
 
 struct GameDataView {
@@ -93,6 +111,10 @@ struct GameDataView {
     address currentTurn;
     Attributes[] creatorShipAttributes; // Array of creator's ship attributes
     Attributes[] joinerShipAttributes; // Array of joiner's ship attributes
+    // Grid data
+    ShipPosition[] shipPositions; // All ship positions on the grid
+    uint8 gridWidth;
+    uint8 gridHeight;
 }
 
 struct Ship {

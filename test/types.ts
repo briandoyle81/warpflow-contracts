@@ -105,6 +105,15 @@ export interface PlayerLobbyState {
   lastKickTime: bigint;
 }
 
+export interface Attributes {
+  version: number;
+  range: number;
+  gunDamage: number;
+  hullPoints: number;
+  movement: number;
+  statusEffects: number[];
+}
+
 export interface GameData {
   gameId: bigint;
   lobbyId: bigint;
@@ -217,4 +226,32 @@ export function tupleToGameData(tuple: GameDataTuple): GameData {
     startedAt: tuple[7],
     currentTurn: tuple[8],
   };
+}
+
+export interface Position {
+  row: number; // Row position (0 to gridHeight-1)
+  col: number; // Column position (0 to gridWidth-1)
+}
+
+export interface ShipPosition {
+  shipId: bigint;
+  position: Position;
+  isCreator: boolean;
+}
+
+export interface GameDataView {
+  gameId: bigint;
+  lobbyId: bigint;
+  creator: string;
+  joiner: string;
+  creatorFleetId: bigint;
+  joinerFleetId: bigint;
+  creatorGoesFirst: boolean;
+  startedAt: bigint;
+  currentTurn: string;
+  creatorShipAttributes: Attributes[];
+  joinerShipAttributes: Attributes[];
+  shipPositions: ShipPosition[];
+  gridWidth: number;
+  gridHeight: number;
 }

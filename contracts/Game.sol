@@ -19,6 +19,10 @@ contract Game is Ownable, ReentrancyGuard {
     mapping(uint16 => AttributesVersion) public attributesVersions;
     uint16 public currentAttributesVersion;
 
+    // Grid constants
+    uint8 public constant GRID_WIDTH = 100; // Number of columns
+    uint8 public constant GRID_HEIGHT = 50; // Number of rows
+
     event GameStarted(
         uint indexed gameId,
         uint indexed lobbyId,
@@ -31,6 +35,8 @@ contract Game is Ownable, ReentrancyGuard {
     error NotInGame();
     error InvalidAttributesVersion();
     error ShipNotFound();
+    error InvalidPosition();
+    error PositionOccupied();
 
     constructor(address _ships) Ownable(msg.sender) {
         ships = Ships(_ships);
@@ -109,8 +115,13 @@ contract Game is Ownable, ReentrancyGuard {
         game.startedAt = block.timestamp;
         game.currentTurn = _creatorGoesFirst ? _creator : _joiner;
 
-        // Calculate fleet attributes for both players
+        // Initialize grid dimensions
+        game.gridWidth = GRID_WIDTH; // Number of columns
+        game.gridHeight = GRID_HEIGHT; // Number of rows
+
+        // Calculate fleet attributes and place ships on grid
         _initializeFleetAttributes(gameCount, _creatorFleetId, _joinerFleetId);
+        _placeShipsOnGrid(gameCount, _creatorFleetId, _joinerFleetId);
 
         emit GameStarted(gameCount, _lobbyId, _creator, _joiner);
     }
@@ -132,6 +143,57 @@ contract Game is Ownable, ReentrancyGuard {
         for (uint i = 0; i < joinerFleet.shipIds.length; i++) {
             calculateShipAttributes(_gameId, joinerFleet.shipIds[i], false);
         }
+    }
+
+    // Internal function to place ships on the grid
+    function _placeShipsOnGrid(
+        uint _gameId,
+        uint _creatorFleetId,
+        uint _joinerFleetId
+    ) internal {
+        GameData storage game = games[_gameId];
+
+        // Place creator ships on the left side (column 0)
+        Fleet memory creatorFleet = fleets.getFleet(_creatorFleetId);
+        for (uint i = 0; i < creatorFleet.shipIds.length; i++) {
+            uint8 row = uint8(i); // Start from top row (row 0) and move down
+            _placeShipOnGrid(_gameId, creatorFleet.shipIds[i], row, 0, true);
+        }
+
+        // Place joiner ships on the right side (column GRID_WIDTH - 1)
+        Fleet memory joinerFleet = fleets.getFleet(_joinerFleetId);
+        for (uint i = 0; i < joinerFleet.shipIds.length; i++) {
+            uint8 row = uint8(GRID_HEIGHT - 1 - i); // Start from bottom row (row GRID_HEIGHT - 1) and move up
+            _placeShipOnGrid(
+                _gameId,
+                joinerFleet.shipIds[i],
+                row,
+                GRID_WIDTH - 1,
+                false
+            );
+        }
+    }
+
+    // Internal function to place a single ship on the grid
+    function _placeShipOnGrid(
+        uint _gameId,
+        uint _shipId,
+        uint8 _row,
+        uint8 _column,
+        bool _isCreator
+    ) internal {
+        GameData storage game = games[_gameId];
+
+        // Validate position is within grid bounds
+        if (_row >= GRID_HEIGHT || _column >= GRID_WIDTH)
+            revert InvalidPosition();
+
+        // Check if position is already occupied
+        if (game.grid[_row][_column] != 0) revert PositionOccupied();
+
+        // Place ship on grid at specified row and column
+        game.grid[_row][_column] = _shipId;
+        game.shipPositions[_shipId] = Position(_row, _column);
     }
 
     // Calculate and store attributes for a ship in a game
@@ -199,6 +261,72 @@ contract Game is Ownable, ReentrancyGuard {
             attributes[i] = getShipAttributes(_gameId, _shipIds[i], _isCreator);
         }
         return attributes;
+    }
+
+    // Get ship position on the grid
+    function getShipPosition(
+        uint _gameId,
+        uint _shipId
+    ) public view returns (Position memory) {
+        if (games[_gameId].gameId == 0) revert GameNotFound();
+        GameData storage game = games[_gameId];
+        return game.shipPositions[_shipId];
+    }
+
+    // Get ship at a specific grid position
+    function getShipAtPosition(
+        uint _gameId,
+        uint8 _row,
+        uint8 _column
+    ) public view returns (uint) {
+        if (games[_gameId].gameId == 0) revert GameNotFound();
+        if (_row >= GRID_HEIGHT || _column >= GRID_WIDTH)
+            revert InvalidPosition();
+        GameData storage game = games[_gameId];
+        return game.grid[_row][_column];
+    }
+
+    // Get all ship positions for a game
+    function getAllShipPositions(
+        uint _gameId
+    ) public view returns (ShipPosition[] memory) {
+        if (games[_gameId].gameId == 0) revert GameNotFound();
+        GameData storage game = games[_gameId];
+
+        // Get creator fleet
+        Fleet memory creatorFleet = fleets.getFleet(game.creatorFleetId);
+        // Get joiner fleet
+        Fleet memory joinerFleet = fleets.getFleet(game.joinerFleetId);
+
+        uint totalShips = creatorFleet.shipIds.length +
+            joinerFleet.shipIds.length;
+        ShipPosition[] memory positions = new ShipPosition[](totalShips);
+
+        uint index = 0;
+
+        // Add creator ships
+        for (uint i = 0; i < creatorFleet.shipIds.length; i++) {
+            uint shipId = creatorFleet.shipIds[i];
+            positions[index] = ShipPosition({
+                shipId: shipId,
+                position: game.shipPositions[shipId],
+                isCreator: true
+            });
+            index++;
+        }
+
+        // Add joiner ships
+        for (uint i = 0; i < joinerFleet.shipIds.length; i++) {
+            uint shipId = joinerFleet.shipIds[i];
+            positions[index] = ShipPosition({
+                shipId: shipId,
+                position: game.shipPositions[shipId],
+                isCreator: false
+            });
+            index++;
+        }
+
+        return positions;
     }
 
     // Internal calculation functions
@@ -284,6 +412,9 @@ contract Game is Ownable, ReentrancyGuard {
             joinerAttrs[i] = game.joinerShipAttributes[_joinerShipIds[i]];
         }
 
+        // Get all ship positions
+        ShipPosition[] memory shipPositions = getAllShipPositions(_gameId);
+
         return
             GameDataView({
                 gameId: game.gameId,
@@ -296,7 +427,10 @@ contract Game is Ownable, ReentrancyGuard {
                 startedAt: game.startedAt,
                 currentTurn: game.currentTurn,
                 creatorShipAttributes: creatorAttrs,
-                joinerShipAttributes: joinerAttrs
+                joinerShipAttributes: joinerAttrs,
+                shipPositions: shipPositions,
+                gridWidth: game.gridWidth,
+                gridHeight: game.gridHeight
             });
     }
 }

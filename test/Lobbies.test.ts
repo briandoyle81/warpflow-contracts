@@ -1199,4 +1199,305 @@ describe("Lobbies", function () {
       ).to.be.rejectedWith("ShipNotFound");
     });
   });
+
+  describe("Game Grid", function () {
+    it("should initialize grid with correct dimensions", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets to start the game
+      await creatorLobbies.write.createFleet([1n, [1n]]);
+      await joinerLobbies.write.createFleet([1n, [6n]]);
+
+      // Get complete game data
+      const gridGameData = (await game.read.getGame([1n, [1n], [6n]])) as any;
+
+      // Verify grid dimensions (50 rows x 100 columns)
+      expect(gridGameData.gridWidth).to.equal(100); // Number of columns
+      expect(gridGameData.gridHeight).to.equal(50); // Number of rows
+    });
+
+    it("should place both players' ships correctly at the start of a game", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets with multiple ships for both players
+      await creatorLobbies.write.createFleet([1n, [1n, 2n, 3n]]);
+      await joinerLobbies.write.createFleet([1n, [6n, 7n, 8n]]);
+
+      // Get ship positions
+      const shipPositions = (await game.read.getAllShipPositions([1n])) as any;
+
+      // Separate creator and joiner ships
+      const creatorShips = shipPositions
+        .filter((pos: any) => pos.isCreator)
+        .sort((a: any, b: any) => a.position.row - b.position.row);
+      const joinerShips = shipPositions
+        .filter((pos: any) => !pos.isCreator)
+        .sort((a: any, b: any) => b.position.row - a.position.row); // Sort descending
+
+      // Verify we have the expected number of ships
+      expect(creatorShips.length).to.equal(3);
+      expect(joinerShips.length).to.equal(3);
+
+      // Verify creator ships are on the left side (column 0) and placed from top to bottom
+      for (let i = 0; i < creatorShips.length; i++) {
+        expect(creatorShips[i].position.col).to.equal(0); // Left side
+        expect(creatorShips[i].position.row).to.equal(i); // Top to bottom (rows 0, 1, 2)
+        expect(creatorShips[i].position.row).to.be.lessThan(50); // Within grid height
+      }
+
+      // Verify joiner ships are on the right side (column 99) and placed from bottom to top
+      for (let i = 0; i < joinerShips.length; i++) {
+        expect(joinerShips[i].position.col).to.equal(99); // Right side
+        expect(joinerShips[i].position.row).to.equal(49 - i); // Bottom to top (rows 49, 48, 47)
+        expect(joinerShips[i].position.row).to.be.lessThan(50); // Within grid height
+      }
+
+      // Verify specific ship positions using grid queries
+      // Creator ships should be at (row 0, col 0), (row 1, col 0), (row 2, col 0)
+      expect((await game.read.getShipAtPosition([1n, 0, 0])) as any).to.equal(
+        1n
+      );
+      expect((await game.read.getShipAtPosition([1n, 1, 0])) as any).to.equal(
+        2n
+      );
+      expect((await game.read.getShipAtPosition([1n, 2, 0])) as any).to.equal(
+        3n
+      );
+
+      // Joiner ships should be at (row 49, col 99), (row 48, col 99), (row 47, col 99)
+      expect((await game.read.getShipAtPosition([1n, 49, 99])) as any).to.equal(
+        6n
+      );
+      expect((await game.read.getShipAtPosition([1n, 48, 99])) as any).to.equal(
+        7n
+      );
+      expect((await game.read.getShipAtPosition([1n, 47, 99])) as any).to.equal(
+        8n
+      );
+
+      // Verify empty positions return 0
+      expect((await game.read.getShipAtPosition([1n, 25, 50])) as any).to.equal(
+        0n
+      );
+      expect((await game.read.getShipAtPosition([1n, 10, 10])) as any).to.equal(
+        0n
+      );
+
+      // Verify individual ship position queries
+      const creatorShip1Position = (await game.read.getShipPosition([
+        1n,
+        1n,
+      ])) as any;
+      expect(creatorShip1Position.row).to.equal(0);
+      expect(creatorShip1Position.col).to.equal(0);
+
+      const joinerShip1Position = (await game.read.getShipPosition([
+        1n,
+        6n,
+      ])) as any;
+      expect(joinerShip1Position.row).to.equal(49);
+      expect(joinerShip1Position.col).to.equal(99);
+
+      // Display the grid on the console
+      console.log("Grid:");
+      for (let row = 0; row < 50; row++) {
+        let rowStr = "";
+        for (let col = 0; col < 100; col++) {
+          rowStr += await game.read.getShipAtPosition([1n, row, col]);
+        }
+        console.log(rowStr);
+      }
+    });
+
+    it("should allow querying ship at specific grid position", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets to start the game
+      await creatorLobbies.write.createFleet([1n, [1n]]);
+      await joinerLobbies.write.createFleet([1n, [6n]]);
+
+      // Check that creator ship is at position (row 0, column 0)
+      const shipAtOrigin = (await game.read.getShipAtPosition([
+        1n,
+        0,
+        0,
+      ])) as any;
+      expect(shipAtOrigin).to.equal(1n);
+
+      // Check that joiner ship is at position (row 49, column 99)
+      const shipAtEnd = (await game.read.getShipAtPosition([
+        1n,
+        49,
+        99,
+      ])) as any;
+      expect(shipAtEnd).to.equal(6n);
+
+      // Check that empty positions return 0
+      const emptyPosition = (await game.read.getShipAtPosition([
+        1n,
+        25,
+        50,
+      ])) as any;
+      expect(emptyPosition).to.equal(0n);
+    });
+
+    it("should allow querying individual ship positions", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets to start the game
+      await creatorLobbies.write.createFleet([1n, [1n]]);
+      await joinerLobbies.write.createFleet([1n, [6n]]);
+
+      // Get individual ship positions
+      const creatorShipPosition = (await game.read.getShipPosition([
+        1n,
+        1n,
+      ])) as any;
+      expect(creatorShipPosition.row).to.equal(0);
+      expect(creatorShipPosition.col).to.equal(0);
+
+      const joinerShipPosition = (await game.read.getShipPosition([
+        1n,
+        6n,
+      ])) as any;
+      expect(joinerShipPosition.row).to.equal(49);
+      expect(joinerShipPosition.col).to.equal(99);
+    });
+  });
 });

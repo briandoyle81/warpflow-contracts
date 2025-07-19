@@ -117,6 +117,9 @@ const DeployModule = buildModule("DeployModule", (m) => {
   // Set Lobbies address in Game contract
   m.call(game, "setLobbiesAddress", [lobbies]);
 
+  // Set Fleets address in Game contract
+  m.call(game, "setFleetsAddress", [fleets]);
+
   // Set Game address in Lobbies contract
   m.call(lobbies, "setGameAddress", [game]);
 

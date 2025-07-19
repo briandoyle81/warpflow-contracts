@@ -246,14 +246,14 @@ contract Game is Ownable, ReentrancyGuard {
     }
 
     // Attributes version management
-    function setAttributesVersion(
-        AttributesVersion memory _version
-    ) public onlyOwner {
-        // uint8 version = _version.version;
-        // if (version == 0) revert InvalidAttributesVersion();
-        // attributesVersions[version] = _version;
-        // currentAttributesVersion = version;
-    }
+    // TODO: CRITICAL Either enable viaIR or do this the hard way
+    // function setAttributesVersion(
+    //     AttributesVersion memory _version
+    // ) public onlyOwner {
+    //     currentAttributesVersion++;
+    //     _version.version = currentAttributesVersion;
+    //     attributesVersions[currentAttributesVersion] = _version;
+    // }
 
     // View functions
     function getGame(

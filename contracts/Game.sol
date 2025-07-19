@@ -178,6 +178,9 @@ contract Game is Ownable, ReentrancyGuard {
         uint _shipId,
         bool _isCreator
     ) public view returns (Attributes memory) {
+        if (games[_gameId].gameId == 0) revert GameNotFound();
+        Ship memory ship = ships.getShip(_shipId);
+        if (ship.id == 0) revert ShipNotFound();
         GameData storage game = games[_gameId];
         return
             _isCreator

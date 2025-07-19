@@ -748,4 +748,455 @@ describe("Lobbies", function () {
         .rejected;
     });
   });
+
+  describe("Game Ship Attributes", function () {
+    it("should calculate correct hull points for ships", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Get the constructed ship to see its traits
+      const constructedShipTuple = (await ships.read.ships([1n])) as ShipTuple;
+      const constructedShip = tupleToShip(constructedShipTuple);
+
+      // Calculate expected hull points: baseHull (100) + (traits.hull * 10)
+      const expectedHullPoints = 100 + constructedShip.traits.hull * 10;
+
+      // Create a game and calculate attributes
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets to start the game
+      await creatorLobbies.write.createFleet([1n, [1n]]);
+      await joinerLobbies.write.createFleet([1n, [6n]]);
+
+      // Get the ship attributes
+      const attributes = await game.read.getShipAttributes([1n, 1n, true]);
+
+      expect(attributes.hullPoints).to.equal(expectedHullPoints);
+    });
+
+    it("should calculate correct movement for ships with different equipment", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets to start the game
+      await creatorLobbies.write.createFleet([1n, [1n]]);
+      await joinerLobbies.write.createFleet([1n, [6n]]);
+
+      // Get ship attributes for both players
+      const creatorAttributes = await game.read.getShipAttributes([
+        1n,
+        1n,
+        true,
+      ]);
+      const joinerAttributes = await game.read.getShipAttributes([
+        1n,
+        6n,
+        false,
+      ]);
+
+      // Verify movement calculations
+      // Base speed is 5, plus trait bonus, plus equipment modifiers
+      expect(creatorAttributes.movement).to.be.greaterThan(0);
+      expect(joinerAttributes.movement).to.be.greaterThan(0);
+
+      // Movement should be calculated as: baseSpeed + traits.speed + equipment modifiers
+      // We can't predict exact values due to randomness, but they should be reasonable
+      expect(creatorAttributes.movement).to.be.lessThan(20); // Reasonable upper bound
+      expect(joinerAttributes.movement).to.be.lessThan(20);
+    });
+
+    it("should calculate correct weapon range and damage", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Get the constructed ship to see its equipment
+      const constructedShipTuple = (await ships.read.ships([1n])) as ShipTuple;
+      const constructedShip = tupleToShip(constructedShipTuple);
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets to start the game
+      await creatorLobbies.write.createFleet([1n, [1n]]);
+      await joinerLobbies.write.createFleet([1n, [6n]]);
+
+      // Get the ship attributes
+      const attributes = await game.read.getShipAttributes([1n, 1n, true]);
+
+      // Verify weapon attributes based on equipment
+      const mainWeapon = constructedShip.equipment.mainWeapon;
+
+      // Expected values based on the Game contract's initialization
+      const expectedRanges = [10, 50, 40, 4]; // Laser, Railgun, MissileLauncher, PlasmaCannon
+      const expectedDamages = [15, 10, 15, 25];
+
+      expect(attributes.range).to.equal(expectedRanges[mainWeapon]);
+      expect(attributes.gunDamage).to.equal(expectedDamages[mainWeapon]);
+    });
+
+    it("should handle negative movement correctly", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets to start the game
+      await creatorLobbies.write.createFleet([1n, [1n]]);
+      await joinerLobbies.write.createFleet([1n, [6n]]);
+
+      // Get ship attributes for both players
+      const creatorAttributes = await game.read.getShipAttributes([
+        1n,
+        1n,
+        true,
+      ]);
+      const joinerAttributes = await game.read.getShipAttributes([
+        1n,
+        6n,
+        false,
+      ]);
+
+      // Movement should never be negative (clamped to 0)
+      expect(creatorAttributes.movement).to.be.greaterThanOrEqual(0);
+      expect(joinerAttributes.movement).to.be.greaterThanOrEqual(0);
+    });
+
+    it("should calculate attributes for multiple ships in a fleet", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets with multiple ships
+      await creatorLobbies.write.createFleet([1n, [1n, 2n, 3n]]);
+      await joinerLobbies.write.createFleet([1n, [6n, 7n, 8n]]);
+
+      // Get attributes for all ships in creator's fleet
+      const creatorShipIds = [1n, 2n, 3n];
+      const creatorAttributes = await game.read.getPlayerShipAttributes([
+        1n,
+        creatorShipIds,
+        true,
+      ]);
+
+      // Get attributes for all ships in joiner's fleet
+      const joinerShipIds = [6n, 7n, 8n];
+      const joinerAttributes = await game.read.getPlayerShipAttributes([
+        1n,
+        joinerShipIds,
+        false,
+      ]);
+
+      // Verify we got attributes for all ships
+      expect(creatorAttributes.length).to.equal(3);
+      expect(joinerAttributes.length).to.equal(3);
+
+      // Verify each ship has valid attributes
+      for (let i = 0; i < 3; i++) {
+        expect(creatorAttributes[i].version).to.equal(1);
+        expect(creatorAttributes[i].hullPoints).to.be.greaterThan(0);
+        expect(creatorAttributes[i].movement).to.be.greaterThanOrEqual(0);
+        expect(creatorAttributes[i].range).to.be.greaterThan(0);
+        expect(creatorAttributes[i].gunDamage).to.be.greaterThan(0);
+
+        expect(joinerAttributes[i].version).to.equal(1);
+        expect(joinerAttributes[i].hullPoints).to.be.greaterThan(0);
+        expect(joinerAttributes[i].movement).to.be.greaterThanOrEqual(0);
+        expect(joinerAttributes[i].range).to.be.greaterThan(0);
+        expect(joinerAttributes[i].gunDamage).to.be.greaterThan(0);
+      }
+    });
+
+    it("should return correct game data with ship attributes", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets
+      await creatorLobbies.write.createFleet([1n, [1n]]);
+      await joinerLobbies.write.createFleet([1n, [6n]]);
+
+      // Get complete game data
+      const gameData = await game.read.getGame([1n, [1n], [6n]]);
+
+      // Verify game data structure
+      expect(gameData.gameId).to.equal(1n);
+      expect(gameData.lobbyId).to.equal(1n);
+      expect(gameData.creator.toLowerCase()).to.equal(
+        creator.account.address.toLowerCase()
+      );
+      expect(gameData.joiner.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
+      );
+      expect(gameData.creatorGoesFirst).to.be.true;
+      expect(Number(gameData.startedAt)).to.be.greaterThan(0);
+      expect(gameData.currentTurn.toLowerCase()).to.equal(
+        creator.account.address.toLowerCase()
+      );
+
+      // Verify ship attributes arrays
+      expect(gameData.creatorShipAttributes.length).to.equal(1);
+      expect(gameData.joinerShipAttributes.length).to.equal(1);
+
+      // Verify creator ship attributes
+      const creatorAttrs = gameData.creatorShipAttributes[0];
+      expect(creatorAttrs.version).to.equal(1);
+      expect(creatorAttrs.hullPoints).to.be.greaterThan(0);
+      expect(creatorAttrs.movement).to.be.greaterThanOrEqual(0);
+      expect(creatorAttrs.range).to.be.greaterThan(0);
+      expect(creatorAttrs.gunDamage).to.be.greaterThan(0);
+      expect(creatorAttrs.statusEffects.length).to.equal(0);
+
+      // Verify joiner ship attributes
+      const joinerAttrs = gameData.joinerShipAttributes[0];
+      expect(joinerAttrs.version).to.equal(1);
+      expect(joinerAttrs.hullPoints).to.be.greaterThan(0);
+      expect(joinerAttrs.movement).to.be.greaterThanOrEqual(0);
+      expect(joinerAttrs.range).to.be.greaterThan(0);
+      expect(joinerAttrs.gunDamage).to.be.greaterThan(0);
+      expect(joinerAttrs.statusEffects.length).to.equal(0);
+    });
+
+    it("should revert when trying to get attributes for non-existent game", async function () {
+      const { game } = await loadFixture(deployLobbiesFixture);
+
+      await expect(
+        game.read.getShipAttributes([999n, 1n, true])
+      ).to.be.rejectedWith("GameNotFound");
+    });
+
+    it("should revert when trying to get attributes for non-existent ship", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets to start the game
+      await creatorLobbies.write.createFleet([1n, [1n]]);
+      await joinerLobbies.write.createFleet([1n, [6n]]);
+
+      // Try to get attributes for non-existent ship
+      await expect(
+        game.read.getShipAttributes([1n, 999n, true])
+      ).to.be.rejectedWith("ShipNotFound");
+    });
+  });
 });

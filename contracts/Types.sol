@@ -97,6 +97,9 @@ struct GameData {
     mapping(uint => Position) shipPositions; // shipId => position
     uint8 gridWidth;
     uint8 gridHeight;
+    // Movement tracking
+    uint currentRound;
+    mapping(uint => mapping(uint => bool)) shipMovedThisRound; // round => shipId => hasMoved
 }
 
 struct GameDataView {

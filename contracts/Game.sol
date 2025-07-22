@@ -37,6 +37,12 @@ contract Game is Ownable, ReentrancyGuard {
     error ShipNotFound();
     error InvalidPosition();
     error PositionOccupied();
+    error NotYourTurn();
+    error ShipNotOwned();
+    error ShipAlreadyMoved();
+    error MovementExceeded();
+    error InvalidMove();
+    error ShipDestroyed();
 
     constructor(address _ships) Ownable(msg.sender) {
         ships = Ships(_ships);
@@ -118,6 +124,9 @@ contract Game is Ownable, ReentrancyGuard {
         // Initialize grid dimensions
         game.gridWidth = GRID_WIDTH; // Number of columns
         game.gridHeight = GRID_HEIGHT; // Number of rows
+
+        // Initialize round tracking
+        game.currentRound = 1;
 
         // Calculate fleet attributes and place ships on grid
         _initializeFleetAttributes(gameCount, _creatorFleetId, _joinerFleetId);
@@ -298,35 +307,291 @@ contract Game is Ownable, ReentrancyGuard {
         // Get joiner fleet
         Fleet memory joinerFleet = fleets.getFleet(game.joinerFleetId);
 
-        uint totalShips = creatorFleet.shipIds.length +
-            joinerFleet.shipIds.length;
-        ShipPosition[] memory positions = new ShipPosition[](totalShips);
+        // Count non-destroyed ships
+        uint nonDestroyedShips = 0;
 
-        uint index = 0;
-
-        // Add creator ships
+        // Count non-destroyed creator ships
         for (uint i = 0; i < creatorFleet.shipIds.length; i++) {
             uint shipId = creatorFleet.shipIds[i];
-            positions[index] = ShipPosition({
-                shipId: shipId,
-                position: game.shipPositions[shipId],
-                isCreator: true
-            });
-            index++;
+            Ship memory ship = ships.getShip(shipId);
+            if (ship.shipData.timestampDestroyed == 0) {
+                nonDestroyedShips++;
+            }
         }
 
-        // Add joiner ships
+        // Count non-destroyed joiner ships
         for (uint i = 0; i < joinerFleet.shipIds.length; i++) {
             uint shipId = joinerFleet.shipIds[i];
-            positions[index] = ShipPosition({
-                shipId: shipId,
-                position: game.shipPositions[shipId],
-                isCreator: false
-            });
-            index++;
+            Ship memory ship = ships.getShip(shipId);
+            if (ship.shipData.timestampDestroyed == 0) {
+                nonDestroyedShips++;
+            }
+        }
+
+        ShipPosition[] memory positions = new ShipPosition[](nonDestroyedShips);
+        uint index = 0;
+
+        // Add non-destroyed creator ships
+        for (uint i = 0; i < creatorFleet.shipIds.length; i++) {
+            uint shipId = creatorFleet.shipIds[i];
+            Ship memory ship = ships.getShip(shipId);
+            if (ship.shipData.timestampDestroyed == 0) {
+                positions[index] = ShipPosition({
+                    shipId: shipId,
+                    position: game.shipPositions[shipId],
+                    isCreator: true
+                });
+                index++;
+            }
+        }
+
+        // Add non-destroyed joiner ships
+        for (uint i = 0; i < joinerFleet.shipIds.length; i++) {
+            uint shipId = joinerFleet.shipIds[i];
+            Ship memory ship = ships.getShip(shipId);
+            if (ship.shipData.timestampDestroyed == 0) {
+                positions[index] = ShipPosition({
+                    shipId: shipId,
+                    position: game.shipPositions[shipId],
+                    isCreator: false
+                });
+                index++;
+            }
         }
 
         return positions;
+    }
+
+    // Move a ship to a new position
+    function moveShip(
+        uint _gameId,
+        uint _shipId,
+        uint8 _newRow,
+        uint8 _newCol
+    ) external {
+        if (games[_gameId].gameId == 0) revert GameNotFound();
+        GameData storage game = games[_gameId];
+
+        // Check if it's the player's turn
+        if (msg.sender != game.currentTurn) revert NotYourTurn();
+
+        // Check if ship exists and is owned by the current player
+        Ship memory ship = ships.getShip(_shipId);
+        if (ship.id == 0) revert ShipNotFound();
+        if (ship.owner != msg.sender) revert ShipNotOwned();
+
+        // Check if ship is destroyed
+        if (ship.shipData.timestampDestroyed != 0) revert ShipDestroyed();
+
+        // Check if ship is in the game (either creator or joiner fleet)
+        bool isCreatorShip = _isShipInFleet(_gameId, _shipId, true);
+        bool isJoinerShip = _isShipInFleet(_gameId, _shipId, false);
+        if (!isCreatorShip && !isJoinerShip) revert ShipNotFound();
+
+        // Check if ship has already moved this round
+        if (game.shipMovedThisRound[game.currentRound][_shipId])
+            revert ShipAlreadyMoved();
+
+        // Get current position
+        Position memory currentPos = game.shipPositions[_shipId];
+
+        // Calculate movement cost
+        uint8 movementCost = _calculateMovementCost(
+            currentPos,
+            _newRow,
+            _newCol
+        );
+
+        // Get ship's movement attribute
+        Attributes memory attributes = isCreatorShip
+            ? game.creatorShipAttributes[_shipId]
+            : game.joinerShipAttributes[_shipId];
+
+        // Check if movement cost exceeds ship's movement
+        if (movementCost > attributes.movement) revert MovementExceeded();
+
+        // Validate new position
+        if (_newRow >= GRID_HEIGHT || _newCol >= GRID_WIDTH)
+            revert InvalidPosition();
+        if (game.grid[_newRow][_newCol] != 0) revert PositionOccupied();
+
+        // Perform the move
+        _executeMove(_gameId, _shipId, currentPos, _newRow, _newCol);
+
+        // Mark ship as moved this round
+        game.shipMovedThisRound[game.currentRound][_shipId] = true;
+
+        // Check if both players have moved all their ships (round complete)
+        if (_checkRoundComplete(_gameId)) {
+            game.currentRound++;
+            // Reset turn to the player who goes first
+            game.currentTurn = game.creatorGoesFirst
+                ? game.creator
+                : game.joiner;
+        } else {
+            // Switch turns only if the other player has unmoved ships
+            _switchTurnIfOtherPlayerHasShips(_gameId);
+        }
+    }
+
+    // Check if both players have moved all their ships (round complete)
+    function _checkRoundComplete(uint _gameId) internal view returns (bool) {
+        GameData storage game = games[_gameId];
+
+        // Get both fleets
+        Fleet memory creatorFleet = fleets.getFleet(game.creatorFleetId);
+        Fleet memory joinerFleet = fleets.getFleet(game.joinerFleetId);
+
+        // Check if all non-destroyed creator ships have moved
+        for (uint i = 0; i < creatorFleet.shipIds.length; i++) {
+            uint shipId = creatorFleet.shipIds[i];
+            Ship memory ship = ships.getShip(shipId);
+            // Skip destroyed ships
+            if (ship.shipData.timestampDestroyed != 0) continue;
+            if (!game.shipMovedThisRound[game.currentRound][shipId]) {
+                return false;
+            }
+        }
+
+        // Check if all non-destroyed joiner ships have moved
+        for (uint i = 0; i < joinerFleet.shipIds.length; i++) {
+            uint shipId = joinerFleet.shipIds[i];
+            Ship memory ship = ships.getShip(shipId);
+            // Skip destroyed ships
+            if (ship.shipData.timestampDestroyed != 0) continue;
+            if (!game.shipMovedThisRound[game.currentRound][shipId]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    // Switch turns only if the other player has unmoved ships
+    function _switchTurnIfOtherPlayerHasShips(uint _gameId) internal {
+        GameData storage game = games[_gameId];
+
+        // Get both fleets
+        Fleet memory creatorFleet = fleets.getFleet(game.creatorFleetId);
+        Fleet memory joinerFleet = fleets.getFleet(game.joinerFleetId);
+
+        if (game.currentTurn == game.creator) {
+            // Creator just moved, check if joiner has unmoved ships
+            for (uint i = 0; i < joinerFleet.shipIds.length; i++) {
+                uint shipId = joinerFleet.shipIds[i];
+                Ship memory ship = ships.getShip(shipId);
+                // Skip destroyed ships
+                if (ship.shipData.timestampDestroyed != 0) continue;
+                if (!game.shipMovedThisRound[game.currentRound][shipId]) {
+                    // Joiner has unmoved ships, switch turn
+                    game.currentTurn = game.joiner;
+                    return;
+                }
+            }
+            // Joiner has no unmoved ships, keep turn with creator
+        } else {
+            // Joiner just moved, check if creator has unmoved ships
+            for (uint i = 0; i < creatorFleet.shipIds.length; i++) {
+                uint shipId = creatorFleet.shipIds[i];
+                Ship memory ship = ships.getShip(shipId);
+                // Skip destroyed ships
+                if (ship.shipData.timestampDestroyed != 0) continue;
+                if (!game.shipMovedThisRound[game.currentRound][shipId]) {
+                    // Creator has unmoved ships, switch turn
+                    game.currentTurn = game.creator;
+                    return;
+                }
+            }
+            // Creator has no unmoved ships, keep turn with joiner
+        }
+    }
+
+    // Internal function to destroy a ship
+    function _destroyShip(uint _gameId, uint _shipId) internal {
+        if (games[_gameId].gameId == 0) revert GameNotFound();
+        GameData storage game = games[_gameId];
+
+        // Check if ship exists and is in the game
+        Ship memory ship = ships.getShip(_shipId);
+        if (ship.id == 0) revert ShipNotFound();
+
+        // Check if ship is in the game (either creator or joiner fleet)
+        bool isCreatorShip = _isShipInFleet(_gameId, _shipId, true);
+        bool isJoinerShip = _isShipInFleet(_gameId, _shipId, false);
+        if (!isCreatorShip && !isJoinerShip) revert ShipNotFound();
+
+        // Check if ship is already destroyed
+        if (ship.shipData.timestampDestroyed != 0) revert ShipDestroyed();
+
+        // Remove ship from grid
+        Position memory shipPosition = game.shipPositions[_shipId];
+        game.grid[shipPosition.row][shipPosition.col] = 0;
+
+        // Mark ship as moved this round so it doesn't block round completion
+        game.shipMovedThisRound[game.currentRound][_shipId] = true;
+
+        // Call the Ships contract to mark the ship as destroyed
+        ships.setTimestampDestroyed(_shipId);
+    }
+
+    // Debug function to destroy a ship (onlyOwner for testing)
+    function debugDestroyShip(uint _gameId, uint _shipId) external onlyOwner {
+        _destroyShip(_gameId, _shipId);
+    }
+
+    // Internal helper functions
+
+    function _isShipInFleet(
+        uint _gameId,
+        uint _shipId,
+        bool _isCreator
+    ) internal view returns (bool) {
+        GameData storage game = games[_gameId];
+        Fleet memory fleet = fleets.getFleet(
+            _isCreator ? game.creatorFleetId : game.joinerFleetId
+        );
+
+        for (uint i = 0; i < fleet.shipIds.length; i++) {
+            if (fleet.shipIds[i] == _shipId) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function _calculateMovementCost(
+        Position memory _currentPos,
+        uint8 _newRow,
+        uint8 _newCol
+    ) internal pure returns (uint8) {
+        uint8 rowDiff = _currentPos.row > _newRow
+            ? _currentPos.row - _newRow
+            : _newRow - _currentPos.row;
+        uint8 colDiff = _currentPos.col > _newCol
+            ? _currentPos.col - _newCol
+            : _newCol - _currentPos.col;
+
+        // Only allow orthogonal movement (up, down, left, right)
+        if (rowDiff > 0 && colDiff > 0) revert InvalidMove();
+
+        return rowDiff + colDiff;
+    }
+
+    function _executeMove(
+        uint _gameId,
+        uint _shipId,
+        Position memory _currentPos,
+        uint8 _newRow,
+        uint8 _newCol
+    ) internal {
+        GameData storage game = games[_gameId];
+
+        // Remove ship from current position
+        game.grid[_currentPos.row][_currentPos.col] = 0;
+
+        // Place ship at new position
+        game.grid[_newRow][_newCol] = _shipId;
+        game.shipPositions[_shipId] = Position(_newRow, _newCol);
     }
 
     // Internal calculation functions

@@ -1365,16 +1365,6 @@ describe("Lobbies", function () {
       ])) as any;
       expect(joinerShip1Position.row).to.equal(49);
       expect(joinerShip1Position.col).to.equal(99);
-
-      // Display the grid on the console
-      console.log("Grid:");
-      for (let row = 0; row < 50; row++) {
-        let rowStr = "";
-        for (let col = 0; col < 100; col++) {
-          rowStr += await game.read.getShipAtPosition([1n, row, col]);
-        }
-        console.log(rowStr);
-      }
     });
 
     it("should allow querying ship at specific grid position", async function () {
@@ -1498,6 +1488,1032 @@ describe("Lobbies", function () {
       ])) as any;
       expect(joinerShipPosition.row).to.equal(49);
       expect(joinerShipPosition.col).to.equal(99);
+    });
+  });
+
+  describe("Ship Movement", function () {
+    it("should allow valid ship movement within movement range", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets to start the game
+      await creatorLobbies.write.createFleet([1n, [1n]]);
+      await joinerLobbies.write.createFleet([1n, [6n]]);
+
+      // Get creator's ship attributes to check movement range
+      const creatorAttributes = await game.read.getShipAttributes([
+        1n,
+        1n,
+        true,
+      ]);
+      const movementRange = creatorAttributes.movement;
+
+      // Verify initial position
+      const initialPosition = (await game.read.getShipPosition([
+        1n,
+        1n,
+      ])) as any;
+      expect(initialPosition.row).to.equal(0);
+      expect(initialPosition.col).to.equal(0);
+
+      // Move ship within its movement range (e.g., 2 spaces to the right)
+      if (movementRange >= 2) {
+        await game.write.moveShip([1n, 1n, 0, 2], { account: creator.account });
+
+        // Verify new position
+        const newPosition = (await game.read.getShipPosition([1n, 1n])) as any;
+        expect(newPosition.row).to.equal(0);
+        expect(newPosition.col).to.equal(2);
+
+        // Verify grid is updated
+        expect((await game.read.getShipAtPosition([1n, 0, 0])) as any).to.equal(
+          0n
+        );
+        expect((await game.read.getShipAtPosition([1n, 0, 2])) as any).to.equal(
+          1n
+        );
+
+        // Verify turn switched to joiner
+        const gameData = (await game.read.getGame([1n, [1n], [6n]])) as any;
+        expect(gameData.currentTurn.toLowerCase()).to.equal(
+          joiner.account.address.toLowerCase()
+        );
+      }
+    });
+
+    it("should prevent movement beyond ship's movement range", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets to start the game
+      await creatorLobbies.write.createFleet([1n, [1n]]);
+      await joinerLobbies.write.createFleet([1n, [6n]]);
+
+      // Get creator's ship attributes
+      const creatorAttributes = await game.read.getShipAttributes([
+        1n,
+        1n,
+        true,
+      ]);
+      const movementRange = creatorAttributes.movement;
+
+      // Try to move beyond movement range
+      await expect(
+        game.write.moveShip([1n, 1n, 0, movementRange + 1], {
+          account: creator.account,
+        })
+      ).to.be.rejectedWith("MovementExceeded");
+    });
+
+    it("should prevent movement when it's not the player's turn", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets to start the game
+      await creatorLobbies.write.createFleet([1n, [1n]]);
+      await joinerLobbies.write.createFleet([1n, [6n]]);
+
+      // Try to move joiner's ship when it's creator's turn
+      await expect(
+        game.write.moveShip([1n, 6n, 49, 98], { account: joiner.account })
+      ).to.be.rejectedWith("NotYourTurn");
+    });
+
+    it("should prevent moving a ship that doesn't belong to the player", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets to start the game
+      await creatorLobbies.write.createFleet([1n, [1n]]);
+      await joinerLobbies.write.createFleet([1n, [6n]]);
+
+      // Try to move joiner's ship with creator's account
+      await expect(
+        game.write.moveShip([1n, 6n, 49, 98], { account: creator.account })
+      ).to.be.rejectedWith("ShipNotOwned");
+    });
+
+    it("should prevent moving a ship twice in the same round", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets to start the game
+      await creatorLobbies.write.createFleet([1n, [1n]]);
+      await joinerLobbies.write.createFleet([1n, [6n]]);
+
+      // Move ship once
+      await game.write.moveShip([1n, 1n, 0, 1], { account: creator.account });
+
+      // Try to move the same ship again (should fail because turn switched)
+      await expect(
+        game.write.moveShip([1n, 1n, 0, 2], { account: creator.account })
+      ).to.be.rejectedWith("NotYourTurn");
+    });
+
+    it("should switch turns correctly with equal fleet sizes", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets with multiple ships
+      await creatorLobbies.write.createFleet([1n, [1n, 2n]]);
+      await joinerLobbies.write.createFleet([1n, [6n, 7n]]);
+
+      // Check initial turn
+      let gameData = (await game.read.getGame([1n, [1n, 2n], [6n, 7n]])) as any;
+      expect(gameData.currentTurn.toLowerCase()).to.equal(
+        creator.account.address.toLowerCase()
+      );
+
+      // Creator moves first ship
+      await game.write.moveShip([1n, 1n, 0, 1], { account: creator.account });
+
+      // Verify turn switched to joiner
+      gameData = (await game.read.getGame([1n, [1n, 2n], [6n, 7n]])) as any;
+      expect(gameData.currentTurn.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
+      );
+
+      // Joiner moves first ship
+      await game.write.moveShip([1n, 6n, 49, 98], { account: joiner.account });
+
+      // Verify turn switched back to creator
+      gameData = (await game.read.getGame([1n, [1n, 2n], [6n, 7n]])) as any;
+      expect(gameData.currentTurn.toLowerCase()).to.equal(
+        creator.account.address.toLowerCase()
+      );
+
+      // Creator moves second ship
+      await game.write.moveShip([1n, 2n, 2, 1], { account: creator.account });
+
+      // Verify turn switched to joiner
+      gameData = (await game.read.getGame([1n, [1n, 2n], [6n, 7n]])) as any;
+      expect(gameData.currentTurn.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
+      );
+
+      // Joiner moves second ship (completing the round)
+      await game.write.moveShip([1n, 7n, 47, 98], { account: joiner.account });
+
+      // Verify turn is back to creator and round has incremented
+      gameData = (await game.read.getGame([1n, [1n, 2n], [6n, 7n]])) as any;
+      expect(gameData.currentTurn.toLowerCase()).to.equal(
+        creator.account.address.toLowerCase()
+      );
+
+      // Verify ships can move again in new round
+      await game.write.moveShip([1n, 1n, 0, 2], { account: creator.account });
+    });
+
+    it("should prevent moving to an occupied position", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets with multiple ships
+      await creatorLobbies.write.createFleet([1n, [1n, 2n]]);
+      await joinerLobbies.write.createFleet([1n, [6n, 7n]]);
+
+      // Try to move ship to position occupied by another ship
+      await expect(
+        game.write.moveShip([1n, 1n, 2, 0], { account: creator.account })
+      ).to.be.rejectedWith("PositionOccupied");
+    });
+
+    it("should prevent diagonal movement", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets to start the game
+      await creatorLobbies.write.createFleet([1n, [1n]]);
+      await joinerLobbies.write.createFleet([1n, [6n]]);
+
+      // Try diagonal movement (both row and column change)
+      await expect(
+        game.write.moveShip([1n, 1n, 1, 1], { account: creator.account })
+      ).to.be.rejectedWith("InvalidMove");
+    });
+
+    it("should handle different fleet sizes correctly", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets with different sizes: creator has 3 ships, joiner has 5 ships
+      await creatorLobbies.write.createFleet([1n, [1n, 2n, 3n]]);
+      await joinerLobbies.write.createFleet([1n, [6n, 7n, 8n, 9n, 10n]]);
+
+      // Round 1: Creator moves first ship
+      await game.write.moveShip([1n, 1n, 0, 1], { account: creator.account });
+
+      // Round 1: Joiner moves first ship
+      await game.write.moveShip([1n, 6n, 49, 98], { account: joiner.account });
+
+      // Round 1: Creator moves second ship
+      await game.write.moveShip([1n, 2n, 2, 1], { account: creator.account });
+
+      // Round 1: Joiner moves second ship
+      await game.write.moveShip([1n, 7n, 47, 98], { account: joiner.account });
+
+      // Round 1: Creator moves third ship
+      await game.write.moveShip([1n, 3n, 4, 1], { account: creator.account });
+
+      // Round 1: Joiner moves third ship
+      await game.write.moveShip([1n, 8n, 45, 98], { account: joiner.account });
+
+      // Round 1: Joiner moves fourth ship (creator has no more ships, so joiner continues)
+      await game.write.moveShip([1n, 9n, 43, 98], { account: joiner.account });
+
+      // Round 1: Joiner moves fifth ship (completing the round)
+      await game.write.moveShip([1n, 10n, 41, 98], { account: joiner.account });
+
+      // Verify turn is back to creator and round has incremented
+      let gameData = (await game.read.getGame([
+        1n,
+        [1n, 2n, 3n],
+        [6n, 7n, 8n, 9n, 10n],
+      ])) as any;
+      expect(gameData.currentTurn.toLowerCase()).to.equal(
+        creator.account.address.toLowerCase()
+      );
+
+      // Verify ships can move again in new round
+      await game.write.moveShip([1n, 1n, 0, 2], { account: creator.account });
+    });
+
+    it("should prevent destroyed ships from moving", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+        owner,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets to start the game
+      await creatorLobbies.write.createFleet([1n, [1n]]);
+      await joinerLobbies.write.createFleet([1n, [6n]]);
+
+      // Destroy creator's ship
+      await (game.write as any).debugDestroyShip([1n, 1n], {
+        account: owner.account,
+      });
+
+      // Try to move the destroyed ship
+      await expect(
+        game.write.moveShip([1n, 1n, 0, 1], { account: creator.account })
+      ).to.be.rejectedWith("ShipDestroyed");
+    });
+
+    it("should exclude destroyed ships from round completion", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+        owner,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets with multiple ships
+      await creatorLobbies.write.createFleet([1n, [1n, 2n]]);
+      await joinerLobbies.write.createFleet([1n, [6n, 7n]]);
+
+      // Destroy one of creator's ships
+      await (game.write as any).debugDestroyShip([1n, 1n], {
+        account: owner.account,
+      });
+
+      // Move the remaining creator ship
+      await game.write.moveShip([1n, 2n, 2, 1], { account: creator.account });
+
+      // Move both joiner ships
+      await game.write.moveShip([1n, 6n, 49, 98], { account: joiner.account });
+      await game.write.moveShip([1n, 7n, 47, 98], { account: joiner.account });
+
+      // Verify turn is back to creator and round has incremented
+      const gameData = (await game.read.getGame([
+        1n,
+        [1n, 2n],
+        [6n, 7n],
+      ])) as any;
+      expect(gameData.currentTurn.toLowerCase()).to.equal(
+        creator.account.address.toLowerCase()
+      );
+
+      // Verify ships can move again in new round
+      await game.write.moveShip([1n, 2n, 2, 2], { account: creator.account });
+    });
+
+    it("should remove destroyed ships from grid positions", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+        owner,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets to start the game
+      await creatorLobbies.write.createFleet([1n, [1n]]);
+      await joinerLobbies.write.createFleet([1n, [6n]]);
+
+      // Verify ship is initially on the grid
+      expect((await game.read.getShipAtPosition([1n, 0, 0])) as any).to.equal(
+        1n
+      );
+
+      // Destroy the ship
+      await (game.write as any).debugDestroyShip([1n, 1n], {
+        account: owner.account,
+      });
+
+      // Verify ship is removed from grid
+      expect((await game.read.getShipAtPosition([1n, 0, 0])) as any).to.equal(
+        0n
+      );
+    });
+
+    it("should exclude destroyed ships from getAllShipPositions", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+        owner,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets with multiple ships
+      await creatorLobbies.write.createFleet([1n, [1n, 2n]]);
+      await joinerLobbies.write.createFleet([1n, [6n, 7n]]);
+
+      // Get initial ship positions
+      const initialPositions = (await game.read.getAllShipPositions([
+        1n,
+      ])) as any;
+      expect(initialPositions.length).to.equal(4);
+
+      // Destroy one ship
+      await (game.write as any).debugDestroyShip([1n, 1n], {
+        account: owner.account,
+      });
+
+      // Get updated ship positions
+      const updatedPositions = (await game.read.getAllShipPositions([
+        1n,
+      ])) as any;
+      expect(updatedPositions.length).to.equal(3);
+
+      // Verify the destroyed ship is not in the positions
+      const shipIds = updatedPositions.map((pos: any) => pos.shipId);
+      expect(shipIds).to.not.include(1n);
+      expect(shipIds).to.include(2n);
+      expect(shipIds).to.include(6n);
+      expect(shipIds).to.include(7n);
+    });
+
+    it("should prevent destroying already destroyed ships", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+        owner,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets to start the game
+      await creatorLobbies.write.createFleet([1n, [1n]]);
+      await joinerLobbies.write.createFleet([1n, [6n]]);
+
+      // Destroy the ship once
+      await (game.write as any).debugDestroyShip([1n, 1n], {
+        account: owner.account,
+      });
+
+      // Try to destroy the same ship again
+      await expect(
+        (game.write as any).debugDestroyShip([1n, 1n], {
+          account: owner.account,
+        })
+      ).to.be.rejectedWith("ShipDestroyed");
+    });
+
+    it("should keep turn with player who has more ships", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets: creator has 2 ships, joiner has 3 ships
+      await creatorLobbies.write.createFleet([1n, [1n, 2n]]);
+      await joinerLobbies.write.createFleet([1n, [6n, 7n, 8n]]);
+
+      // Round 1: Creator moves first ship
+      await game.write.moveShip([1n, 1n, 0, 1], { account: creator.account });
+
+      // Verify turn switched to joiner
+      let gameData = (await game.read.getGame([
+        1n,
+        [1n, 2n],
+        [6n, 7n, 8n],
+      ])) as any;
+      expect(gameData.currentTurn.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
+      );
+
+      // Round 1: Joiner moves first ship
+      await game.write.moveShip([1n, 6n, 49, 98], { account: joiner.account });
+
+      // Verify turn switched back to creator
+      gameData = (await game.read.getGame([1n, [1n, 2n], [6n, 7n, 8n]])) as any;
+      expect(gameData.currentTurn.toLowerCase()).to.equal(
+        creator.account.address.toLowerCase()
+      );
+
+      // Round 1: Creator moves second ship (last ship)
+      await game.write.moveShip([1n, 2n, 2, 1], { account: creator.account });
+
+      // Verify turn stays with joiner (creator has no more ships)
+      gameData = (await game.read.getGame([1n, [1n, 2n], [6n, 7n, 8n]])) as any;
+      expect(gameData.currentTurn.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
+      );
+
+      // Round 1: Joiner moves second ship
+      await game.write.moveShip([1n, 7n, 47, 98], { account: joiner.account });
+
+      // Verify turn stays with joiner (creator still has no more ships)
+      gameData = (await game.read.getGame([1n, [1n, 2n], [6n, 7n, 8n]])) as any;
+      expect(gameData.currentTurn.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
+      );
+
+      // Round 1: Joiner moves third ship (completing the round)
+      await game.write.moveShip([1n, 8n, 45, 98], { account: joiner.account });
+
+      // Verify turn is back to creator and round has incremented
+      gameData = (await game.read.getGame([1n, [1n, 2n], [6n, 7n, 8n]])) as any;
+      expect(gameData.currentTurn.toLowerCase()).to.equal(
+        creator.account.address.toLowerCase()
+      );
+
+      // Verify ships can move again in new round
+      await game.write.moveShip([1n, 1n, 0, 2], { account: creator.account });
+    });
+
+    it("should handle turn switching correctly when ships are destroyed", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+        owner,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets: both have 3 ships initially
+      await creatorLobbies.write.createFleet([1n, [1n, 2n, 3n]]);
+      await joinerLobbies.write.createFleet([1n, [6n, 7n, 8n]]);
+
+      // Round 1: Creator moves first ship
+      await game.write.moveShip([1n, 1n, 0, 1], { account: creator.account });
+
+      // Round 1: Joiner moves first ship
+      await game.write.moveShip([1n, 6n, 49, 98], { account: joiner.account });
+
+      // Round 1: Creator moves second ship
+      await game.write.moveShip([1n, 2n, 2, 1], { account: creator.account });
+
+      // Destroy creator's last unmoved ship (ship 3)
+      await (game.write as any).debugDestroyShip([1n, 3n], {
+        account: owner.account,
+      });
+
+      // Round 1: Joiner moves second ship
+      await game.write.moveShip([1n, 7n, 47, 98], { account: joiner.account });
+
+      // After this move, creator has no unmoved ships, so the turn should remain with the joiner
+      let gameData = (await game.read.getGame([
+        1n,
+        [1n, 2n, 3n],
+        [6n, 7n, 8n],
+      ])) as any;
+      expect(gameData.currentTurn.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
+      );
+
+      // Round 1: Joiner moves third ship (completing the round)
+      await game.write.moveShip([1n, 8n, 45, 98], { account: joiner.account });
+
+      // Now, round should increment and turn should go back to creator
+      gameData = (await game.read.getGame([
+        1n,
+        [1n, 2n, 3n],
+        [6n, 7n, 8n],
+      ])) as any;
+      expect(gameData.currentTurn.toLowerCase()).to.equal(
+        creator.account.address.toLowerCase()
+      );
+
+      // Verify ships can move again in new round
+      await game.write.moveShip([1n, 1n, 0, 2], { account: creator.account });
     });
   });
 });

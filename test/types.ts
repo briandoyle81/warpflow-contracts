@@ -255,3 +255,8 @@ export interface GameDataView {
   gridWidth: number;
   gridHeight: number;
 }
+
+export enum ActionType {
+  Pass,
+  Shoot,
+}

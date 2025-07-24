@@ -43,6 +43,7 @@ contract Game is Ownable, ReentrancyGuard {
     error MovementExceeded();
     error InvalidMove();
     error ShipDestroyed();
+    error ActionRequired();
 
     constructor(address _ships) Ownable(msg.sender) {
         ships = Ships(_ships);
@@ -144,13 +145,13 @@ contract Game is Ownable, ReentrancyGuard {
         // Get creator fleet and calculate attributes
         Fleet memory creatorFleet = fleets.getFleet(_creatorFleetId);
         for (uint i = 0; i < creatorFleet.shipIds.length; i++) {
-            calculateShipAttributes(_gameId, creatorFleet.shipIds[i], true);
+            calculateShipAttributes(_gameId, creatorFleet.shipIds[i]);
         }
 
         // Get joiner fleet and calculate attributes
         Fleet memory joinerFleet = fleets.getFleet(_joinerFleetId);
         for (uint i = 0; i < joinerFleet.shipIds.length; i++) {
-            calculateShipAttributes(_gameId, joinerFleet.shipIds[i], false);
+            calculateShipAttributes(_gameId, joinerFleet.shipIds[i]);
         }
     }
 
@@ -206,18 +207,12 @@ contract Game is Ownable, ReentrancyGuard {
     }
 
     // Calculate and store attributes for a ship in a game
-    function calculateShipAttributes(
-        uint _gameId,
-        uint _shipId,
-        bool _isCreator
-    ) public {
+    function calculateShipAttributes(uint _gameId, uint _shipId) public {
         if (games[_gameId].gameId == 0) revert GameNotFound();
         Ship memory ship = ships.getShip(_shipId);
         if (ship.id == 0) revert ShipNotFound();
         GameData storage game = games[_gameId];
-        Attributes storage attributes = _isCreator
-            ? game.creatorShipAttributes[_shipId]
-            : game.joinerShipAttributes[_shipId];
+        Attributes storage attributes = game.shipAttributes[_shipId];
         // Calculate base attributes from ship traits and equipment
         attributes.version = currentAttributesVersion;
         attributes.range = attributesVersions[currentAttributesVersion]
@@ -228,6 +223,7 @@ contract Game is Ownable, ReentrancyGuard {
             .damage;
         attributes.hullPoints = _calculateHullPoints(ship);
         attributes.movement = _calculateMovement(ship);
+        attributes.damageReduction = _calculateDamageReduction(ship);
         // Initialize empty status effects array
         attributes.statusEffects = new uint8[](0);
     }
@@ -235,39 +231,33 @@ contract Game is Ownable, ReentrancyGuard {
     // Calculate attributes for all ships in a fleet
     function calculateFleetAttributes(
         uint _gameId,
-        uint[] memory _shipIds,
-        bool _isCreator
+        uint[] memory _shipIds
     ) public {
         for (uint i = 0; i < _shipIds.length; i++) {
-            calculateShipAttributes(_gameId, _shipIds[i], _isCreator);
+            calculateShipAttributes(_gameId, _shipIds[i]);
         }
     }
 
     // Get ship attributes for a specific game
     function getShipAttributes(
         uint _gameId,
-        uint _shipId,
-        bool _isCreator
+        uint _shipId
     ) public view returns (Attributes memory) {
         if (games[_gameId].gameId == 0) revert GameNotFound();
         Ship memory ship = ships.getShip(_shipId);
         if (ship.id == 0) revert ShipNotFound();
         GameData storage game = games[_gameId];
-        return
-            _isCreator
-                ? game.creatorShipAttributes[_shipId]
-                : game.joinerShipAttributes[_shipId];
+        return game.shipAttributes[_shipId];
     }
 
     // Get all ship attributes for a player in a game
     function getPlayerShipAttributes(
         uint _gameId,
-        uint[] memory _shipIds,
-        bool _isCreator
+        uint[] memory _shipIds
     ) public view returns (Attributes[] memory) {
         Attributes[] memory attributes = new Attributes[](_shipIds.length);
         for (uint i = 0; i < _shipIds.length; i++) {
-            attributes[i] = getShipAttributes(_gameId, _shipIds[i], _isCreator);
+            attributes[i] = getShipAttributes(_gameId, _shipIds[i]);
         }
         return attributes;
     }
@@ -362,12 +352,15 @@ contract Game is Ownable, ReentrancyGuard {
         return positions;
     }
 
-    // Move a ship to a new position
+    // Move a ship to a new position and perform an action (pass or shoot)
+    // actionType: ActionType.Pass = 0, ActionType.Shoot = 1
     function moveShip(
         uint _gameId,
         uint _shipId,
         uint8 _newRow,
-        uint8 _newCol
+        uint8 _newCol,
+        ActionType actionType,
+        uint targetShipId
     ) external {
         if (games[_gameId].gameId == 0) revert GameNotFound();
         GameData storage game = games[_gameId];
@@ -384,9 +377,10 @@ contract Game is Ownable, ReentrancyGuard {
         if (ship.shipData.timestampDestroyed != 0) revert ShipDestroyed();
 
         // Check if ship is in the game (either creator or joiner fleet)
-        bool isCreatorShip = _isShipInFleet(_gameId, _shipId, true);
-        bool isJoinerShip = _isShipInFleet(_gameId, _shipId, false);
-        if (!isCreatorShip && !isJoinerShip) revert ShipNotFound();
+        if (
+            !_isShipInFleet(_gameId, _shipId, true) &&
+            !_isShipInFleet(_gameId, _shipId, false)
+        ) revert ShipNotFound();
 
         // Check if ship has already moved this round
         if (game.shipMovedThisRound[game.currentRound][_shipId])
@@ -403,9 +397,7 @@ contract Game is Ownable, ReentrancyGuard {
         );
 
         // Get ship's movement attribute
-        Attributes memory attributes = isCreatorShip
-            ? game.creatorShipAttributes[_shipId]
-            : game.joinerShipAttributes[_shipId];
+        Attributes storage attributes = game.shipAttributes[_shipId];
 
         // Check if movement cost exceeds ship's movement
         if (movementCost > attributes.movement) revert MovementExceeded();
@@ -421,6 +413,17 @@ contract Game is Ownable, ReentrancyGuard {
         // Mark ship as moved this round
         game.shipMovedThisRound[game.currentRound][_shipId] = true;
 
+        // Perform the action
+        _performAction(
+            game,
+            _gameId,
+            _shipId,
+            _newRow,
+            _newCol,
+            actionType,
+            targetShipId
+        );
+
         // Check if both players have moved all their ships (round complete)
         if (_checkRoundComplete(_gameId)) {
             game.currentRound++;
@@ -432,6 +435,65 @@ contract Game is Ownable, ReentrancyGuard {
             // Switch turns only if the other player has unmoved ships
             _switchTurnIfOtherPlayerHasShips(_gameId);
         }
+    }
+
+    // Internal function to perform an action (pass or shoot)
+    function _performAction(
+        GameData storage game,
+        uint _gameId,
+        uint _shipId,
+        uint8 _newRow,
+        uint8 _newCol,
+        ActionType actionType,
+        uint targetShipId
+    ) internal {
+        if (actionType == ActionType.Pass) {
+            // Pass: do nothing
+        } else if (actionType == ActionType.Shoot) {
+            // Shoot
+            // Validate target
+            Ship memory targetShip = ships.getShip(targetShipId);
+            if (targetShip.id == 0) revert ShipNotFound();
+            if (targetShip.shipData.timestampDestroyed != 0)
+                revert ShipDestroyed();
+            // Must be on the other team (by owner address)
+            Ship memory shooterShip = ships.getShip(_shipId);
+            if (targetShip.owner == shooterShip.owner) revert InvalidMove();
+            // Must have > 0 hull points
+            Attributes storage targetAttributes = game.shipAttributes[
+                targetShipId
+            ];
+            if (targetAttributes.hullPoints == 0) revert InvalidMove();
+            // Must be in range (manhattan)
+            Position memory shooterPos = Position(_newRow, _newCol);
+            Position memory targetPos = game.shipPositions[targetShipId];
+            uint8 manhattan = _manhattanDistance(shooterPos, targetPos);
+            Attributes storage shooterAttributes = game.shipAttributes[_shipId];
+            if (manhattan > shooterAttributes.range) revert InvalidMove();
+            // Calculate damage
+            uint8 baseDamage = shooterAttributes.gunDamage;
+            uint8 reduction = targetAttributes.damageReduction;
+            uint8 reducedDamage = baseDamage - ((baseDamage * reduction) / 100);
+            // Truncate division result
+            // Reduce hull points
+            if (reducedDamage >= targetAttributes.hullPoints) {
+                targetAttributes.hullPoints = 0;
+            } else {
+                targetAttributes.hullPoints -= reducedDamage;
+            }
+        } else {
+            revert InvalidMove();
+        }
+    }
+
+    // Internal pure function to calculate manhattan distance between two positions
+    function _manhattanDistance(
+        Position memory a,
+        Position memory b
+    ) internal pure returns (uint8) {
+        uint8 rowDiff = a.row > b.row ? a.row - b.row : b.row - a.row;
+        uint8 colDiff = a.col > b.col ? a.col - b.col : b.col - a.col;
+        return rowDiff + colDiff;
     }
 
     // Check if both players have moved all their ships (round complete)
@@ -641,6 +703,25 @@ contract Game is Ownable, ReentrancyGuard {
         return baseMovement > 0 ? uint8(baseMovement) : 0;
     }
 
+    function _calculateDamageReduction(
+        Ship memory _ship
+    ) internal view returns (uint8) {
+        AttributesVersion storage version = attributesVersions[
+            currentAttributesVersion
+        ];
+
+        uint8 damageReduction = 0;
+
+        damageReduction += version
+            .armors[uint8(_ship.equipment.armor)]
+            .damageReduction;
+        damageReduction += version
+            .shields[uint8(_ship.equipment.shields)]
+            .damageReduction;
+
+        return damageReduction;
+    }
+
     // Attributes version management
     // TODO: CRITICAL Either enable viaIR or do this the hard way
     // function setAttributesVersion(
@@ -666,7 +747,7 @@ contract Game is Ownable, ReentrancyGuard {
             _creatorShipIds.length
         );
         for (uint i = 0; i < _creatorShipIds.length; i++) {
-            creatorAttrs[i] = game.creatorShipAttributes[_creatorShipIds[i]];
+            creatorAttrs[i] = game.shipAttributes[_creatorShipIds[i]];
         }
 
         // Get joiner ship attributes
@@ -674,7 +755,7 @@ contract Game is Ownable, ReentrancyGuard {
             _joinerShipIds.length
         );
         for (uint i = 0; i < _joinerShipIds.length; i++) {
-            joinerAttrs[i] = game.joinerShipAttributes[_joinerShipIds[i]];
+            joinerAttrs[i] = game.shipAttributes[_joinerShipIds[i]];
         }
 
         // Get all ship positions

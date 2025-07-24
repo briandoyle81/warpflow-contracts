@@ -64,6 +64,8 @@ struct Attributes {
     uint8 gunDamage;
     uint8 hullPoints;
     uint8 movement;
+    uint8 damageReduction;
+    uint8 reactorCriticalTimer;
     uint8[] statusEffects;
 }
 
@@ -90,8 +92,7 @@ struct GameData {
     bool creatorGoesFirst;
     uint startedAt;
     address currentTurn;
-    mapping(uint => Attributes) creatorShipAttributes; // shipId => attributes
-    mapping(uint => Attributes) joinerShipAttributes; // shipId => attributes
+    mapping(uint => Attributes) shipAttributes; // shipId => attributes
     // Grid state - grid[row][column] = shipId (0 if empty)
     mapping(uint8 row => mapping(uint8 column => uint shipId)) grid;
     mapping(uint => Position) shipPositions; // shipId => position
@@ -100,6 +101,7 @@ struct GameData {
     // Movement tracking
     uint currentRound;
     mapping(uint => mapping(uint => bool)) shipMovedThisRound; // round => shipId => hasMoved
+    // Action tracking
 }
 
 struct GameDataView {
@@ -228,4 +230,9 @@ struct PlayerLobbyState {
     bool hasActiveLobby;
     uint kickCount;
     uint lastKickTime;
+}
+
+enum ActionType {
+    Pass,
+    Shoot
 }

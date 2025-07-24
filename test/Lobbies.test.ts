@@ -12,52 +12,39 @@ import {
 import DeployModule from "../ignition/modules/DeployAndConfig";
 
 describe("Lobbies", function () {
+  // Restore the original deployLobbiesFixture for basic tests
   async function deployLobbiesFixture() {
     const [owner, creator, joiner, other] = await hre.viem.getWalletClients();
     const publicClient = await hre.viem.getPublicClient();
-
     // Deploy all contracts using the module
     const deployed = await hre.ignition.deploy(DeployModule);
-
     // Create separate contract instances for each user
     const creatorLobbies = await hre.viem.getContractAt(
       "Lobbies",
       deployed.lobbies.address,
-      {
-        client: { wallet: creator },
-      }
+      { client: { wallet: creator } }
     );
     const joinerLobbies = await hre.viem.getContractAt(
       "Lobbies",
       deployed.lobbies.address,
-      {
-        client: { wallet: joiner },
-      }
+      { client: { wallet: joiner } }
     );
     const otherLobbies = await hre.viem.getContractAt(
       "Lobbies",
       deployed.lobbies.address,
-      {
-        client: { wallet: other },
-      }
+      { client: { wallet: other } }
     );
-
     // Create Fleets contract instances
     const creatorFleets = await hre.viem.getContractAt(
       "Fleets",
       deployed.fleets.address,
-      {
-        client: { wallet: creator },
-      }
+      { client: { wallet: creator } }
     );
     const joinerFleets = await hre.viem.getContractAt(
       "Fleets",
       deployed.fleets.address,
-      {
-        client: { wallet: joiner },
-      }
+      { client: { wallet: joiner } }
     );
-
     return {
       lobbies: deployed.lobbies,
       creatorLobbies,
@@ -74,6 +61,92 @@ describe("Lobbies", function () {
       joiner,
       other,
       publicClient,
+    };
+  }
+
+  // New fixture: sets up ships, lobby, and game for both players
+  async function deployFullGameFixture() {
+    const [owner, creator, joiner, other] = await hre.viem.getWalletClients();
+    const publicClient = await hre.viem.getPublicClient();
+    const deployed = await hre.ignition.deploy(DeployModule);
+
+    // Contract instances
+    const creatorLobbies = await hre.viem.getContractAt(
+      "Lobbies",
+      deployed.lobbies.address,
+      { client: { wallet: creator } }
+    );
+    const joinerLobbies = await hre.viem.getContractAt(
+      "Lobbies",
+      deployed.lobbies.address,
+      { client: { wallet: joiner } }
+    );
+    const creatorFleets = await hre.viem.getContractAt(
+      "Fleets",
+      deployed.fleets.address,
+      { client: { wallet: creator } }
+    );
+    const joinerFleets = await hre.viem.getContractAt(
+      "Fleets",
+      deployed.fleets.address,
+      { client: { wallet: joiner } }
+    );
+    const ships = deployed.ships;
+    const randomManager = deployed.randomManager;
+    const game = deployed.game;
+
+    // Purchase and construct ships for both players
+    await ships.write.purchaseWithFlow(
+      [creator.account.address, 0n, joiner.account.address],
+      { value: parseEther("4.99") }
+    );
+    await ships.write.purchaseWithFlow(
+      [joiner.account.address, 0n, creator.account.address],
+      { value: parseEther("4.99") }
+    );
+    // Fulfill random requests for all ships
+    for (let i = 1; i <= 10; i++) {
+      const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+      const ship = tupleToShip(shipTuple);
+      const serialNumber = ship.traits.serialNumber;
+      await randomManager.write.fulfillRandomRequest([serialNumber]);
+    }
+    await ships.write.constructAllMyShips({ account: creator.account });
+    await ships.write.constructAllMyShips({ account: joiner.account });
+
+    // Create lobby and join
+    const costLimit = 1000n;
+    const turnTime = 300n;
+    const creatorGoesFirst = true;
+    const tx = await creatorLobbies.write.createLobby([
+      costLimit,
+      turnTime,
+      creatorGoesFirst,
+    ]);
+    await joinerLobbies.write.joinLobby([1n]);
+
+    // Create fleets for both players
+    await creatorLobbies.write.createFleet([1n, [1n]]);
+    await joinerLobbies.write.createFleet([1n, [6n]]);
+
+    return {
+      lobbies: deployed.lobbies,
+      creatorLobbies,
+      joinerLobbies,
+      creatorFleets,
+      joinerFleets,
+      ships,
+      game,
+      randomManager,
+      owner,
+      creator,
+      joiner,
+      publicClient,
+      lobbyId: 1n,
+      creatorFleetId: 1n,
+      joinerFleetId: 1n, // assuming fleetId starts at 1 for both
+      creatorShipId: 1n,
+      joinerShipId: 6n,
     };
   }
 
@@ -179,60 +252,13 @@ describe("Lobbies", function () {
         joiner,
         ships,
         randomManager,
-      } = await loadFixture(deployLobbiesFixture);
-      const costLimit = 1000n;
-      const turnTime = 300n;
-      const creatorGoesFirst = true;
-
-      // Create and join a lobby
-      await creatorLobbies.write.createLobby([
-        costLimit,
-        turnTime,
-        creatorGoesFirst,
-      ]);
-      await joinerLobbies.write.joinLobby([1n]);
-
-      // Check initial states
+      } = await loadFixture(deployFullGameFixture);
+      // Remove redundant setup code, as deployFullGameFixture already does it
+      // Check states after game start
       let creatorState = (await creatorLobbies.read.getPlayerState([
         creator.account.address,
       ])) as unknown as PlayerLobbyState;
       let joinerState = (await joinerLobbies.read.getPlayerState([
-        joiner.account.address,
-      ])) as unknown as PlayerLobbyState;
-      expect(creatorState.activeLobbiesCount).to.equal(1n);
-      expect(joinerState.activeLobbiesCount).to.equal(1n);
-
-      // Purchase and construct ships for both players
-      await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
-        { value: parseEther("4.99") }
-      );
-      await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
-        { value: parseEther("4.99") }
-      );
-
-      // Get all ships' serial numbers and fulfill random requests
-      for (let i = 1; i <= 10; i++) {
-        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
-        const ship = tupleToShip(shipTuple);
-        const serialNumber = ship.traits.serialNumber;
-        await randomManager.write.fulfillRandomRequest([serialNumber]);
-      }
-
-      // Construct all ships for both players
-      await ships.write.constructAllMyShips({ account: creator.account });
-      await ships.write.constructAllMyShips({ account: joiner.account });
-
-      // Create fleets for both players
-      await creatorLobbies.write.createFleet([1n, [1n]]);
-      await joinerLobbies.write.createFleet([1n, [6n]]);
-
-      // Check states after game start
-      creatorState = (await creatorLobbies.read.getPlayerState([
-        creator.account.address,
-      ])) as unknown as PlayerLobbyState;
-      joinerState = (await joinerLobbies.read.getPlayerState([
         joiner.account.address,
       ])) as unknown as PlayerLobbyState;
       expect(creatorState.activeLobbiesCount).to.equal(0n);

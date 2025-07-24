@@ -1897,4 +1897,144 @@ describe("Game", function () {
       });
     });
   });
+
+  describe("Shooting", function () {
+    it("should allow a ship to shoot another ship when in range", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+      } = await loadFixture(deployGameFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 2; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets with one ship each
+      await creatorLobbies.write.createFleet([1n, [1n]]);
+      await joinerLobbies.write.createFleet([1n, [6n]]);
+
+      // Get initial positions and attributes
+      let creatorPos = await game.read.getShipPosition([1n, 1n]);
+      let joinerPos = await game.read.getShipPosition([1n, 6n]);
+      let creatorAttrs = await game.read.getShipAttributes([1n, 1n]);
+      let joinerAttrs = await game.read.getShipAttributes([1n, 6n]);
+      const range = creatorAttrs.range;
+      const creatorMovement = creatorAttrs.movement;
+      const joinerMovement = joinerAttrs.movement;
+
+      // Move ships toward each other until in range
+      let turn = "creator";
+      let round = 0;
+      while (true) {
+        // Re-fetch positions each loop
+        creatorPos = await game.read.getShipPosition([1n, 1n]);
+        joinerPos = await game.read.getShipPosition([1n, 6n]);
+        // Manhattan distance
+        const manhattan =
+          Math.abs(creatorPos.row - joinerPos.row) +
+          Math.abs(creatorPos.col - joinerPos.col);
+        if (manhattan <= range) break;
+        if (turn === "creator") {
+          // Move creator's ship down or right
+          let newRow = creatorPos.row;
+          let newCol = creatorPos.col;
+          if (creatorPos.row < joinerPos.row) {
+            newRow = Math.min(creatorPos.row + creatorMovement, joinerPos.row);
+          } else if (creatorPos.row > joinerPos.row) {
+            newRow = Math.max(creatorPos.row - creatorMovement, joinerPos.row);
+          } else if (creatorPos.col < joinerPos.col) {
+            newCol = Math.min(creatorPos.col + creatorMovement, joinerPos.col);
+          } else if (creatorPos.col > joinerPos.col) {
+            newCol = Math.max(creatorPos.col - creatorMovement, joinerPos.col);
+          }
+          await game.write.moveShip(
+            [1n, 1n, newRow, newCol, ActionType.Pass, 0n],
+            {
+              account: creator.account,
+            }
+          );
+          turn = "joiner";
+        } else {
+          // Move joiner's ship up or left
+          let newRow = joinerPos.row;
+          let newCol = joinerPos.col;
+          if (joinerPos.row > creatorPos.row) {
+            newRow = Math.max(joinerPos.row - joinerMovement, creatorPos.row);
+          } else if (joinerPos.row < creatorPos.row) {
+            newRow = Math.min(joinerPos.row + joinerMovement, creatorPos.row);
+          } else if (joinerPos.col > creatorPos.col) {
+            newCol = Math.max(joinerPos.col - joinerMovement, creatorPos.col);
+          } else if (joinerPos.col < creatorPos.col) {
+            newCol = Math.min(joinerPos.col + joinerMovement, creatorPos.col);
+          }
+          await game.write.moveShip(
+            [1n, 6n, newRow, newCol, ActionType.Pass, 0n],
+            {
+              account: joiner.account,
+            }
+          );
+          turn = "creator";
+        }
+        round++;
+        if (round > 100)
+          throw new Error("Failed to get in range after 100 rounds");
+      }
+
+      // Now in range, ensure it's the creator's turn before shooting
+      let gameData = await game.read.getGame([1n, [1n], [6n]]);
+      if (
+        gameData.currentTurn.toLowerCase() !==
+        creator.account.address.toLowerCase()
+      ) {
+        // Let joiner pass their turn (move in place)
+        joinerPos = await game.read.getShipPosition([1n, 6n]);
+        await game.write.moveShip(
+          [1n, 6n, joinerPos.row, joinerPos.col, ActionType.Pass, 0n],
+          { account: joiner.account }
+        );
+      }
+      // Get joiner's hull before
+      joinerAttrs = await game.read.getShipAttributes([1n, 6n]);
+      const hullBefore = joinerAttrs.hullPoints;
+      // Move creator's ship (no movement, just shoot)
+      creatorPos = await game.read.getShipPosition([1n, 1n]);
+      await game.write.moveShip(
+        [1n, 1n, creatorPos.row, creatorPos.col, ActionType.Shoot, 6n],
+        {
+          account: creator.account,
+        }
+      );
+      // Get joiner's hull after
+      joinerAttrs = await game.read.getShipAttributes([1n, 6n]);
+      const hullAfter = joinerAttrs.hullPoints;
+      expect(hullAfter).to.be.lessThan(hullBefore);
+    });
+  });
 });

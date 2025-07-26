@@ -258,4 +258,5 @@ export interface GameDataView {
 export enum ActionType {
   Pass,
   Shoot,
+  Retreat,
 }

@@ -8,6 +8,7 @@ import "./Ships.sol";
 contract Fleets is Ownable {
     Ships public ships;
     address public lobbiesAddress;
+    address public gameAddress;
 
     mapping(uint => Fleet) public fleets;
     uint public fleetCount;
@@ -25,6 +26,7 @@ contract Fleets is Ownable {
     error ShipAlreadyInFleet();
     error ShipCostVersionMismatch();
     error InvalidFleetCost();
+    error ShipNotFound();
 
     constructor(address _ships) Ownable(msg.sender) {
         ships = Ships(_ships);
@@ -32,6 +34,10 @@ contract Fleets is Ownable {
 
     function setLobbiesAddress(address _lobbiesAddress) public onlyOwner {
         lobbiesAddress = _lobbiesAddress;
+    }
+
+    function setGameAddress(address _gameAddress) public onlyOwner {
+        gameAddress = _gameAddress;
     }
 
     function createFleet(
@@ -100,6 +106,37 @@ contract Fleets is Ownable {
         delete fleet.shipIds;
 
         emit FleetCleared(_fleetId);
+    }
+
+    function removeShipFromFleet(uint _fleetId, uint _shipId) external {
+        if (msg.sender != lobbiesAddress && msg.sender != gameAddress)
+            revert NotLobbiesContract();
+
+        Fleet storage fleet = fleets[_fleetId];
+        if (fleet.id == 0) revert FleetNotFound();
+
+        // Find and remove the ship from the fleet
+        for (uint i = 0; i < fleet.shipIds.length; i++) {
+            if (fleet.shipIds[i] == _shipId) {
+                // Remove ship from array by shifting elements
+                for (uint j = i; j < fleet.shipIds.length - 1; j++) {
+                    fleet.shipIds[j] = fleet.shipIds[j + 1];
+                }
+                fleet.shipIds.pop();
+
+                // Release ship from fleet
+                ships.setInFleet(_shipId, false);
+
+                // Update total cost
+                Ship memory ship = ships.getShip(_shipId);
+                fleet.totalCost -= ship.shipData.cost;
+
+                return;
+            }
+        }
+
+        // Ship not found in fleet
+        revert ShipNotFound();
     }
 
     // View functions

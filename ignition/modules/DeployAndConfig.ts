@@ -129,6 +129,9 @@ const DeployModule = buildModule("DeployModule", (m) => {
   // Set Lobbies address in Fleets contract
   m.call(fleets, "setLobbiesAddress", [lobbies]);
 
+  // Set Game address in Fleets contract
+  m.call(fleets, "setGameAddress", [game]);
+
   // Allow ShipPurchaser to create ships
   m.call(ships, "setIsAllowedToCreateShips", [shipPurchaser, true]);
 

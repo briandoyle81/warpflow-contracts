@@ -515,6 +515,9 @@ contract Game is Ownable, ReentrancyGuard {
             } else {
                 targetAttributes.hullPoints -= reducedDamage;
             }
+        } else if (actionType == ActionType.Retreat) {
+            // Retreat: remove ship from the game
+            _retreatShip(_gameId, _shipId);
         } else {
             revert InvalidMove();
         }
@@ -608,6 +611,42 @@ contract Game is Ownable, ReentrancyGuard {
             }
             // Creator has no unmoved ships, keep turn with joiner
         }
+    }
+
+    // Internal function to retreat a ship
+    function _retreatShip(uint _gameId, uint _shipId) internal {
+        if (games[_gameId].gameId == 0) revert GameNotFound();
+        GameData storage game = games[_gameId];
+
+        // Check if ship exists and is in the game
+        Ship memory ship = ships.getShip(_shipId);
+        if (ship.id == 0) revert ShipNotFound();
+
+        // Check if ship is in the game (either creator or joiner fleet)
+        bool isCreatorShip = _isShipInFleet(_gameId, _shipId, true);
+        bool isJoinerShip = _isShipInFleet(_gameId, _shipId, false);
+        if (!isCreatorShip && !isJoinerShip) revert ShipNotFound();
+
+        // Check if ship is already destroyed
+        if (ship.shipData.timestampDestroyed != 0) revert ShipDestroyed();
+
+        // Remove ship from grid
+        Position memory shipPosition = game.shipPositions[_shipId];
+        game.grid[shipPosition.row][shipPosition.col] = 0;
+
+        // Mark ship as moved this round so it doesn't block round completion
+        game.shipMovedThisRound[game.currentRound][_shipId] = true;
+
+        // Remove ship from fleet
+        if (isCreatorShip) {
+            fleets.removeShipFromFleet(game.creatorFleetId, _shipId);
+        } else {
+            fleets.removeShipFromFleet(game.joinerFleetId, _shipId);
+        }
+
+        // Clean up ship data in the game contract
+        delete game.shipAttributes[_shipId];
+        delete game.shipPositions[_shipId];
     }
 
     // Internal function to destroy a ship

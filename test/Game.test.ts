@@ -2544,5 +2544,99 @@ describe("Game", function () {
         { account: joiner.account }
       );
     });
+
+    it("should allow ships to retreat and remove them from the game", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+        owner,
+      } = await loadFixture(deployGameFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets with two ships each
+      await creatorLobbies.write.createFleet([1n, [1n, 2n]]);
+      await joinerLobbies.write.createFleet([1n, [6n, 7n]]);
+
+      // Get initial ship positions
+      const creatorPos1 = await game.read.getShipPosition([1n, 1n]);
+      const joinerPos1 = await game.read.getShipPosition([1n, 6n]);
+
+      // Have creator's ship 1 retreat
+      await game.write.moveShip(
+        [1n, 1n, creatorPos1.row, creatorPos1.col, ActionType.Retreat, 0n],
+        { account: creator.account }
+      );
+
+      // Verify ship 1 is no longer on the grid
+      const shipAtPosition = await game.read.getShipAtPosition([
+        1n,
+        creatorPos1.row,
+        creatorPos1.col,
+      ]);
+      expect(shipAtPosition).to.equal(0n);
+
+      // Verify ship 1 is excluded from getAllShipPositions
+      const positions = (await game.read.getAllShipPositions([1n])) as any;
+      expect(positions.length).to.equal(3); // Creator's ship 2, joiner's ships 6 and 7 remain
+
+      // Verify the remaining ships are the correct ones
+      const remainingShipIds = positions.map((pos: any) => pos.shipId);
+      expect(remainingShipIds).to.include(2n); // Creator's ship 2
+      expect(remainingShipIds).to.include(6n); // Joiner's ship 6
+      expect(remainingShipIds).to.include(7n); // Joiner's ship 7
+      expect(remainingShipIds).to.not.include(1n); // Ship 1 should be retreated
+
+      // Verify that the game can continue with remaining ships
+      // After retreat, it should be joiner's turn
+      const joinerPos1After = await game.read.getShipPosition([1n, 6n]);
+      await game.write.moveShip(
+        [
+          1n,
+          6n,
+          joinerPos1After.row - 1,
+          joinerPos1After.col,
+          ActionType.Pass,
+          0n,
+        ],
+        { account: joiner.account }
+      );
+
+      // Now it should be creator's turn to move ship 2
+      const creatorPos2 = await game.read.getShipPosition([1n, 2n]);
+      await game.write.moveShip(
+        [1n, 2n, creatorPos2.row + 1, creatorPos2.col, ActionType.Pass, 0n],
+        { account: creator.account }
+      );
+    });
   });
 });

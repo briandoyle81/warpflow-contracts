@@ -249,9 +249,8 @@ export interface GameDataView {
   creatorGoesFirst: boolean;
   startedAt: bigint;
   currentTurn: string;
-  creatorShipAttributes: Attributes[];
-  joinerShipAttributes: Attributes[];
-  shipPositions: ShipPosition[];
+  shipAttributes: Attributes[]; // Combined array of all ship attributes indexed by ship ID
+  shipPositions: ShipPosition[]; // All ship positions on the grid
   gridWidth: number;
   gridHeight: number;
 }

@@ -746,20 +746,22 @@ contract Game is Ownable, ReentrancyGuard {
 
         GameData storage game = games[_gameId];
 
-        // Get creator ship attributes
-        Attributes[] memory creatorAttrs = new Attributes[](
-            _creatorShipIds.length
-        );
+        // Calculate total number of ships
+        uint totalShips = _creatorShipIds.length + _joinerShipIds.length;
+
+        // Get all ship attributes in a single array
+        Attributes[] memory shipAttrs = new Attributes[](totalShips);
+
+        // Add creator ship attributes first
         for (uint i = 0; i < _creatorShipIds.length; i++) {
-            creatorAttrs[i] = game.shipAttributes[_creatorShipIds[i]];
+            shipAttrs[i] = game.shipAttributes[_creatorShipIds[i]];
         }
 
-        // Get joiner ship attributes
-        Attributes[] memory joinerAttrs = new Attributes[](
-            _joinerShipIds.length
-        );
+        // Add joiner ship attributes after creator ships
         for (uint i = 0; i < _joinerShipIds.length; i++) {
-            joinerAttrs[i] = game.shipAttributes[_joinerShipIds[i]];
+            shipAttrs[_creatorShipIds.length + i] = game.shipAttributes[
+                _joinerShipIds[i]
+            ];
         }
 
         // Get all ship positions
@@ -776,8 +778,7 @@ contract Game is Ownable, ReentrancyGuard {
                 creatorGoesFirst: game.creatorGoesFirst,
                 startedAt: game.startedAt,
                 currentTurn: game.currentTurn,
-                creatorShipAttributes: creatorAttrs,
-                joinerShipAttributes: joinerAttrs,
+                shipAttributes: shipAttrs,
                 shipPositions: shipPositions,
                 gridWidth: game.gridWidth,
                 gridHeight: game.gridHeight

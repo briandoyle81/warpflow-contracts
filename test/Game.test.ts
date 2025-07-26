@@ -414,7 +414,7 @@ describe("Game", function () {
       await joinerLobbies.write.createFleet([1n, [6n]]);
 
       // Get complete game data
-      const gameData = await game.read.getGame([1n, [1n], [6n]]);
+      const gameData = (await game.read.getGame([1n, [1n], [6n]])) as any;
 
       // Verify game data structure
       expect(gameData.gameId).to.equal(1n);
@@ -432,11 +432,10 @@ describe("Game", function () {
       );
 
       // Verify ship attributes arrays
-      expect(gameData.creatorShipAttributes.length).to.equal(1);
-      expect(gameData.joinerShipAttributes.length).to.equal(1);
+      expect(gameData.shipAttributes.length).to.equal(2); // 1 creator + 1 joiner ship
 
-      // Verify creator ship attributes
-      const creatorAttrs = gameData.creatorShipAttributes[0];
+      // Verify creator ship attributes (first in the array)
+      const creatorAttrs = gameData.shipAttributes[0];
       expect(creatorAttrs.version).to.equal(1);
       expect(creatorAttrs.hullPoints).to.be.greaterThan(0);
       expect(creatorAttrs.movement).to.be.greaterThanOrEqual(0);
@@ -444,8 +443,8 @@ describe("Game", function () {
       expect(creatorAttrs.gunDamage).to.be.greaterThan(0);
       expect(creatorAttrs.statusEffects.length).to.equal(0);
 
-      // Verify joiner ship attributes
-      const joinerAttrs = gameData.joinerShipAttributes[0];
+      // Verify joiner ship attributes (second in the array)
+      const joinerAttrs = gameData.shipAttributes[1];
       expect(joinerAttrs.version).to.equal(1);
       expect(joinerAttrs.hullPoints).to.be.greaterThan(0);
       expect(joinerAttrs.movement).to.be.greaterThanOrEqual(0);
@@ -2008,7 +2007,7 @@ describe("Game", function () {
       }
 
       // Now in range, ensure it's the creator's turn before shooting
-      let gameData = await game.read.getGame([1n, [1n], [6n]]);
+      let gameData = (await game.read.getGame([1n, [1n], [6n]])) as any;
       if (
         gameData.currentTurn.toLowerCase() !==
         creator.account.address.toLowerCase()

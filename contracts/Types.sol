@@ -114,8 +114,7 @@ struct GameDataView {
     bool creatorGoesFirst;
     uint startedAt;
     address currentTurn;
-    Attributes[] creatorShipAttributes; // Array of creator's ship attributes
-    Attributes[] joinerShipAttributes; // Array of joiner's ship attributes
+    Attributes[] shipAttributes; // Combined array of all ship attributes indexed by ship ID
     // Grid data
     ShipPosition[] shipPositions; // All ship positions on the grid
     uint8 gridWidth;

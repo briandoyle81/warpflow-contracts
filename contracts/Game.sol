@@ -396,21 +396,23 @@ contract Game is Ownable, ReentrancyGuard {
             _newCol
         );
 
-        if (movementCost > 0) {
-            // Get ship's movement attribute
-            Attributes storage attributes = game.shipAttributes[_shipId];
+        // Get ship's movement attribute
+        Attributes storage attributes = game.shipAttributes[_shipId];
 
-            // Check if movement cost exceeds ship's movement
-            if (movementCost > attributes.movement) revert MovementExceeded();
+        // Check if movement cost exceeds ship's movement
+        if (movementCost > attributes.movement) revert MovementExceeded();
 
-            // Validate new position
-            if (_newRow >= GRID_HEIGHT || _newCol >= GRID_WIDTH)
-                revert InvalidPosition();
-            if (game.grid[_newRow][_newCol] != 0) revert PositionOccupied();
+        // Validate new position
+        if (_newRow >= GRID_HEIGHT || _newCol >= GRID_WIDTH)
+            revert InvalidPosition();
+        // Allow moving to the current position (no-op move), skip PositionOccupied check and skip _executeMove
+        bool isNoOpMove = (currentPos.row == _newRow &&
+            currentPos.col == _newCol);
+        if (!isNoOpMove && game.grid[_newRow][_newCol] != 0)
+            revert PositionOccupied();
 
-            // Perform the move
-            _executeMove(_gameId, _shipId, currentPos, _newRow, _newCol);
-        }
+        // Perform the move
+        _executeMove(_gameId, _shipId, currentPos, _newRow, _newCol);
 
         // Mark ship as moved this round
         game.shipMovedThisRound[game.currentRound][_shipId] = true;

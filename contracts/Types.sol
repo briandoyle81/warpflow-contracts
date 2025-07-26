@@ -234,5 +234,6 @@ struct PlayerLobbyState {
 enum ActionType {
     Pass,
     Shoot,
-    Retreat
+    Retreat,
+    Assist
 }

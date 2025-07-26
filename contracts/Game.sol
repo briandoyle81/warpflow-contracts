@@ -518,6 +518,9 @@ contract Game is Ownable, ReentrancyGuard {
         } else if (actionType == ActionType.Retreat) {
             // Retreat: remove ship from the game
             _retreatShip(_gameId, _shipId);
+        } else if (actionType == ActionType.Assist) {
+            // Assist: help a friendly ship with 0 HP retreat
+            _performAssist(_gameId, _shipId, _newRow, _newCol, targetShipId);
         } else {
             revert InvalidMove();
         }
@@ -611,6 +614,46 @@ contract Game is Ownable, ReentrancyGuard {
             }
             // Creator has no unmoved ships, keep turn with joiner
         }
+    }
+
+    // Internal function to perform assist action
+    function _performAssist(
+        uint _gameId,
+        uint _shipId,
+        uint8 _newRow,
+        uint8 _newCol,
+        uint _targetShipId
+    ) internal {
+        if (games[_gameId].gameId == 0) revert GameNotFound();
+        GameData storage game = games[_gameId];
+
+        // Validate target ship exists
+        Ship memory targetShip = ships.getShip(_targetShipId);
+        if (targetShip.id == 0) revert ShipNotFound();
+        if (targetShip.shipData.timestampDestroyed != 0) revert ShipDestroyed();
+
+        // Must be on the same team (by owner address)
+        Ship memory assistingShip = ships.getShip(_shipId);
+        if (targetShip.owner != assistingShip.owner) revert InvalidMove();
+
+        // Target ship must have 0 hull points
+        Attributes storage targetAttributes = game.shipAttributes[
+            _targetShipId
+        ];
+        if (targetAttributes.hullPoints > 0) revert InvalidMove();
+
+        // Check if assisting ship is adjacent to target ship (orthogonal only, no diagonals)
+        Position memory targetPos = game.shipPositions[_targetShipId];
+        Position memory assistingPos = Position(_newRow, _newCol);
+
+        // Must be exactly 1 square away orthogonally (not diagonal)
+        uint8 manhattan = _manhattanDistance(assistingPos, targetPos);
+        if (manhattan != 1) {
+            revert InvalidMove();
+        }
+
+        // Perform the assist - retreat the target ship
+        _retreatShip(_gameId, _targetShipId);
     }
 
     // Internal function to retreat a ship

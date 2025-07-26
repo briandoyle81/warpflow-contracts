@@ -259,4 +259,5 @@ export enum ActionType {
   Pass,
   Shoot,
   Retreat,
+  Assist,
 }

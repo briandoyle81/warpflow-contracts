@@ -2834,5 +2834,288 @@ describe("Game", function () {
       const ship2AttrsAfter = await game.read.getShipAttributes([1n, 2n]);
       expect(ship2AttrsAfter.hullPoints).to.equal(25); // Should be exactly 25 since it started at 0
     });
+
+    it("should allow ships with EMP to increase enemy ship's reactor critical timer", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+        owner,
+      } = await loadFixture(deployGameFixture);
+
+      // Purchase ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Create a ship with EMP for creator's first ship (ship 1)
+      const empShip: Ship = {
+        name: "EMP Ship",
+        id: 1n,
+        equipment: {
+          mainWeapon: 0, // Laser
+          armor: 0, // None
+          shields: 0, // None
+          special: 1, // EMP
+        },
+        traits: {
+          serialNumber: 12345n,
+          colors: { h1: 0, s1: 0, l1: 0, h2: 0, s2: 0, l2: 0 },
+          variant: 0,
+          accuracy: 0,
+          hull: 0,
+          speed: 0,
+        },
+        shipData: {
+          shipsDestroyed: 0,
+          costsVersion: 1,
+          cost: 0,
+          shiny: false,
+          constructed: false,
+          inFleet: false,
+          timestampDestroyed: 0n,
+        },
+        owner: creator.account.address,
+      };
+
+      // Authorize owner to create ships
+      await ships.write.setIsAllowedToCreateShips(
+        [owner.account.address, true],
+        { account: owner.account }
+      );
+
+      // Construct the EMP ship
+      await ships.write.constructSpecificShip([1n, empShip], {
+        account: owner.account,
+      });
+
+      // Construct the second ship normally
+      await ships.write.constructShip([2n], { account: creator.account });
+
+      // Construct joiner's ship
+      await ships.write.constructShip([6n], { account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets with one ship each
+      await creatorLobbies.write.createFleet([1n, [1n]]);
+      await joinerLobbies.write.createFleet([1n, [6n]]);
+
+      // Move ships toward each other until in range (similar to shooting test)
+      let creatorPos = await game.read.getShipPosition([1n, 1n]);
+      let joinerPos = await game.read.getShipPosition([1n, 6n]);
+      let creatorAttrs = await game.read.getShipAttributes([1n, 1n]);
+      let joinerAttrs = await game.read.getShipAttributes([1n, 6n]);
+      const empRange = 1; // EMP has range 1
+      const creatorMovement = creatorAttrs.movement;
+      const joinerMovement = joinerAttrs.movement;
+
+      // Move ships toward each other until in range
+      let turn = "creator";
+      while (true) {
+        // Re-fetch positions each loop
+        creatorPos = await game.read.getShipPosition([1n, 1n]);
+        joinerPos = await game.read.getShipPosition([1n, 6n]);
+        // Manhattan distance
+        const manhattan =
+          Math.abs(Number(creatorPos.row) - Number(joinerPos.row)) +
+          Math.abs(Number(creatorPos.col) - Number(joinerPos.col));
+        if (manhattan <= empRange) break;
+        if (turn === "creator") {
+          // Move creator's ship in only one direction at a time (orthogonal movement only)
+          let newRow = Number(creatorPos.row);
+          let newCol = Number(creatorPos.col);
+
+          // Prioritize row movement first, then column
+          if (creatorPos.row !== joinerPos.row) {
+            if (creatorPos.row < joinerPos.row) {
+              newRow = Math.min(
+                Number(creatorPos.row) + creatorMovement,
+                Number(joinerPos.row)
+              );
+            } else {
+              newRow = Math.max(
+                Number(creatorPos.row) - creatorMovement,
+                Number(joinerPos.row)
+              );
+            }
+          } else if (creatorPos.col !== joinerPos.col) {
+            // Only move column if rows are already aligned
+            if (creatorPos.col < joinerPos.col) {
+              newCol = Math.min(
+                Number(creatorPos.col) + creatorMovement,
+                Number(joinerPos.col)
+              );
+            } else {
+              newCol = Math.max(
+                Number(creatorPos.col) - creatorMovement,
+                Number(joinerPos.col)
+              );
+            }
+          }
+
+          // Check if the target position is occupied and reduce movement if needed
+          try {
+            await game.write.moveShip(
+              [1n, 1n, newRow, newCol, ActionType.Pass, 0n],
+              {
+                account: creator.account,
+              }
+            );
+          } catch (error) {
+            // If position is occupied, try moving one step less
+            if (creatorPos.row < joinerPos.row) {
+              newRow = Math.min(
+                Number(creatorPos.row) + Math.max(0, creatorMovement - 1),
+                Number(joinerPos.row)
+              );
+            } else if (creatorPos.row > joinerPos.row) {
+              newRow = Math.max(
+                Number(creatorPos.row) - Math.max(0, creatorMovement - 1),
+                Number(joinerPos.row)
+              );
+            } else if (creatorPos.col < joinerPos.col) {
+              newCol = Math.min(
+                Number(creatorPos.col) + Math.max(0, creatorMovement - 1),
+                Number(joinerPos.col)
+              );
+            } else if (creatorPos.col > joinerPos.col) {
+              newCol = Math.max(
+                Number(creatorPos.col) - Math.max(0, creatorMovement - 1),
+                Number(joinerPos.col)
+              );
+            }
+            await game.write.moveShip(
+              [1n, 1n, newRow, newCol, ActionType.Pass, 0n],
+              {
+                account: creator.account,
+              }
+            );
+          }
+          turn = "joiner";
+        } else {
+          // Move joiner's ship in only one direction at a time (orthogonal movement only)
+          let newRow = Number(joinerPos.row);
+          let newCol = Number(joinerPos.col);
+
+          // Prioritize row movement first, then column
+          if (joinerPos.row !== creatorPos.row) {
+            if (joinerPos.row > creatorPos.row) {
+              newRow = Math.max(
+                Number(joinerPos.row) - joinerMovement,
+                Number(creatorPos.row)
+              );
+            } else {
+              newRow = Math.min(
+                Number(joinerPos.row) + joinerMovement,
+                Number(creatorPos.row)
+              );
+            }
+          } else if (joinerPos.col !== creatorPos.col) {
+            // Only move column if rows are already aligned
+            if (joinerPos.col > creatorPos.col) {
+              newCol = Math.max(
+                Number(joinerPos.col) - joinerMovement,
+                Number(creatorPos.col)
+              );
+            } else {
+              newCol = Math.min(
+                Number(joinerPos.col) + joinerMovement,
+                Number(creatorPos.col)
+              );
+            }
+          }
+
+          // Check if the target position is occupied and reduce movement if needed
+          try {
+            await game.write.moveShip(
+              [1n, 6n, newRow, newCol, ActionType.Pass, 0n],
+              {
+                account: joiner.account,
+              }
+            );
+          } catch (error) {
+            // If position is occupied, try moving one step less
+            if (joinerPos.row > creatorPos.row) {
+              newRow = Math.max(
+                Number(joinerPos.row) - Math.max(0, joinerMovement - 1),
+                Number(creatorPos.row)
+              );
+            } else if (joinerPos.row < creatorPos.row) {
+              newRow = Math.min(
+                Number(joinerPos.row) + Math.max(0, joinerMovement - 1),
+                Number(creatorPos.row)
+              );
+            } else if (joinerPos.col > creatorPos.col) {
+              newCol = Math.max(
+                Number(joinerPos.col) - Math.max(0, joinerMovement - 1),
+                Number(creatorPos.col)
+              );
+            } else if (joinerPos.col < creatorPos.col) {
+              newCol = Math.min(
+                Number(joinerPos.col) + Math.max(0, joinerMovement - 1),
+                Number(creatorPos.col)
+              );
+            }
+            await game.write.moveShip(
+              [1n, 6n, newRow, newCol, ActionType.Pass, 0n],
+              {
+                account: joiner.account,
+              }
+            );
+          }
+          turn = "creator";
+        }
+      }
+
+      // Verify joiner's ship has 0 reactor critical timer initially
+      const joinerShipAttrsBefore = await game.read.getShipAttributes([1n, 6n]);
+      expect(joinerShipAttrsBefore.reactorCriticalTimer).to.equal(0);
+
+      // Check current turn and ensure it's the creator's turn before using EMP
+      const gameData = await game.read.getGame([1n, [1n], [6n]]);
+      if (gameData.currentTurn !== creator.account.address) {
+        // If it's not creator's turn, have joiner pass to make it creator's turn
+        const joinerPos = await game.read.getShipPosition([1n, 6n]);
+        await game.write.moveShip(
+          [1n, 6n, joinerPos.row, joinerPos.col, ActionType.Pass, 0n],
+          {
+            account: joiner.account,
+          }
+        );
+      }
+
+      // Now use EMP from creator's ship to target joiner's ship
+      creatorPos = await game.read.getShipPosition([1n, 1n]);
+      await game.write.moveShip(
+        [1n, 1n, creatorPos.row, creatorPos.col, ActionType.Special, 6n],
+        {
+          account: creator.account,
+        }
+      );
+
+      // Verify joiner's ship's reactor critical timer was increased by the EMP strength (1)
+      const joinerShipAttrsAfter = await game.read.getShipAttributes([1n, 6n]);
+      expect(joinerShipAttrsAfter.reactorCriticalTimer).to.equal(1); // Should be exactly 1 since EMP strength is 1
+    });
   });
 });

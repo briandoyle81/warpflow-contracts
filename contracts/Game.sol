@@ -87,7 +87,7 @@ contract Game is Ownable, ReentrancyGuard {
 
         // Initialize special data
         v1.specials.push(SpecialData(0, 0, 0)); // None
-        v1.specials.push(SpecialData(1, 25, 0)); // EMP
+        v1.specials.push(SpecialData(1, 1, 0)); // EMP
         v1.specials.push(SpecialData(3, 25, 0)); // RepairDrones
         v1.specials.push(SpecialData(1, 10, 0)); // FlakArray
     }
@@ -636,9 +636,15 @@ contract Game is Ownable, ReentrancyGuard {
         if (targetShip.id == 0) revert ShipNotFound();
         if (targetShip.shipData.timestampDestroyed != 0) revert ShipDestroyed();
 
-        // Must be on the same team (by owner address)
+        // Must be on the same team (by owner address) for RepairDrones, but enemy team for EMP
         Ship memory usingShip = ships.getShip(_shipId);
-        if (targetShip.owner != usingShip.owner) revert InvalidMove();
+        if (usingShip.equipment.special == Special.RepairDrones) {
+            // RepairDrones can only target friendly ships
+            if (targetShip.owner != usingShip.owner) revert InvalidMove();
+        } else if (usingShip.equipment.special == Special.EMP) {
+            // EMP can only target enemy ships
+            if (targetShip.owner == usingShip.owner) revert InvalidMove();
+        }
 
         // Check if using ship has a special
         if (usingShip.equipment.special == Special.None) revert InvalidMove();
@@ -661,6 +667,8 @@ contract Game is Ownable, ReentrancyGuard {
         // Handle different special types
         if (usingShip.equipment.special == Special.RepairDrones) {
             _performRepairDrones(_gameId, _shipId, _targetShipId);
+        } else if (usingShip.equipment.special == Special.EMP) {
+            _performEMP(_gameId, _shipId, _targetShipId);
         } else {
             revert InvalidMove(); // Other specials not implemented yet
         }
@@ -689,6 +697,26 @@ contract Game is Ownable, ReentrancyGuard {
         } else {
             targetAttributes.hullPoints = newHullPoints;
         }
+    }
+
+    // Internal function to perform EMP special
+    function _performEMP(
+        uint _gameId,
+        uint _shipId,
+        uint _targetShipId
+    ) internal {
+        GameData storage game = games[_gameId];
+        Attributes storage targetAttributes = game.shipAttributes[
+            _targetShipId
+        ];
+
+        // Get the strength of EMP from the attributes version
+        uint8 empStrength = attributesVersions[currentAttributesVersion]
+            .specials[uint8(Special.EMP)]
+            .strength;
+
+        // Increase reactor critical timer by the EMP strength
+        targetAttributes.reactorCriticalTimer += empStrength;
     }
 
     // Internal function to perform assist action

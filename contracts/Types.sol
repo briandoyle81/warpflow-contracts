@@ -63,6 +63,7 @@ struct Attributes {
     uint8 range;
     uint8 gunDamage;
     uint8 hullPoints;
+    uint8 maxHullPoints;
     uint8 movement;
     uint8 damageReduction;
     uint8 reactorCriticalTimer;
@@ -177,6 +178,7 @@ struct ShieldData {
 
 struct SpecialData {
     uint8 range;
+    uint8 strength;
     int8 movement;
 }
 
@@ -235,5 +237,6 @@ enum ActionType {
     Pass,
     Shoot,
     Retreat,
-    Assist
+    Assist,
+    Special
 }

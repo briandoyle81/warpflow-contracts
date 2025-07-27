@@ -8,6 +8,7 @@ import {
   ShipTuple,
   tupleToShip,
   ActionType,
+  Ship,
 } from "./types";
 import DeployModule from "../ignition/modules/DeployAndConfig";
 
@@ -2723,6 +2724,115 @@ describe("Game", function () {
         [1n, 6n, joinerPos1.row - 1, joinerPos1.col, ActionType.Pass, 0n],
         { account: joiner.account }
       );
+    });
+
+    it("should allow ships with RepairDrones to repair friendly ships", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+        owner,
+      } = await loadFixture(deployGameFixture);
+
+      // Purchase ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Create a ship with RepairDrones for creator's first ship (ship 1)
+      const repairShip: Ship = {
+        name: "Repair Ship",
+        id: 1n,
+        equipment: {
+          mainWeapon: 0, // Laser
+          armor: 0, // None
+          shields: 0, // None
+          special: 2, // RepairDrones
+        },
+        traits: {
+          serialNumber: 12345n,
+          colors: { h1: 0, s1: 0, l1: 0, h2: 0, s2: 0, l2: 0 },
+          variant: 0,
+          accuracy: 0,
+          hull: 0,
+          speed: 0,
+        },
+        shipData: {
+          shipsDestroyed: 0,
+          costsVersion: 1,
+          cost: 0,
+          shiny: false,
+          constructed: false,
+          inFleet: false,
+          timestampDestroyed: 0n,
+        },
+        owner: creator.account.address,
+      };
+
+      // Authorize owner to create ships
+      await ships.write.setIsAllowedToCreateShips(
+        [owner.account.address, true],
+        { account: owner.account }
+      );
+
+      // Construct the repair ship
+      await ships.write.constructSpecificShip([1n, repairShip], {
+        account: owner.account,
+      });
+
+      // Construct the second ship normally
+      await ships.write.constructShip([2n], { account: creator.account });
+
+      // Construct joiner's ship
+      await ships.write.constructShip([6n], { account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets to start the game
+      await creatorLobbies.write.createFleet([1n, [1n, 2n]]);
+      await joinerLobbies.write.createFleet([1n, [6n]]);
+
+      // Set ship 2's HP to 0 using debug function
+      await (game.write as any).debugSetHullPointsToZero([1n, 2n], {
+        account: owner.account,
+      });
+
+      // Verify ship 2 has 0 HP
+      const ship2AttrsBefore = await game.read.getShipAttributes([1n, 2n]);
+      expect(ship2AttrsBefore.hullPoints).to.equal(0);
+
+      // Get ship positions
+      const ship1Pos = await game.read.getShipPosition([1n, 1n]);
+      const ship2Pos = await game.read.getShipPosition([1n, 2n]);
+
+      // Move ship 1 to be within range 3 of ship 2 and use RepairDrones special
+      // Since RepairDrones has range 3, we can move ship 1 to position (3, 0) which is 3 squares away from ship 2 at (0, 0)
+      await game.write.moveShip([1n, 1n, 3, 0, ActionType.Special, 2n], {
+        account: creator.account,
+      });
+
+      // Verify ship 2's HP was increased by the repair strength (25)
+      const ship2AttrsAfter = await game.read.getShipAttributes([1n, 2n]);
+      expect(ship2AttrsAfter.hullPoints).to.equal(25); // Should be exactly 25 since it started at 0
     });
   });
 });

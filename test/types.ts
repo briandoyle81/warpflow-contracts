@@ -110,7 +110,10 @@ export interface Attributes {
   range: number;
   gunDamage: number;
   hullPoints: number;
+  maxHullPoints: number;
   movement: number;
+  damageReduction: number;
+  reactorCriticalTimer: number;
   statusEffects: number[];
 }
 
@@ -260,4 +263,5 @@ export enum ActionType {
   Shoot,
   Retreat,
   Assist,
+  Special,
 }

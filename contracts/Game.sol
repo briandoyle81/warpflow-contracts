@@ -86,10 +86,10 @@ contract Game is Ownable, ReentrancyGuard {
         v1.shields.push(ShieldData(30, -2)); // Heavy
 
         // Initialize special data
-        v1.specials.push(SpecialData(0, 0)); // None
-        v1.specials.push(SpecialData(1, 0)); // EMP
-        v1.specials.push(SpecialData(1, 0)); // RepairDrones
-        v1.specials.push(SpecialData(1, 0)); // FlakArray
+        v1.specials.push(SpecialData(0, 0, 0)); // None
+        v1.specials.push(SpecialData(1, 25, 0)); // EMP
+        v1.specials.push(SpecialData(3, 25, 0)); // RepairDrones
+        v1.specials.push(SpecialData(1, 10, 0)); // FlakArray
     }
 
     function setLobbiesAddress(address _lobbiesAddress) public onlyOwner {
@@ -222,6 +222,7 @@ contract Game is Ownable, ReentrancyGuard {
             .guns[uint8(ship.equipment.mainWeapon)]
             .damage;
         attributes.hullPoints = _calculateHullPoints(ship);
+        attributes.maxHullPoints = attributes.hullPoints;
         attributes.movement = _calculateMovement(ship);
         attributes.damageReduction = _calculateDamageReduction(ship);
         // Initialize empty status effects array
@@ -521,6 +522,9 @@ contract Game is Ownable, ReentrancyGuard {
         } else if (actionType == ActionType.Assist) {
             // Assist: help a friendly ship with 0 HP retreat
             _performAssist(_gameId, _shipId, _newRow, _newCol, targetShipId);
+        } else if (actionType == ActionType.Special) {
+            // Special: use special equipment
+            _performSpecial(_gameId, _shipId, _newRow, _newCol, targetShipId);
         } else {
             revert InvalidMove();
         }
@@ -613,6 +617,77 @@ contract Game is Ownable, ReentrancyGuard {
                 }
             }
             // Creator has no unmoved ships, keep turn with joiner
+        }
+    }
+
+    // Internal function to perform special action
+    function _performSpecial(
+        uint _gameId,
+        uint _shipId,
+        uint8 _newRow,
+        uint8 _newCol,
+        uint _targetShipId
+    ) internal {
+        if (games[_gameId].gameId == 0) revert GameNotFound();
+        GameData storage game = games[_gameId];
+
+        // Validate target ship exists
+        Ship memory targetShip = ships.getShip(_targetShipId);
+        if (targetShip.id == 0) revert ShipNotFound();
+        if (targetShip.shipData.timestampDestroyed != 0) revert ShipDestroyed();
+
+        // Must be on the same team (by owner address)
+        Ship memory usingShip = ships.getShip(_shipId);
+        if (targetShip.owner != usingShip.owner) revert InvalidMove();
+
+        // Check if using ship has a special
+        if (usingShip.equipment.special == Special.None) revert InvalidMove();
+
+        // Check if using ship is within range of target ship
+        Position memory targetPos = game.shipPositions[_targetShipId];
+        Position memory usingPos = Position(_newRow, _newCol);
+
+        // Get the range of the special from the attributes version
+        uint8 specialRange = attributesVersions[currentAttributesVersion]
+            .specials[uint8(usingShip.equipment.special)]
+            .range;
+
+        // Must be within the special's range
+        uint8 manhattan = _manhattanDistance(usingPos, targetPos);
+        if (manhattan > specialRange) {
+            revert InvalidMove();
+        }
+
+        // Handle different special types
+        if (usingShip.equipment.special == Special.RepairDrones) {
+            _performRepairDrones(_gameId, _shipId, _targetShipId);
+        } else {
+            revert InvalidMove(); // Other specials not implemented yet
+        }
+    }
+
+    // Internal function to perform RepairDrones special
+    function _performRepairDrones(
+        uint _gameId,
+        uint _shipId,
+        uint _targetShipId
+    ) internal {
+        GameData storage game = games[_gameId];
+        Attributes storage targetAttributes = game.shipAttributes[
+            _targetShipId
+        ];
+
+        // Get the strength of RepairDrones from the attributes version
+        uint8 repairStrength = attributesVersions[currentAttributesVersion]
+            .specials[uint8(Special.RepairDrones)]
+            .strength;
+
+        // Increase hull points by the repair strength, but don't exceed max hull points
+        uint8 newHullPoints = targetAttributes.hullPoints + repairStrength;
+        if (newHullPoints > targetAttributes.maxHullPoints) {
+            targetAttributes.hullPoints = targetAttributes.maxHullPoints;
+        } else {
+            targetAttributes.hullPoints = newHullPoints;
         }
     }
 

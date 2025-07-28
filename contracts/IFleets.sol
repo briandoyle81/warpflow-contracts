@@ -21,4 +21,8 @@ interface IFleets {
         uint _fleetId,
         uint _shipId
     ) external view returns (bool);
+
+    function getFleetShipIds(
+        uint _fleetId
+    ) external view returns (uint[] memory);
 }

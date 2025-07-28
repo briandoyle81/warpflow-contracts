@@ -162,22 +162,17 @@ contract Game is Ownable, ReentrancyGuard {
         uint _joinerFleetId
     ) internal {
         // Place creator ships on the left side (column 0)
-        Fleet memory creatorFleet = fleets.getFleet(_creatorFleetId);
-        for (uint i = 0; i < creatorFleet.shipIds.length; i++) {
+        uint[] memory creatorShipIds = fleets.getFleetShipIds(_creatorFleetId);
+        for (uint i = 0; i < creatorShipIds.length; i++) {
             uint8 row = uint8(i * 2); // Skip a row between each ship (rows 0, 2, 4, ...)
-            _placeShipOnGrid(_gameId, creatorFleet.shipIds[i], row, 0);
+            _placeShipOnGrid(_gameId, creatorShipIds[i], row, 0);
         }
 
         // Place joiner ships on the right side (column GRID_WIDTH - 1)
-        Fleet memory joinerFleet = fleets.getFleet(_joinerFleetId);
-        for (uint i = 0; i < joinerFleet.shipIds.length; i++) {
+        uint[] memory joinerShipIds = fleets.getFleetShipIds(_joinerFleetId);
+        for (uint i = 0; i < joinerShipIds.length; i++) {
             uint8 row = uint8(GRID_HEIGHT - 1 - (i * 2)); // Skip a row between each ship (rows 49, 47, 45, ...)
-            _placeShipOnGrid(
-                _gameId,
-                joinerFleet.shipIds[i],
-                row,
-                GRID_WIDTH - 1
-            );
+            _placeShipOnGrid(_gameId, joinerShipIds[i], row, GRID_WIDTH - 1);
         }
     }
 
@@ -241,10 +236,10 @@ contract Game is Ownable, ReentrancyGuard {
         uint _shipId
     ) public view returns (Attributes memory) {
         if (games[_gameId].gameId == 0) revert GameNotFound();
-        Ship memory ship = ships.getShip(_shipId);
-        if (ship.id == 0) revert ShipNotFound();
         GameData storage game = games[_gameId];
-        return game.shipAttributes[_shipId];
+        Attributes storage attributes = game.shipAttributes[_shipId];
+        if (attributes.version == 0) revert ShipNotFound();
+        return attributes;
     }
 
     // Get all ship attributes for a player in a game
@@ -400,7 +395,7 @@ contract Game is Ownable, ReentrancyGuard {
             revert ShipAlreadyMoved();
 
         // Get current position
-        Position memory currentPos = game.shipPositions[_shipId];
+        Position storage currentPos = game.shipPositions[_shipId];
 
         // Calculate movement cost
         uint8 movementCost = _calculateMovementCost(
@@ -485,7 +480,7 @@ contract Game is Ownable, ReentrancyGuard {
             if (targetShip.owner == shooterShip.owner) revert InvalidMove();
             // Must be in range (manhattan)
             Position memory shooterPos = Position(_newRow, _newCol);
-            Position memory targetPos = game.shipPositions[targetShipId];
+            Position storage targetPos = game.shipPositions[targetShipId];
             uint8 manhattan = _manhattanDistance(shooterPos, targetPos);
             Attributes storage shooterAttributes = game.shipAttributes[_shipId];
             if (manhattan > shooterAttributes.range) revert InvalidMove();
@@ -642,7 +637,7 @@ contract Game is Ownable, ReentrancyGuard {
             if (targetShip.owner != usingShip.owner) revert InvalidMove();
 
             // Check if using ship is within range of target ship
-            Position memory targetPos = game.shipPositions[_targetShipId];
+            Position storage targetPos = game.shipPositions[_targetShipId];
             Position memory usingPos = Position(_newRow, _newCol);
             uint8 specialRange = attributesVersions[currentAttributesVersion]
                 .specials[uint8(usingShip.equipment.special)]
@@ -656,7 +651,7 @@ contract Game is Ownable, ReentrancyGuard {
             if (targetShip.owner == usingShip.owner) revert InvalidMove();
 
             // Check if using ship is within range of target ship
-            Position memory targetPos = game.shipPositions[_targetShipId];
+            Position storage targetPos = game.shipPositions[_targetShipId];
             Position memory usingPos = Position(_newRow, _newCol);
             uint8 specialRange = attributesVersions[currentAttributesVersion]
                 .specials[uint8(usingShip.equipment.special)]
@@ -754,7 +749,7 @@ contract Game is Ownable, ReentrancyGuard {
             if (game.shipAttributes[shipId].hullPoints == 0) continue;
 
             // Check if ship is within range
-            Position memory shipPos = game.shipPositions[shipId];
+            Position storage shipPos = game.shipPositions[shipId];
             Position memory flakPos = Position(_newRow, _newCol);
             uint8 distance = _manhattanDistance(flakPos, shipPos);
 
@@ -781,7 +776,7 @@ contract Game is Ownable, ReentrancyGuard {
             if (game.shipAttributes[shipId].hullPoints == 0) continue;
 
             // Check if ship is within range
-            Position memory shipPos = game.shipPositions[shipId];
+            Position storage shipPos = game.shipPositions[shipId];
             Position memory flakPos = Position(_newRow, _newCol);
             uint8 distance = _manhattanDistance(flakPos, shipPos);
 
@@ -824,7 +819,7 @@ contract Game is Ownable, ReentrancyGuard {
         if (targetAttributes.hullPoints > 0) revert InvalidMove();
 
         // Check if assisting ship is adjacent to target ship (orthogonal only, no diagonals)
-        Position memory targetPos = game.shipPositions[_targetShipId];
+        Position storage targetPos = game.shipPositions[_targetShipId];
         Position memory assistingPos = Position(_newRow, _newCol);
 
         // Must be exactly 1 square away orthogonally (not diagonal)
@@ -855,7 +850,7 @@ contract Game is Ownable, ReentrancyGuard {
         if (ship.shipData.timestampDestroyed != 0) revert ShipDestroyed();
 
         // Remove ship from grid
-        Position memory shipPosition = game.shipPositions[_shipId];
+        Position storage shipPosition = game.shipPositions[_shipId];
         game.grid[shipPosition.row][shipPosition.col] = 0;
 
         // Mark ship as moved this round so it doesn't block round completion
@@ -891,7 +886,7 @@ contract Game is Ownable, ReentrancyGuard {
         if (ship.shipData.timestampDestroyed != 0) revert ShipDestroyed();
 
         // Remove ship from grid
-        Position memory shipPosition = game.shipPositions[_shipId];
+        Position storage shipPosition = game.shipPositions[_shipId];
         game.grid[shipPosition.row][shipPosition.col] = 0;
 
         // Mark ship as moved this round so it doesn't block round completion

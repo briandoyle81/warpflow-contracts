@@ -161,4 +161,11 @@ contract Fleets is Ownable, IFleets {
         }
         return false;
     }
+
+    function getFleetShipIds(
+        uint _fleetId
+    ) external view returns (uint[] memory) {
+        if (fleets[_fleetId].id == 0) revert FleetNotFound();
+        return fleets[_fleetId].shipIds;
+    }
 }

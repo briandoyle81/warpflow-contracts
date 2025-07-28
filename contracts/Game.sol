@@ -161,13 +161,11 @@ contract Game is Ownable, ReentrancyGuard {
         uint _creatorFleetId,
         uint _joinerFleetId
     ) internal {
-        GameData storage game = games[_gameId];
-
         // Place creator ships on the left side (column 0)
         Fleet memory creatorFleet = fleets.getFleet(_creatorFleetId);
         for (uint i = 0; i < creatorFleet.shipIds.length; i++) {
             uint8 row = uint8(i * 2); // Skip a row between each ship (rows 0, 2, 4, ...)
-            _placeShipOnGrid(_gameId, creatorFleet.shipIds[i], row, 0, true);
+            _placeShipOnGrid(_gameId, creatorFleet.shipIds[i], row, 0);
         }
 
         // Place joiner ships on the right side (column GRID_WIDTH - 1)
@@ -178,8 +176,7 @@ contract Game is Ownable, ReentrancyGuard {
                 _gameId,
                 joinerFleet.shipIds[i],
                 row,
-                GRID_WIDTH - 1,
-                false
+                GRID_WIDTH - 1
             );
         }
     }
@@ -189,8 +186,7 @@ contract Game is Ownable, ReentrancyGuard {
         uint _gameId,
         uint _shipId,
         uint8 _row,
-        uint8 _column,
-        bool _isCreator
+        uint8 _column
     ) internal {
         GameData storage game = games[_gameId];
 
@@ -678,9 +674,9 @@ contract Game is Ownable, ReentrancyGuard {
 
         // Handle different special types
         if (usingShip.equipment.special == Special.RepairDrones) {
-            _performRepairDrones(_gameId, _shipId, _targetShipId);
+            _performRepairDrones(_gameId, _targetShipId);
         } else if (usingShip.equipment.special == Special.EMP) {
-            _performEMP(_gameId, _shipId, _targetShipId);
+            _performEMP(_gameId, _targetShipId);
         } else if (usingShip.equipment.special == Special.FlakArray) {
             _performFlakArray(_gameId, _shipId, _newRow, _newCol);
         } else {
@@ -689,11 +685,7 @@ contract Game is Ownable, ReentrancyGuard {
     }
 
     // Internal function to perform RepairDrones special
-    function _performRepairDrones(
-        uint _gameId,
-        uint _shipId,
-        uint _targetShipId
-    ) internal {
+    function _performRepairDrones(uint _gameId, uint _targetShipId) internal {
         GameData storage game = games[_gameId];
         Attributes storage targetAttributes = game.shipAttributes[
             _targetShipId
@@ -714,11 +706,7 @@ contract Game is Ownable, ReentrancyGuard {
     }
 
     // Internal function to perform EMP special
-    function _performEMP(
-        uint _gameId,
-        uint _shipId,
-        uint _targetShipId
-    ) internal {
+    function _performEMP(uint _gameId, uint _targetShipId) internal {
         GameData storage game = games[_gameId];
         Attributes storage targetAttributes = game.shipAttributes[
             _targetShipId
@@ -736,7 +724,7 @@ contract Game is Ownable, ReentrancyGuard {
     // Internal function to perform FlakArray special
     function _performFlakArray(
         uint _gameId,
-        uint _shipId,
+        uint _shipId, // The id of the ship using the FlakArray
         uint8 _newRow,
         uint8 _newCol
     ) internal {
@@ -995,12 +983,7 @@ contract Game is Ownable, ReentrancyGuard {
         uint _gameId,
         uint _shipId
     ) external onlyOwner {
-        if (games[_gameId].gameId == 0) revert GameNotFound();
         GameData storage game = games[_gameId];
-
-        // Check if ship exists and is in the game
-        Ship memory ship = ships.getShip(_shipId);
-        if (ship.id == 0) revert ShipNotFound();
 
         // Check if ship is in the game (either creator or joiner fleet)
         bool isCreatorShip = _isShipInFleet(_gameId, _shipId, true);
@@ -1020,19 +1003,7 @@ contract Game is Ownable, ReentrancyGuard {
         uint _shipId,
         uint8 _timer
     ) external onlyOwner {
-        if (games[_gameId].gameId == 0) revert GameNotFound();
         GameData storage game = games[_gameId];
-
-        // Check if ship exists and is in the game
-        Ship memory ship = ships.getShip(_shipId);
-        if (ship.id == 0) revert ShipNotFound();
-
-        // Check if ship is in the game (either creator or joiner fleet)
-        bool isCreatorShip = _isShipInFleet(_gameId, _shipId, true);
-        bool isJoinerShip = _isShipInFleet(_gameId, _shipId, false);
-        if (!isCreatorShip && !isJoinerShip) revert ShipNotFound();
-
-        // Set reactor critical timer
         game.shipAttributes[_shipId].reactorCriticalTimer = _timer;
     }
 
@@ -1041,18 +1012,7 @@ contract Game is Ownable, ReentrancyGuard {
         uint _gameId,
         uint _shipId
     ) external onlyOwner {
-        if (games[_gameId].gameId == 0) revert GameNotFound();
         GameData storage game = games[_gameId];
-
-        // Check if ship exists and is in the game
-        Ship memory ship = ships.getShip(_shipId);
-        if (ship.id == 0) revert ShipNotFound();
-
-        // Check if ship is in the game (either creator or joiner fleet)
-        bool isCreatorShip = _isShipInFleet(_gameId, _shipId, true);
-        bool isJoinerShip = _isShipInFleet(_gameId, _shipId, false);
-        if (!isCreatorShip && !isJoinerShip) revert ShipNotFound();
-
         // Mark ship as moved this round
         game.shipMovedThisRound[game.currentRound][_shipId] = true;
     }

@@ -703,48 +703,102 @@ contract Game is Ownable, ReentrancyGuard {
         Ship memory usingShip = ships.getShip(_shipId);
         if (usingShip.equipment.special == Special.None) revert InvalidMove();
 
-        // Handle different special types
-        if (usingShip.equipment.special == Special.RepairDrones) {
+        // Validate special-specific requirements
+        _validateSpecialRequirements(
+            _gameId,
+            _shipId,
+            _newRow,
+            _newCol,
+            _targetShipId,
+            usingShip,
+            targetShip
+        );
+
+        // Execute the special action
+        _executeSpecialAction(
+            _gameId,
+            _shipId,
+            _newRow,
+            _newCol,
+            _targetShipId,
+            usingShip.equipment.special
+        );
+    }
+
+    // Helper function to validate special-specific requirements
+    function _validateSpecialRequirements(
+        uint _gameId,
+        uint _shipId,
+        uint8 _newRow,
+        uint8 _newCol,
+        uint _targetShipId,
+        Ship memory _usingShip,
+        Ship memory _targetShip
+    ) internal view {
+        GameData storage game = games[_gameId];
+
+        if (_usingShip.equipment.special == Special.RepairDrones) {
             // RepairDrones can only target friendly ships
-            if (targetShip.owner != usingShip.owner) revert InvalidMove();
-
-            // Check if using ship is within range of target ship
-            Position storage targetPos = game.shipPositions[_targetShipId];
-            Position memory usingPos = Position(_newRow, _newCol);
-            uint8 specialRange = attributesVersions[currentAttributesVersion]
-                .specials[uint8(usingShip.equipment.special)]
-                .range;
-            uint8 manhattan = _manhattanDistance(usingPos, targetPos);
-            if (manhattan > specialRange) {
-                revert InvalidMove();
-            }
-        } else if (usingShip.equipment.special == Special.EMP) {
+            if (_targetShip.owner != _usingShip.owner) revert InvalidMove();
+            _validateSpecialRange(
+                _gameId,
+                _newRow,
+                _newCol,
+                _targetShipId,
+                _usingShip.equipment.special
+            );
+        } else if (_usingShip.equipment.special == Special.EMP) {
             // EMP can only target enemy ships
-            if (targetShip.owner == usingShip.owner) revert InvalidMove();
-
-            // Check if using ship is within range of target ship
-            Position storage targetPos = game.shipPositions[_targetShipId];
-            Position memory usingPos = Position(_newRow, _newCol);
-            uint8 specialRange = attributesVersions[currentAttributesVersion]
-                .specials[uint8(usingShip.equipment.special)]
-                .range;
-            uint8 manhattan = _manhattanDistance(usingPos, targetPos);
-            if (manhattan > specialRange) {
-                revert InvalidMove();
-            }
-        } else if (usingShip.equipment.special == Special.FlakArray) {
+            if (_targetShip.owner == _usingShip.owner) revert InvalidMove();
+            _validateSpecialRange(
+                _gameId,
+                _newRow,
+                _newCol,
+                _targetShipId,
+                _usingShip.equipment.special
+            );
+        } else if (_usingShip.equipment.special == Special.FlakArray) {
             // FlakArray doesn't need a target - it affects all ships in range
             // No additional validation needed here
         } else {
             revert InvalidMove(); // Other specials not implemented yet
         }
+    }
 
-        // Handle different special types
-        if (usingShip.equipment.special == Special.RepairDrones) {
+    // Helper function to validate special range
+    function _validateSpecialRange(
+        uint _gameId,
+        uint8 _newRow,
+        uint8 _newCol,
+        uint _targetShipId,
+        Special _special
+    ) internal view {
+        GameData storage game = games[_gameId];
+        Position storage targetPos = game.shipPositions[_targetShipId];
+        Position memory usingPos = Position(_newRow, _newCol);
+        uint8 specialRange = attributesVersions[currentAttributesVersion]
+            .specials[uint8(_special)]
+            .range;
+        uint8 manhattan = _manhattanDistance(usingPos, targetPos);
+        if (manhattan > specialRange) {
+            revert InvalidMove();
+        }
+    }
+
+    // Helper function to execute special actions
+    function _executeSpecialAction(
+        uint _gameId,
+        uint _shipId,
+        uint8 _newRow,
+        uint8 _newCol,
+        uint _targetShipId,
+        Special _special
+    ) internal {
+        if (_special == Special.RepairDrones) {
             _performRepairDrones(_gameId, _targetShipId);
-        } else if (usingShip.equipment.special == Special.EMP) {
+        } else if (_special == Special.EMP) {
             _performEMP(_gameId, _targetShipId);
-        } else if (usingShip.equipment.special == Special.FlakArray) {
+        } else if (_special == Special.FlakArray) {
             _performFlakArray(_gameId, _shipId, _newRow, _newCol);
         } else {
             revert InvalidMove(); // Other specials not implemented yet
@@ -758,10 +812,7 @@ contract Game is Ownable, ReentrancyGuard {
             _targetShipId
         ];
 
-        // Get the strength of RepairDrones from the attributes version
-        uint8 repairStrength = attributesVersions[currentAttributesVersion]
-            .specials[uint8(Special.RepairDrones)]
-            .strength;
+        uint8 repairStrength = _getSpecialStrength(Special.RepairDrones);
 
         // Increase hull points by the repair strength, but don't exceed max hull points
         uint8 newHullPoints = targetAttributes.hullPoints + repairStrength;
@@ -779,13 +830,20 @@ contract Game is Ownable, ReentrancyGuard {
             _targetShipId
         ];
 
-        // Get the strength of EMP from the attributes version
-        uint8 empStrength = attributesVersions[currentAttributesVersion]
-            .specials[uint8(Special.EMP)]
-            .strength;
+        uint8 empStrength = _getSpecialStrength(Special.EMP);
 
         // Increase reactor critical timer by the EMP strength
         targetAttributes.reactorCriticalTimer += empStrength;
+    }
+
+    // Helper function to get special strength from attributes version
+    function _getSpecialStrength(
+        Special _special
+    ) internal view returns (uint8) {
+        return
+            attributesVersions[currentAttributesVersion]
+                .specials[uint8(_special)]
+                .strength;
     }
 
     // Internal function to perform FlakArray special

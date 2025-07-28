@@ -284,76 +284,160 @@ contract Game is Ownable, ReentrancyGuard {
         if (games[_gameId].gameId == 0) revert GameNotFound();
         GameData storage game = games[_gameId];
 
-        // Get creator fleet
-        Fleet memory creatorFleet = fleets.getFleet(game.creatorFleetId);
-        // Get joiner fleet
-        Fleet memory joinerFleet = fleets.getFleet(game.joinerFleetId);
-
         // Count non-destroyed ships
-        uint nonDestroyedShips = 0;
-
-        // Count non-destroyed creator ships
-        for (uint i = 0; i < creatorFleet.shipIds.length; i++) {
-            uint shipId = creatorFleet.shipIds[i];
-            Ship memory ship = ships.getShip(shipId);
-            if (
-                ship.shipData.timestampDestroyed == 0 &&
-                game.shipAttributes[shipId].hullPoints > 0
-            ) {
-                nonDestroyedShips++;
-            }
-        }
-
-        // Count non-destroyed joiner ships
-        for (uint i = 0; i < joinerFleet.shipIds.length; i++) {
-            uint shipId = joinerFleet.shipIds[i];
-            Ship memory ship = ships.getShip(shipId);
-            if (
-                ship.shipData.timestampDestroyed == 0 &&
-                game.shipAttributes[shipId].hullPoints > 0
-            ) {
-                nonDestroyedShips++;
-            }
-        }
+        uint nonDestroyedShips = _countActiveShips(_gameId);
 
         ShipPosition[] memory positions = new ShipPosition[](nonDestroyedShips);
         uint index = 0;
 
-        // Add non-destroyed creator ships
-        for (uint i = 0; i < creatorFleet.shipIds.length; i++) {
-            uint shipId = creatorFleet.shipIds[i];
-            Ship memory ship = ships.getShip(shipId);
-            if (
-                ship.shipData.timestampDestroyed == 0 &&
-                game.shipAttributes[shipId].hullPoints > 0
-            ) {
-                positions[index] = ShipPosition({
-                    shipId: shipId,
-                    position: game.shipPositions[shipId],
-                    isCreator: true
-                });
-                index++;
-            }
-        }
+        // Add creator ships
+        index = _addFleetPositions(
+            _gameId,
+            game.creatorFleetId,
+            positions,
+            index,
+            true
+        );
 
-        // Add non-destroyed joiner ships
-        for (uint i = 0; i < joinerFleet.shipIds.length; i++) {
-            uint shipId = joinerFleet.shipIds[i];
-            Ship memory ship = ships.getShip(shipId);
-            if (
-                ship.shipData.timestampDestroyed == 0 &&
-                game.shipAttributes[shipId].hullPoints > 0
-            ) {
-                positions[index] = ShipPosition({
-                    shipId: shipId,
-                    position: game.shipPositions[shipId],
-                    isCreator: false
-                });
-                index++;
-            }
-        }
+        // Add joiner ships
+        index = _addFleetPositions(
+            _gameId,
+            game.joinerFleetId,
+            positions,
+            index,
+            false
+        );
 
         return positions;
+    }
+
+    // Helper function to count active ships
+    function _countActiveShips(uint _gameId) internal view returns (uint) {
+        GameData storage game = games[_gameId];
+        Fleet memory creatorFleet = fleets.getFleet(game.creatorFleetId);
+        Fleet memory joinerFleet = fleets.getFleet(game.joinerFleetId);
+
+        uint count = 0;
+
+        // Count creator ships
+        for (uint i = 0; i < creatorFleet.shipIds.length; i++) {
+            if (_isShipActive(_gameId, creatorFleet.shipIds[i])) {
+                count++;
+            }
+        }
+
+        // Count joiner ships
+        for (uint i = 0; i < joinerFleet.shipIds.length; i++) {
+            if (_isShipActive(_gameId, joinerFleet.shipIds[i])) {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    // Helper function to add fleet positions to the array
+    function _addFleetPositions(
+        uint _gameId,
+        uint _fleetId,
+        ShipPosition[] memory _positions,
+        uint _startIndex,
+        bool _isCreator
+    ) internal view returns (uint) {
+        GameData storage game = games[_gameId];
+        Fleet memory fleet = fleets.getFleet(_fleetId);
+        uint index = _startIndex;
+
+        for (uint i = 0; i < fleet.shipIds.length; i++) {
+            uint shipId = fleet.shipIds[i];
+            if (_isShipActive(_gameId, shipId)) {
+                _positions[index] = ShipPosition({
+                    shipId: shipId,
+                    position: game.shipPositions[shipId],
+                    isCreator: _isCreator
+                });
+                index++;
+            }
+        }
+
+        return index;
+    }
+
+    // Helper functions to consolidate fleet iteration logic
+
+    // Helper function to iterate over both fleets and apply a callback function
+    function _iterateOverBothFleets(
+        uint _gameId,
+        function(uint, uint) internal view returns (bool) callback
+    ) internal view returns (bool) {
+        GameData storage game = games[_gameId];
+        Fleet memory creatorFleet = fleets.getFleet(game.creatorFleetId);
+        Fleet memory joinerFleet = fleets.getFleet(game.joinerFleetId);
+
+        // Check creator ships
+        for (uint i = 0; i < creatorFleet.shipIds.length; i++) {
+            uint shipId = creatorFleet.shipIds[i];
+            if (callback(_gameId, shipId)) {
+                return true;
+            }
+        }
+
+        // Check joiner ships
+        for (uint i = 0; i < joinerFleet.shipIds.length; i++) {
+            uint shipId = joinerFleet.shipIds[i];
+            if (callback(_gameId, shipId)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Helper function to iterate over both fleets and apply a callback function that can modify state
+    function _iterateOverBothFleetsStateful(
+        uint _gameId,
+        function(uint, uint) internal callback
+    ) internal {
+        GameData storage game = games[_gameId];
+        Fleet memory creatorFleet = fleets.getFleet(game.creatorFleetId);
+        Fleet memory joinerFleet = fleets.getFleet(game.joinerFleetId);
+
+        // Check creator ships
+        for (uint i = 0; i < creatorFleet.shipIds.length; i++) {
+            uint shipId = creatorFleet.shipIds[i];
+            callback(_gameId, shipId);
+        }
+
+        // Check joiner ships
+        for (uint i = 0; i < joinerFleet.shipIds.length; i++) {
+            uint shipId = joinerFleet.shipIds[i];
+            callback(_gameId, shipId);
+        }
+    }
+
+    // Helper function to check if a ship is active (not destroyed and has hull points)
+    function _isShipActive(
+        uint _gameId,
+        uint _shipId
+    ) internal view returns (bool) {
+        GameData storage game = games[_gameId];
+        Ship memory ship = ships.getShip(_shipId);
+
+        // Skip destroyed ships
+        if (ship.shipData.timestampDestroyed != 0) return false;
+        // Skip ships with 0 hull points (treat same as destroyed)
+        if (game.shipAttributes[_shipId].hullPoints == 0) return false;
+
+        return true;
+    }
+
+    // Helper function to check if a ship is not destroyed (for functions that don't check hull points)
+    function _isShipNotDestroyed(
+        uint _gameId,
+        uint _shipId
+    ) internal view returns (bool) {
+        Ship memory ship = ships.getShip(_shipId);
+        return ship.shipData.timestampDestroyed == 0;
     }
 
     // Move a ship to a new position and perform an action (pass or shoot)
@@ -535,80 +619,68 @@ contract Game is Ownable, ReentrancyGuard {
     function _checkRoundComplete(uint _gameId) internal view returns (bool) {
         GameData storage game = games[_gameId];
 
-        // Get both fleets
-        Fleet memory creatorFleet = fleets.getFleet(game.creatorFleetId);
-        Fleet memory joinerFleet = fleets.getFleet(game.joinerFleetId);
+        // Use helper function to check if any active ship hasn't moved
+        bool hasUnmovedShip = _iterateOverBothFleets(_gameId, _checkShipMoved);
+        return !hasUnmovedShip;
+    }
 
-        // Check if all non-destroyed creator ships have moved
-        for (uint i = 0; i < creatorFleet.shipIds.length; i++) {
-            uint shipId = creatorFleet.shipIds[i];
-            Ship memory ship = ships.getShip(shipId);
-            // Skip destroyed ships
-            if (ship.shipData.timestampDestroyed != 0) continue;
-            // Skip ships with 0 hull points (treat same as destroyed)
-            if (game.shipAttributes[shipId].hullPoints == 0) continue;
-            if (!game.shipMovedThisRound[game.currentRound][shipId]) {
-                return false;
-            }
-        }
+    // Helper function for _checkRoundComplete
+    function _checkShipMoved(
+        uint _gameId,
+        uint _shipId
+    ) internal view returns (bool) {
+        GameData storage game = games[_gameId];
 
-        // Check if all non-destroyed joiner ships have moved
-        for (uint i = 0; i < joinerFleet.shipIds.length; i++) {
-            uint shipId = joinerFleet.shipIds[i];
-            Ship memory ship = ships.getShip(shipId);
-            // Skip destroyed ships
-            if (ship.shipData.timestampDestroyed != 0) continue;
-            // Skip ships with 0 hull points (treat same as destroyed)
-            if (game.shipAttributes[shipId].hullPoints == 0) continue;
-            if (!game.shipMovedThisRound[game.currentRound][shipId]) {
-                return false;
-            }
-        }
+        // Only check active ships
+        if (!_isShipActive(_gameId, _shipId)) return false;
 
-        return true;
+        // Return true if ship hasn't moved (indicating round is not complete)
+        return !game.shipMovedThisRound[game.currentRound][_shipId];
     }
 
     // Switch turns only if the other player has unmoved ships
     function _switchTurnIfOtherPlayerHasShips(uint _gameId) internal {
         GameData storage game = games[_gameId];
 
-        // Get both fleets
-        Fleet memory creatorFleet = fleets.getFleet(game.creatorFleetId);
-        Fleet memory joinerFleet = fleets.getFleet(game.joinerFleetId);
-
         if (game.currentTurn == game.creator) {
             // Creator just moved, check if joiner has unmoved ships
-            for (uint i = 0; i < joinerFleet.shipIds.length; i++) {
-                uint shipId = joinerFleet.shipIds[i];
-                Ship memory ship = ships.getShip(shipId);
-                // Skip destroyed ships
-                if (ship.shipData.timestampDestroyed != 0) continue;
-                // Skip ships with 0 hull points (treat same as destroyed)
-                if (game.shipAttributes[shipId].hullPoints == 0) continue;
-                if (!game.shipMovedThisRound[game.currentRound][shipId]) {
-                    // Joiner has unmoved ships, switch turn
-                    game.currentTurn = game.joiner;
-                    return;
-                }
+            bool joinerHasUnmovedShips = _checkPlayerHasUnmovedShips(
+                _gameId,
+                game.joinerFleetId
+            );
+            if (joinerHasUnmovedShips) {
+                game.currentTurn = game.joiner;
             }
-            // Joiner has no unmoved ships, keep turn with creator
         } else {
             // Joiner just moved, check if creator has unmoved ships
-            for (uint i = 0; i < creatorFleet.shipIds.length; i++) {
-                uint shipId = creatorFleet.shipIds[i];
-                Ship memory ship = ships.getShip(shipId);
-                // Skip destroyed ships
-                if (ship.shipData.timestampDestroyed != 0) continue;
-                // Skip ships with 0 hull points (treat same as destroyed)
-                if (game.shipAttributes[shipId].hullPoints == 0) continue;
-                if (!game.shipMovedThisRound[game.currentRound][shipId]) {
-                    // Creator has unmoved ships, switch turn
-                    game.currentTurn = game.creator;
-                    return;
-                }
+            bool creatorHasUnmovedShips = _checkPlayerHasUnmovedShips(
+                _gameId,
+                game.creatorFleetId
+            );
+            if (creatorHasUnmovedShips) {
+                game.currentTurn = game.creator;
             }
-            // Creator has no unmoved ships, keep turn with joiner
         }
+    }
+
+    // Helper function to check if a specific fleet has unmoved ships
+    function _checkPlayerHasUnmovedShips(
+        uint _gameId,
+        uint _fleetId
+    ) internal view returns (bool) {
+        Fleet memory fleet = fleets.getFleet(_fleetId);
+        GameData storage game = games[_gameId];
+
+        for (uint i = 0; i < fleet.shipIds.length; i++) {
+            uint shipId = fleet.shipIds[i];
+            if (
+                _isShipActive(_gameId, shipId) &&
+                !game.shipMovedThisRound[game.currentRound][shipId]
+            ) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // Internal function to perform special action
@@ -898,36 +970,19 @@ contract Game is Ownable, ReentrancyGuard {
 
     // Internal function to destroy ships with reactorCriticalTimer >= 3
     function _destroyShipsWithCriticalReactor(uint _gameId) internal {
+        _iterateOverBothFleetsStateful(_gameId, _destroyShipIfCritical);
+    }
+
+    // Helper function for _destroyShipsWithCriticalReactor
+    function _destroyShipIfCritical(uint _gameId, uint _shipId) internal {
         GameData storage game = games[_gameId];
 
-        // Get both fleets
-        Fleet memory creatorFleet = fleets.getFleet(game.creatorFleetId);
-        Fleet memory joinerFleet = fleets.getFleet(game.joinerFleetId);
+        // Only check non-destroyed ships
+        if (!_isShipNotDestroyed(_gameId, _shipId)) return;
 
-        // Check creator ships
-        for (uint i = 0; i < creatorFleet.shipIds.length; i++) {
-            uint shipId = creatorFleet.shipIds[i];
-            Ship memory ship = ships.getShip(shipId);
-            // Skip already destroyed ships
-            if (ship.shipData.timestampDestroyed != 0) continue;
-
-            // Check if ship has critical reactor timer
-            if (game.shipAttributes[shipId].reactorCriticalTimer >= 3) {
-                _destroyShip(_gameId, shipId);
-            }
-        }
-
-        // Check joiner ships
-        for (uint i = 0; i < joinerFleet.shipIds.length; i++) {
-            uint shipId = joinerFleet.shipIds[i];
-            Ship memory ship = ships.getShip(shipId);
-            // Skip already destroyed ships
-            if (ship.shipData.timestampDestroyed != 0) continue;
-
-            // Check if ship has critical reactor timer
-            if (game.shipAttributes[shipId].reactorCriticalTimer >= 3) {
-                _destroyShip(_gameId, shipId);
-            }
+        // Check if ship has critical reactor timer
+        if (game.shipAttributes[_shipId].reactorCriticalTimer >= 3) {
+            _destroyShip(_gameId, _shipId);
         }
     }
 
@@ -935,36 +990,19 @@ contract Game is Ownable, ReentrancyGuard {
     function _incrementReactorCriticalTimerForZeroHPShips(
         uint _gameId
     ) internal {
+        _iterateOverBothFleetsStateful(_gameId, _incrementTimerIfZeroHP);
+    }
+
+    // Helper function for _incrementReactorCriticalTimerForZeroHPShips
+    function _incrementTimerIfZeroHP(uint _gameId, uint _shipId) internal {
         GameData storage game = games[_gameId];
 
-        // Get both fleets
-        Fleet memory creatorFleet = fleets.getFleet(game.creatorFleetId);
-        Fleet memory joinerFleet = fleets.getFleet(game.joinerFleetId);
+        // Only check non-destroyed ships
+        if (!_isShipNotDestroyed(_gameId, _shipId)) return;
 
-        // Check creator ships
-        for (uint i = 0; i < creatorFleet.shipIds.length; i++) {
-            uint shipId = creatorFleet.shipIds[i];
-            Ship memory ship = ships.getShip(shipId);
-            // Skip destroyed ships
-            if (ship.shipData.timestampDestroyed != 0) continue;
-
-            // Increment reactor critical timer for ships with 0 HP
-            if (game.shipAttributes[shipId].hullPoints == 0) {
-                game.shipAttributes[shipId].reactorCriticalTimer++;
-            }
-        }
-
-        // Check joiner ships
-        for (uint i = 0; i < joinerFleet.shipIds.length; i++) {
-            uint shipId = joinerFleet.shipIds[i];
-            Ship memory ship = ships.getShip(shipId);
-            // Skip destroyed ships
-            if (ship.shipData.timestampDestroyed != 0) continue;
-
-            // Increment reactor critical timer for ships with 0 HP
-            if (game.shipAttributes[shipId].hullPoints == 0) {
-                game.shipAttributes[shipId].reactorCriticalTimer++;
-            }
+        // Increment reactor critical timer for ships with 0 HP
+        if (game.shipAttributes[_shipId].hullPoints == 0) {
+            game.shipAttributes[_shipId].reactorCriticalTimer++;
         }
     }
 

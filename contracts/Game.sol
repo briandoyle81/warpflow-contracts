@@ -89,7 +89,7 @@ contract Game is Ownable, ReentrancyGuard {
         v1.specials.push(SpecialData(0, 0, 0)); // None
         v1.specials.push(SpecialData(1, 1, 0)); // EMP
         v1.specials.push(SpecialData(3, 25, 0)); // RepairDrones
-        v1.specials.push(SpecialData(1, 10, 0)); // FlakArray
+        v1.specials.push(SpecialData(5, 5, 0)); // FlakArray
     }
 
     function setLobbiesAddress(address _lobbiesAddress) public onlyOwner {
@@ -636,32 +636,44 @@ contract Game is Ownable, ReentrancyGuard {
         if (targetShip.id == 0) revert ShipNotFound();
         if (targetShip.shipData.timestampDestroyed != 0) revert ShipDestroyed();
 
-        // Must be on the same team (by owner address) for RepairDrones, but enemy team for EMP
+        // Check if using ship has a special
         Ship memory usingShip = ships.getShip(_shipId);
+        if (usingShip.equipment.special == Special.None) revert InvalidMove();
+
+        // Handle different special types
         if (usingShip.equipment.special == Special.RepairDrones) {
             // RepairDrones can only target friendly ships
             if (targetShip.owner != usingShip.owner) revert InvalidMove();
+
+            // Check if using ship is within range of target ship
+            Position memory targetPos = game.shipPositions[_targetShipId];
+            Position memory usingPos = Position(_newRow, _newCol);
+            uint8 specialRange = attributesVersions[currentAttributesVersion]
+                .specials[uint8(usingShip.equipment.special)]
+                .range;
+            uint8 manhattan = _manhattanDistance(usingPos, targetPos);
+            if (manhattan > specialRange) {
+                revert InvalidMove();
+            }
         } else if (usingShip.equipment.special == Special.EMP) {
             // EMP can only target enemy ships
             if (targetShip.owner == usingShip.owner) revert InvalidMove();
-        }
 
-        // Check if using ship has a special
-        if (usingShip.equipment.special == Special.None) revert InvalidMove();
-
-        // Check if using ship is within range of target ship
-        Position memory targetPos = game.shipPositions[_targetShipId];
-        Position memory usingPos = Position(_newRow, _newCol);
-
-        // Get the range of the special from the attributes version
-        uint8 specialRange = attributesVersions[currentAttributesVersion]
-            .specials[uint8(usingShip.equipment.special)]
-            .range;
-
-        // Must be within the special's range
-        uint8 manhattan = _manhattanDistance(usingPos, targetPos);
-        if (manhattan > specialRange) {
-            revert InvalidMove();
+            // Check if using ship is within range of target ship
+            Position memory targetPos = game.shipPositions[_targetShipId];
+            Position memory usingPos = Position(_newRow, _newCol);
+            uint8 specialRange = attributesVersions[currentAttributesVersion]
+                .specials[uint8(usingShip.equipment.special)]
+                .range;
+            uint8 manhattan = _manhattanDistance(usingPos, targetPos);
+            if (manhattan > specialRange) {
+                revert InvalidMove();
+            }
+        } else if (usingShip.equipment.special == Special.FlakArray) {
+            // FlakArray doesn't need a target - it affects all ships in range
+            // No additional validation needed here
+        } else {
+            revert InvalidMove(); // Other specials not implemented yet
         }
 
         // Handle different special types
@@ -669,6 +681,8 @@ contract Game is Ownable, ReentrancyGuard {
             _performRepairDrones(_gameId, _shipId, _targetShipId);
         } else if (usingShip.equipment.special == Special.EMP) {
             _performEMP(_gameId, _shipId, _targetShipId);
+        } else if (usingShip.equipment.special == Special.FlakArray) {
+            _performFlakArray(_gameId, _shipId, _newRow, _newCol);
         } else {
             revert InvalidMove(); // Other specials not implemented yet
         }
@@ -717,6 +731,82 @@ contract Game is Ownable, ReentrancyGuard {
 
         // Increase reactor critical timer by the EMP strength
         targetAttributes.reactorCriticalTimer += empStrength;
+    }
+
+    // Internal function to perform FlakArray special
+    function _performFlakArray(
+        uint _gameId,
+        uint _shipId,
+        uint8 _newRow,
+        uint8 _newCol
+    ) internal {
+        GameData storage game = games[_gameId];
+
+        // Get the range and strength of FlakArray from the attributes version
+        uint8 flakRange = attributesVersions[currentAttributesVersion]
+            .specials[uint8(Special.FlakArray)]
+            .range;
+        uint8 flakStrength = attributesVersions[currentAttributesVersion]
+            .specials[uint8(Special.FlakArray)]
+            .strength;
+
+        // Get both fleets to check all ships
+        Fleet memory creatorFleet = fleets.getFleet(game.creatorFleetId);
+        Fleet memory joinerFleet = fleets.getFleet(game.joinerFleetId);
+
+        // Check all creator ships
+        for (uint i = 0; i < creatorFleet.shipIds.length; i++) {
+            uint shipId = creatorFleet.shipIds[i];
+            Ship memory ship = ships.getShip(shipId);
+
+            // Skip destroyed ships
+            if (ship.shipData.timestampDestroyed != 0) continue;
+
+            // Skip ships with 0 hull points (treat same as destroyed)
+            if (game.shipAttributes[shipId].hullPoints == 0) continue;
+
+            // Check if ship is within range
+            Position memory shipPos = game.shipPositions[shipId];
+            Position memory flakPos = Position(_newRow, _newCol);
+            uint8 distance = _manhattanDistance(flakPos, shipPos);
+
+            if (distance <= flakRange && shipId != _shipId) {
+                // Apply damage to this ship (but not the ship using the FlakArray)
+                Attributes storage shipAttrs = game.shipAttributes[shipId];
+                if (flakStrength >= shipAttrs.hullPoints) {
+                    shipAttrs.hullPoints = 0;
+                } else {
+                    shipAttrs.hullPoints -= flakStrength;
+                }
+            }
+        }
+
+        // Check all joiner ships
+        for (uint i = 0; i < joinerFleet.shipIds.length; i++) {
+            uint shipId = joinerFleet.shipIds[i];
+            Ship memory ship = ships.getShip(shipId);
+
+            // Skip destroyed ships
+            if (ship.shipData.timestampDestroyed != 0) continue;
+
+            // Skip ships with 0 hull points (treat same as destroyed)
+            if (game.shipAttributes[shipId].hullPoints == 0) continue;
+
+            // Check if ship is within range
+            Position memory shipPos = game.shipPositions[shipId];
+            Position memory flakPos = Position(_newRow, _newCol);
+            uint8 distance = _manhattanDistance(flakPos, shipPos);
+
+            if (distance <= flakRange && shipId != _shipId) {
+                // Apply damage to this ship (but not the ship using the FlakArray)
+                Attributes storage shipAttrs = game.shipAttributes[shipId];
+                if (flakStrength >= shipAttrs.hullPoints) {
+                    shipAttrs.hullPoints = 0;
+                } else {
+                    shipAttrs.hullPoints -= flakStrength;
+                }
+            }
+        }
     }
 
     // Internal function to perform assist action
@@ -965,6 +1055,22 @@ contract Game is Ownable, ReentrancyGuard {
 
         // Mark ship as moved this round
         game.shipMovedThisRound[game.currentRound][_shipId] = true;
+    }
+
+    // Debug function to set a ship in a specific position (onlyOwner for testing)
+    function debugSetShipPosition(
+        uint _gameId,
+        uint _shipId,
+        uint8 _row,
+        uint8 _col
+    ) external onlyOwner {
+        // No checks needed for debug, assume correct info given
+
+        // Set ship position
+        games[_gameId].shipPositions[_shipId] = Position(_row, _col);
+
+        // Set ship in grid
+        games[_gameId].grid[_row][_col] = _shipId;
     }
 
     // Internal helper functions

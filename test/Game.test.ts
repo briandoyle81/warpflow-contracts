@@ -3117,5 +3117,156 @@ describe("Game", function () {
       const joinerShipAttrsAfter = await game.read.getShipAttributes([1n, 6n]);
       expect(joinerShipAttrsAfter.reactorCriticalTimer).to.equal(1); // Should be exactly 1 since EMP strength is 1
     });
+
+    it("should allow ships with FlakArray to damage all ships in range", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+        owner,
+      } = await loadFixture(deployGameFixture);
+
+      // 1. Purchase ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // 2. Set the first ship as having a FlakArray
+      const flakShip: Ship = {
+        name: "FlakArray Ship",
+        id: 1n,
+        equipment: {
+          mainWeapon: 0, // Laser
+          armor: 0, // None
+          shields: 0, // None
+          special: 3, // FlakArray
+        },
+        traits: {
+          serialNumber: 12345n,
+          colors: { h1: 0, s1: 0, l1: 0, h2: 0, s2: 0, l2: 0 },
+          variant: 0,
+          accuracy: 0,
+          hull: 0,
+          speed: 0,
+        },
+        shipData: {
+          shipsDestroyed: 0,
+          costsVersion: 1,
+          cost: 0,
+          shiny: false,
+          constructed: false,
+          inFleet: false,
+          timestampDestroyed: 0n,
+        },
+        owner: creator.account.address,
+      };
+
+      // Authorize owner to create ships
+      await ships.write.setIsAllowedToCreateShips(
+        [owner.account.address, true],
+        { account: owner.account }
+      );
+
+      // Create the FlakArray ship
+      await ships.write.constructSpecificShip([1n, flakShip], {
+        account: owner.account,
+      });
+
+      // 3. Construct the remaining ships
+      await ships.write.constructShip([2n], { account: creator.account });
+      await ships.write.constructShip([3n], { account: creator.account });
+      await ships.write.constructShip([6n], { account: joiner.account });
+      await ships.write.constructShip([7n], { account: joiner.account });
+
+      // 4. Create a lobby, fleet, game etc for both players
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets with multiple ships each
+      await creatorLobbies.write.createFleet([1n, [1n, 2n, 3n]]);
+      await joinerLobbies.write.createFleet([1n, [6n, 7n]]);
+
+      // 5. Move the FlakArray ship to the center with the debug function
+      await game.write.debugSetShipPosition([1n, 1n, 25, 50], {
+        account: owner.account,
+      });
+
+      // 6. Move the remaining ships so that 1 from each team are within 5 squares and 1 from each team are outside 5 away
+      // FlakArray has range 5, so we need ships within 5 squares and outside 5 squares
+
+      // Creator's second ship (ship 2) - within range (distance 3)
+      await game.write.debugSetShipPosition([1n, 2n, 22, 50], {
+        account: owner.account,
+      });
+
+      // Creator's third ship (ship 3) - outside range (distance 7)
+      await game.write.debugSetShipPosition([1n, 3n, 18, 50], {
+        account: owner.account,
+      });
+
+      // Joiner's first ship (ship 6) - within range (distance 4)
+      await game.write.debugSetShipPosition([1n, 6n, 29, 50], {
+        account: owner.account,
+      });
+
+      // Joiner's second ship (ship 7) - outside range (distance 8)
+      await game.write.debugSetShipPosition([1n, 7n, 33, 50], {
+        account: owner.account,
+      });
+
+      // Get initial hull points of all ships
+      const ship1AttrsBefore = await game.read.getShipAttributes([1n, 1n]); // FlakArray ship
+      const ship2AttrsBefore = await game.read.getShipAttributes([1n, 2n]); // creator's second ship (in range)
+      const ship3AttrsBefore = await game.read.getShipAttributes([1n, 3n]); // creator's third ship (out of range)
+      const ship6AttrsBefore = await game.read.getShipAttributes([1n, 6n]); // joiner's first ship (in range)
+      const ship7AttrsBefore = await game.read.getShipAttributes([1n, 7n]); // joiner's second ship (out of range)
+
+      // 7. Use the first ship's first turn to stay in place and fire FlakArray
+      const flakPos = await game.read.getShipPosition([1n, 1n]);
+      await game.write.moveShip(
+        [1n, 1n, flakPos.row, flakPos.col, ActionType.Special, 1n],
+        { account: creator.account }
+      );
+
+      // Get hull points after FlakArray attack
+      const ship1AttrsAfter = await game.read.getShipAttributes([1n, 1n]);
+      const ship2AttrsAfter = await game.read.getShipAttributes([1n, 2n]);
+      const ship3AttrsAfter = await game.read.getShipAttributes([1n, 3n]);
+      const ship6AttrsAfter = await game.read.getShipAttributes([1n, 6n]);
+      const ship7AttrsAfter = await game.read.getShipAttributes([1n, 7n]);
+
+      // 8. Make sure that ship is undamaged (FlakArray ship should not damage itself)
+      expect(ship1AttrsAfter.hullPoints).to.equal(ship1AttrsBefore.hullPoints);
+
+      // 9. Make sure that the 1 friendly and 1 enemy ship in range are damaged
+      // FlakArray strength is 5, so ships in range should lose 5 hull points
+      expect(ship2AttrsAfter.hullPoints).to.equal(
+        Math.max(0, ship2AttrsBefore.hullPoints - 5)
+      );
+      expect(ship6AttrsAfter.hullPoints).to.equal(
+        Math.max(0, ship6AttrsBefore.hullPoints - 5)
+      );
+
+      // 10. Make sure that the ships out of range are undamaged
+      expect(ship3AttrsAfter.hullPoints).to.equal(ship3AttrsBefore.hullPoints);
+      expect(ship7AttrsAfter.hullPoints).to.equal(ship7AttrsBefore.hullPoints);
+    });
   });
 });

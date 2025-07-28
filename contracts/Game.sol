@@ -1076,11 +1076,6 @@ contract Game is Ownable, ReentrancyGuard {
     ) external onlyOwner {
         GameData storage game = games[_gameId];
 
-        // Check if ship is in the game (either creator or joiner fleet)
-        bool isCreatorShip = fleets.isShipInFleet(game.creatorFleetId, _shipId);
-        bool isJoinerShip = fleets.isShipInFleet(game.joinerFleetId, _shipId);
-        if (!isCreatorShip && !isJoinerShip) revert ShipNotFound();
-
         // Set hull points to 0
         game.shipAttributes[_shipId].hullPoints = 0;
 

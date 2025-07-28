@@ -6,12 +6,12 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./Types.sol";
 import "./Ships.sol";
 import "./Game.sol";
-import "./Fleets.sol";
+import "./IFleets.sol";
 
 contract Lobbies is Ownable, ReentrancyGuard {
     Ships public ships;
     Game public game;
-    Fleets public fleets;
+    IFleets public fleets;
 
     uint public lobbyCount;
     uint public freeGamesPerAddress = 1;
@@ -71,7 +71,7 @@ contract Lobbies is Ownable, ReentrancyGuard {
     }
 
     function setFleetsAddress(address _fleetsAddress) public onlyOwner {
-        fleets = Fleets(_fleetsAddress);
+        fleets = IFleets(_fleetsAddress);
     }
 
     function isLobbyOpenForJoining(uint _id) public view returns (bool) {

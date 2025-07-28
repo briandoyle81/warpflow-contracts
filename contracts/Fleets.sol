@@ -4,8 +4,9 @@ pragma solidity ^0.8.28;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Types.sol";
 import "./Ships.sol";
+import "./IFleets.sol";
 
-contract Fleets is Ownable {
+contract Fleets is Ownable, IFleets {
     Ships public ships;
     address public lobbiesAddress;
     address public gameAddress;
@@ -143,5 +144,21 @@ contract Fleets is Ownable {
     function getFleet(uint _fleetId) external view returns (Fleet memory) {
         if (fleets[_fleetId].id == 0) revert FleetNotFound();
         return fleets[_fleetId];
+    }
+
+    // Check if a ship is in a specific fleet
+    function isShipInFleet(
+        uint _fleetId,
+        uint _shipId
+    ) external view returns (bool) {
+        if (fleets[_fleetId].id == 0) revert FleetNotFound();
+
+        Fleet memory fleet = fleets[_fleetId];
+        for (uint i = 0; i < fleet.shipIds.length; i++) {
+            if (fleet.shipIds[i] == _shipId) {
+                return true;
+            }
+        }
+        return false;
     }
 }

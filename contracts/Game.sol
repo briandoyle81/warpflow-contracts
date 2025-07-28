@@ -5,11 +5,11 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./Types.sol";
 import "./Ships.sol";
-import "./Fleets.sol";
+import "./IFleets.sol";
 
 contract Game is Ownable, ReentrancyGuard {
     Ships public ships;
-    Fleets public fleets;
+    IFleets public fleets;
     address public lobbiesAddress;
 
     mapping(uint => GameData) public games;
@@ -97,7 +97,7 @@ contract Game is Ownable, ReentrancyGuard {
     }
 
     function setFleetsAddress(address _fleetsAddress) public onlyOwner {
-        fleets = Fleets(_fleetsAddress);
+        fleets = IFleets(_fleetsAddress);
     }
 
     function startGame(
@@ -391,8 +391,8 @@ contract Game is Ownable, ReentrancyGuard {
 
         // Check if ship is in the game (either creator or joiner fleet)
         if (
-            !_isShipInFleet(_gameId, _shipId, true) &&
-            !_isShipInFleet(_gameId, _shipId, false)
+            !fleets.isShipInFleet(game.creatorFleetId, _shipId) &&
+            !fleets.isShipInFleet(game.joinerFleetId, _shipId)
         ) revert ShipNotFound();
 
         // Check if ship has already moved this round
@@ -847,8 +847,8 @@ contract Game is Ownable, ReentrancyGuard {
         if (ship.id == 0) revert ShipNotFound();
 
         // Check if ship is in the game (either creator or joiner fleet)
-        bool isCreatorShip = _isShipInFleet(_gameId, _shipId, true);
-        bool isJoinerShip = _isShipInFleet(_gameId, _shipId, false);
+        bool isCreatorShip = fleets.isShipInFleet(game.creatorFleetId, _shipId);
+        bool isJoinerShip = fleets.isShipInFleet(game.joinerFleetId, _shipId);
         if (!isCreatorShip && !isJoinerShip) revert ShipNotFound();
 
         // Check if ship is already destroyed
@@ -883,8 +883,8 @@ contract Game is Ownable, ReentrancyGuard {
         if (ship.id == 0) revert ShipNotFound();
 
         // Check if ship is in the game (either creator or joiner fleet)
-        bool isCreatorShip = _isShipInFleet(_gameId, _shipId, true);
-        bool isJoinerShip = _isShipInFleet(_gameId, _shipId, false);
+        bool isCreatorShip = fleets.isShipInFleet(game.creatorFleetId, _shipId);
+        bool isJoinerShip = fleets.isShipInFleet(game.joinerFleetId, _shipId);
         if (!isCreatorShip && !isJoinerShip) revert ShipNotFound();
 
         // Check if ship is already destroyed
@@ -986,8 +986,8 @@ contract Game is Ownable, ReentrancyGuard {
         GameData storage game = games[_gameId];
 
         // Check if ship is in the game (either creator or joiner fleet)
-        bool isCreatorShip = _isShipInFleet(_gameId, _shipId, true);
-        bool isJoinerShip = _isShipInFleet(_gameId, _shipId, false);
+        bool isCreatorShip = fleets.isShipInFleet(game.creatorFleetId, _shipId);
+        bool isJoinerShip = fleets.isShipInFleet(game.joinerFleetId, _shipId);
         if (!isCreatorShip && !isJoinerShip) revert ShipNotFound();
 
         // Set hull points to 0
@@ -1034,24 +1034,6 @@ contract Game is Ownable, ReentrancyGuard {
     }
 
     // Internal helper functions
-
-    function _isShipInFleet(
-        uint _gameId,
-        uint _shipId,
-        bool _isCreator
-    ) internal view returns (bool) {
-        GameData storage game = games[_gameId];
-        Fleet memory fleet = fleets.getFleet(
-            _isCreator ? game.creatorFleetId : game.joinerFleetId
-        );
-
-        for (uint i = 0; i < fleet.shipIds.length; i++) {
-            if (fleet.shipIds[i] == _shipId) {
-                return true;
-            }
-        }
-        return false;
-    }
 
     function _calculateMovementCost(
         Position memory _currentPos,

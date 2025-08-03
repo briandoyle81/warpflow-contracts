@@ -83,7 +83,8 @@ struct ShipPosition {
     bool isCreator;
 }
 
-struct GameData {
+// Game metadata - basic game identification and players
+struct GameMetadata {
     uint gameId;
     uint lobbyId;
     address creator;
@@ -92,17 +93,33 @@ struct GameData {
     uint joinerFleetId;
     bool creatorGoesFirst;
     uint startedAt;
+    address winner; // Winner of the game (zero address if game is not over)
+}
+
+// Game turn state - turn and timing related data
+struct GameTurnState {
     address currentTurn;
+    uint turnTime; // Time limit per turn in seconds
+    uint turnStartTime; // When current turn started
+    uint currentRound;
+}
+
+// Game grid dimensions
+struct GameGridDimensions {
+    uint8 gridWidth;
+    uint8 gridHeight;
+}
+
+struct GameData {
+    GameMetadata metadata;
+    GameTurnState turnState;
+    GameGridDimensions gridDimensions;
+    // Keep all mappings in GameData
     mapping(uint => Attributes) shipAttributes; // shipId => attributes
     // Grid state - grid[row][column] = shipId (0 if empty)
     mapping(uint8 row => mapping(uint8 column => uint shipId)) grid;
     mapping(uint => Position) shipPositions; // shipId => position
-    uint8 gridWidth;
-    uint8 gridHeight;
-    // Movement tracking
-    uint currentRound;
     mapping(uint => mapping(uint => bool)) shipMovedThisRound; // round => shipId => hasMoved
-    // Action tracking
 }
 
 struct GameDataView {
@@ -115,6 +132,7 @@ struct GameDataView {
     bool creatorGoesFirst;
     uint startedAt;
     address currentTurn;
+    address winner; // Winner of the game (zero address if game is not over)
     Attributes[] shipAttributes; // Combined array of all ship attributes indexed by ship ID
     // Grid data
     ShipPosition[] shipPositions; // All ship positions on the grid

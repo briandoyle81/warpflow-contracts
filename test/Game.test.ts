@@ -3269,4 +3269,181 @@ describe("Game", function () {
       expect(ship7AttrsAfter.hullPoints).to.equal(ship7AttrsBefore.hullPoints);
     });
   });
+
+  describe("Turn Timeout", function () {
+    it("should enforce turn timeouts correctly", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        fleets,
+        lobbies,
+        randomManager,
+      } = await loadFixture(deployGameFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a lobby with a short turn time (5 minutes - minimum allowed)
+      const shortTurnTime = 300n;
+      await creatorLobbies.write.createLobby([1000n, shortTurnTime, true]);
+
+      const lobbyId = 1n;
+      await joinerLobbies.write.joinLobby([lobbyId]);
+
+      // Create fleets (this automatically starts the game)
+      await creatorLobbies.write.createFleet([lobbyId, [1n, 2n]]);
+      await joinerLobbies.write.createFleet([lobbyId, [6n, 7n]]);
+
+      const gameId = 1n;
+
+      // Check initial turn info
+      const turnInfo = await game.read.getCurrentTurnInfo([gameId]);
+      expect(turnInfo[0].toLowerCase()).to.equal(
+        creator.account.address.toLowerCase()
+      ); // currentTurn
+      expect(turnInfo[2]).to.equal(shortTurnTime); // turnTime
+      expect(turnInfo[4]).to.be.false; // isTimedOut
+
+      // Wait for turn to timeout (simulate by advancing time)
+      await hre.network.provider.send("evm_increaseTime", [
+        Number(shortTurnTime) + 1,
+      ]);
+      await hre.network.provider.send("evm_mine", []);
+
+      // Check that turn has timed out
+      const turnInfoAfterTimeout = await game.read.getCurrentTurnInfo([gameId]);
+      expect(turnInfoAfterTimeout[4]).to.be.true; // isTimedOut
+      expect(turnInfoAfterTimeout[3]).to.equal(0n); // remainingTime
+
+      // Verify that the current player (creator) cannot call forceMoveOnTimeout
+      await expect(
+        game.write.forceMoveOnTimeout([gameId], { account: creator.account })
+      ).to.be.rejectedWith("NotYourTurn");
+
+      // Force move on timeout (called by the other player - joiner)
+      await game.write.forceMoveOnTimeout([gameId], {
+        account: joiner.account,
+      });
+
+      // Check that turn has switched to joiner
+      const turnInfoAfterForceMove = await game.read.getCurrentTurnInfo([
+        gameId,
+      ]);
+      expect(turnInfoAfterForceMove[0].toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
+      ); // currentTurn
+      expect(turnInfoAfterForceMove[4]).to.be.false; // isTimedOut
+    });
+
+    it("should allow either player to flee and end the game", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        fleets,
+        lobbies,
+        randomManager,
+      } = await loadFixture(deployGameFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a lobby with a short turn time (5 minutes - minimum allowed)
+      const shortTurnTime = 300n;
+      await creatorLobbies.write.createLobby([1000n, shortTurnTime, true]);
+
+      const lobbyId = 1n;
+      await joinerLobbies.write.joinLobby([lobbyId]);
+
+      // Create fleets (this automatically starts the game)
+      await creatorLobbies.write.createFleet([lobbyId, [1n, 2n]]);
+      await joinerLobbies.write.createFleet([lobbyId, [6n, 7n]]);
+
+      const gameId = 1n;
+
+      // Get ship IDs for both players
+      const creatorShipIds = [1n, 2n];
+      const joinerShipIds = [6n, 7n];
+
+      // Check initial game status
+      const initialGame = await game.read.getGame([
+        gameId,
+        creatorShipIds,
+        joinerShipIds,
+      ]);
+      expect(initialGame.winner).to.equal(
+        "0x0000000000000000000000000000000000000000"
+      ); // winner (zero address means game not over)
+
+      // Creator flees
+      await game.write.flee([gameId], { account: creator.account });
+
+      // Check game status after flee
+      const gameAfterFlee = await game.read.getGame([
+        gameId,
+        creatorShipIds,
+        joinerShipIds,
+      ]);
+      expect(gameAfterFlee.winner.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
+      ); // winner (joiner wins when creator flees)
+
+      // Verify that moves are no longer allowed
+      await expect(
+        game.write.moveShip([gameId, 1n, 0n, 1n, 0n, 0n], {
+          account: creator.account,
+        })
+      ).to.be.rejectedWith("GameAlreadyEnded");
+
+      // Verify that the other player cannot flee again
+      await expect(
+        game.write.flee([gameId], { account: joiner.account })
+      ).to.be.rejectedWith("GameAlreadyEnded");
+    });
+  });
 });

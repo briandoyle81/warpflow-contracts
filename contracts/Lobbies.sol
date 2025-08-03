@@ -294,7 +294,8 @@ contract Lobbies is Ownable, ReentrancyGuard {
                     lobby.joiner,
                     lobby.creatorFleetId,
                     lobby.joinerFleetId,
-                    lobby.creatorGoesFirst
+                    lobby.creatorGoesFirst,
+                    lobby.turnTime
                 )
             {
                 // Game started successfully

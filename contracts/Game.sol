@@ -44,6 +44,9 @@ contract Game is Ownable, ReentrancyGuard {
     error InvalidMove();
     error ShipDestroyed();
     error ActionRequired();
+    error TurnTimeoutNotReached();
+    error TurnTimeoutExceeded();
+    error GameAlreadyEnded();
 
     constructor(address _ships) Ownable(msg.sender) {
         ships = Ships(_ships);
@@ -106,28 +109,33 @@ contract Game is Ownable, ReentrancyGuard {
         address _joiner,
         uint _creatorFleetId,
         uint _joinerFleetId,
-        bool _creatorGoesFirst
+        bool _creatorGoesFirst,
+        uint _turnTime
     ) external {
         if (msg.sender != lobbiesAddress) revert NotLobbiesContract();
 
         gameCount++;
         GameData storage game = games[gameCount];
-        game.gameId = gameCount;
-        game.lobbyId = _lobbyId;
-        game.creator = _creator;
-        game.joiner = _joiner;
-        game.creatorFleetId = _creatorFleetId;
-        game.joinerFleetId = _joinerFleetId;
-        game.creatorGoesFirst = _creatorGoesFirst;
-        game.startedAt = block.timestamp;
-        game.currentTurn = _creatorGoesFirst ? _creator : _joiner;
+
+        // Initialize metadata
+        game.metadata.gameId = gameCount;
+        game.metadata.lobbyId = _lobbyId;
+        game.metadata.creator = _creator;
+        game.metadata.joiner = _joiner;
+        game.metadata.creatorFleetId = _creatorFleetId;
+        game.metadata.joinerFleetId = _joinerFleetId;
+        game.metadata.creatorGoesFirst = _creatorGoesFirst;
+        game.metadata.startedAt = block.timestamp;
+
+        // Initialize turn state
+        game.turnState.currentTurn = _creatorGoesFirst ? _creator : _joiner;
+        game.turnState.turnTime = _turnTime;
+        game.turnState.turnStartTime = block.timestamp;
+        game.turnState.currentRound = 1;
 
         // Initialize grid dimensions
-        game.gridWidth = GRID_WIDTH; // Number of columns
-        game.gridHeight = GRID_HEIGHT; // Number of rows
-
-        // Initialize round tracking
-        game.currentRound = 1;
+        game.gridDimensions.gridWidth = GRID_WIDTH; // Number of columns
+        game.gridDimensions.gridHeight = GRID_HEIGHT; // Number of rows
 
         // Calculate fleet attributes and place ships on grid
         _initializeFleetAttributes(gameCount, _creatorFleetId, _joinerFleetId);
@@ -199,7 +207,7 @@ contract Game is Ownable, ReentrancyGuard {
 
     // Calculate and store attributes for a ship in a game
     function calculateShipAttributes(uint _gameId, uint _shipId) public {
-        if (games[_gameId].gameId == 0) revert GameNotFound();
+        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
         Ship memory ship = ships.getShip(_shipId);
         if (ship.id == 0) revert ShipNotFound();
         GameData storage game = games[_gameId];
@@ -235,7 +243,7 @@ contract Game is Ownable, ReentrancyGuard {
         uint _gameId,
         uint _shipId
     ) public view returns (Attributes memory) {
-        if (games[_gameId].gameId == 0) revert GameNotFound();
+        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
         GameData storage game = games[_gameId];
         Attributes storage attributes = game.shipAttributes[_shipId];
         if (attributes.version == 0) revert ShipNotFound();
@@ -259,7 +267,7 @@ contract Game is Ownable, ReentrancyGuard {
         uint _gameId,
         uint _shipId
     ) public view returns (Position memory) {
-        if (games[_gameId].gameId == 0) revert GameNotFound();
+        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
         GameData storage game = games[_gameId];
         return game.shipPositions[_shipId];
     }
@@ -270,7 +278,7 @@ contract Game is Ownable, ReentrancyGuard {
         uint8 _row,
         uint8 _column
     ) public view returns (uint) {
-        if (games[_gameId].gameId == 0) revert GameNotFound();
+        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
         if (_row >= GRID_HEIGHT || _column >= GRID_WIDTH)
             revert InvalidPosition();
         GameData storage game = games[_gameId];
@@ -281,7 +289,7 @@ contract Game is Ownable, ReentrancyGuard {
     function getAllShipPositions(
         uint _gameId
     ) public view returns (ShipPosition[] memory) {
-        if (games[_gameId].gameId == 0) revert GameNotFound();
+        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
         GameData storage game = games[_gameId];
 
         // Count non-destroyed ships
@@ -293,7 +301,7 @@ contract Game is Ownable, ReentrancyGuard {
         // Add creator ships
         index = _addFleetPositions(
             _gameId,
-            game.creatorFleetId,
+            game.metadata.creatorFleetId,
             positions,
             index,
             true
@@ -302,7 +310,7 @@ contract Game is Ownable, ReentrancyGuard {
         // Add joiner ships
         index = _addFleetPositions(
             _gameId,
-            game.joinerFleetId,
+            game.metadata.joinerFleetId,
             positions,
             index,
             false
@@ -315,10 +323,10 @@ contract Game is Ownable, ReentrancyGuard {
     function _countActiveShips(uint _gameId) internal view returns (uint) {
         GameData storage game = games[_gameId];
         uint[] memory creatorShipIds = fleets.getFleetShipIds(
-            game.creatorFleetId
+            game.metadata.creatorFleetId
         );
         uint[] memory joinerShipIds = fleets.getFleetShipIds(
-            game.joinerFleetId
+            game.metadata.joinerFleetId
         );
 
         uint count = 0;
@@ -376,10 +384,10 @@ contract Game is Ownable, ReentrancyGuard {
     ) internal view returns (bool) {
         GameData storage game = games[_gameId];
         uint[] memory creatorShipIds = fleets.getFleetShipIds(
-            game.creatorFleetId
+            game.metadata.creatorFleetId
         );
         uint[] memory joinerShipIds = fleets.getFleetShipIds(
-            game.joinerFleetId
+            game.metadata.joinerFleetId
         );
 
         // Check creator ships
@@ -408,10 +416,10 @@ contract Game is Ownable, ReentrancyGuard {
     ) internal {
         GameData storage game = games[_gameId];
         uint[] memory creatorShipIds = fleets.getFleetShipIds(
-            game.creatorFleetId
+            game.metadata.creatorFleetId
         );
         uint[] memory joinerShipIds = fleets.getFleetShipIds(
-            game.joinerFleetId
+            game.metadata.joinerFleetId
         );
 
         // Check creator ships
@@ -462,11 +470,14 @@ contract Game is Ownable, ReentrancyGuard {
         ActionType actionType,
         uint targetShipId
     ) external {
-        if (games[_gameId].gameId == 0) revert GameNotFound();
+        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
         GameData storage game = games[_gameId];
 
+        // Check if game has ended
+        if (game.metadata.winner != address(0)) revert GameAlreadyEnded();
+
         // Check if it's the player's turn
-        if (msg.sender != game.currentTurn) revert NotYourTurn();
+        if (msg.sender != game.turnState.currentTurn) revert NotYourTurn();
 
         // Check if ship exists and is owned by the current player
         Ship memory ship = ships.getShip(_shipId);
@@ -482,12 +493,12 @@ contract Game is Ownable, ReentrancyGuard {
 
         // Check if ship is in the game (either creator or joiner fleet)
         if (
-            !fleets.isShipInFleet(game.creatorFleetId, _shipId) &&
-            !fleets.isShipInFleet(game.joinerFleetId, _shipId)
+            !fleets.isShipInFleet(game.metadata.creatorFleetId, _shipId) &&
+            !fleets.isShipInFleet(game.metadata.joinerFleetId, _shipId)
         ) revert ShipNotFound();
 
         // Check if ship has already moved this round
-        if (game.shipMovedThisRound[game.currentRound][_shipId])
+        if (game.shipMovedThisRound[game.turnState.currentRound][_shipId])
             revert ShipAlreadyMoved();
 
         // Get current position
@@ -519,7 +530,7 @@ contract Game is Ownable, ReentrancyGuard {
         _executeMove(_gameId, _shipId, currentPos, _newRow, _newCol);
 
         // Mark ship as moved this round
-        game.shipMovedThisRound[game.currentRound][_shipId] = true;
+        game.shipMovedThisRound[game.turnState.currentRound][_shipId] = true;
 
         // Perform the action
         _performAction(
@@ -537,19 +548,22 @@ contract Game is Ownable, ReentrancyGuard {
             // End of round: destroy ships with reactorCriticalTimer >= 3
             _destroyShipsWithCriticalReactor(_gameId);
 
-            game.currentRound++;
+            game.turnState.currentRound++;
 
             // Beginning of new round: increment reactorCriticalTimer for ships with 0 HP
             _incrementReactorCriticalTimerForZeroHPShips(_gameId);
 
             // Reset turn to the player who goes first
-            game.currentTurn = game.creatorGoesFirst
-                ? game.creator
-                : game.joiner;
+            game.turnState.currentTurn = game.metadata.creatorGoesFirst
+                ? game.metadata.creator
+                : game.metadata.joiner;
         } else {
             // Switch turns only if the other player has unmoved ships
             _switchTurnIfOtherPlayerHasShips(_gameId);
         }
+
+        // Update turn start time for the new turn
+        game.turnState.turnStartTime = block.timestamp;
     }
 
     // Internal function to perform an action (pass or shoot)
@@ -647,30 +661,30 @@ contract Game is Ownable, ReentrancyGuard {
         if (!_isShipActive(_gameId, _shipId)) return false;
 
         // Return true if ship hasn't moved (indicating round is not complete)
-        return !game.shipMovedThisRound[game.currentRound][_shipId];
+        return !game.shipMovedThisRound[game.turnState.currentRound][_shipId];
     }
 
     // Switch turns only if the other player has unmoved ships
     function _switchTurnIfOtherPlayerHasShips(uint _gameId) internal {
         GameData storage game = games[_gameId];
 
-        if (game.currentTurn == game.creator) {
+        if (game.turnState.currentTurn == game.metadata.creator) {
             // Creator just moved, check if joiner has unmoved ships
             bool joinerHasUnmovedShips = _checkPlayerHasUnmovedShips(
                 _gameId,
-                game.joinerFleetId
+                game.metadata.joinerFleetId
             );
             if (joinerHasUnmovedShips) {
-                game.currentTurn = game.joiner;
+                game.turnState.currentTurn = game.metadata.joiner;
             }
         } else {
             // Joiner just moved, check if creator has unmoved ships
             bool creatorHasUnmovedShips = _checkPlayerHasUnmovedShips(
                 _gameId,
-                game.creatorFleetId
+                game.metadata.creatorFleetId
             );
             if (creatorHasUnmovedShips) {
-                game.currentTurn = game.creator;
+                game.turnState.currentTurn = game.metadata.creator;
             }
         }
     }
@@ -687,7 +701,7 @@ contract Game is Ownable, ReentrancyGuard {
             uint shipId = shipIds[i];
             if (
                 _isShipActive(_gameId, shipId) &&
-                !game.shipMovedThisRound[game.currentRound][shipId]
+                !game.shipMovedThisRound[game.turnState.currentRound][shipId]
             ) {
                 return true;
             }
@@ -703,7 +717,7 @@ contract Game is Ownable, ReentrancyGuard {
         uint8 _newCol,
         uint _targetShipId
     ) internal {
-        if (games[_gameId].gameId == 0) revert GameNotFound();
+        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
         GameData storage game = games[_gameId];
 
         // Validate target ship exists
@@ -877,10 +891,10 @@ contract Game is Ownable, ReentrancyGuard {
 
         // Get both fleet ship IDs to check all ships
         uint[] memory creatorShipIds = fleets.getFleetShipIds(
-            game.creatorFleetId
+            game.metadata.creatorFleetId
         );
         uint[] memory joinerShipIds = fleets.getFleetShipIds(
-            game.joinerFleetId
+            game.metadata.joinerFleetId
         );
 
         // Check all creator ships
@@ -946,7 +960,7 @@ contract Game is Ownable, ReentrancyGuard {
         uint8 _newCol,
         uint _targetShipId
     ) internal {
-        if (games[_gameId].gameId == 0) revert GameNotFound();
+        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
         GameData storage game = games[_gameId];
 
         // Validate target ship exists
@@ -980,7 +994,7 @@ contract Game is Ownable, ReentrancyGuard {
 
     // Internal function to retreat a ship
     function _retreatShip(uint _gameId, uint _shipId) internal {
-        if (games[_gameId].gameId == 0) revert GameNotFound();
+        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
         GameData storage game = games[_gameId];
 
         // Check if ship exists and is in the game
@@ -988,8 +1002,14 @@ contract Game is Ownable, ReentrancyGuard {
         if (ship.id == 0) revert ShipNotFound();
 
         // Check if ship is in the game (either creator or joiner fleet)
-        bool isCreatorShip = fleets.isShipInFleet(game.creatorFleetId, _shipId);
-        bool isJoinerShip = fleets.isShipInFleet(game.joinerFleetId, _shipId);
+        bool isCreatorShip = fleets.isShipInFleet(
+            game.metadata.creatorFleetId,
+            _shipId
+        );
+        bool isJoinerShip = fleets.isShipInFleet(
+            game.metadata.joinerFleetId,
+            _shipId
+        );
         if (!isCreatorShip && !isJoinerShip) revert ShipNotFound();
 
         // Check if ship is already destroyed
@@ -1000,13 +1020,13 @@ contract Game is Ownable, ReentrancyGuard {
         game.grid[shipPosition.row][shipPosition.col] = 0;
 
         // Mark ship as moved this round so it doesn't block round completion
-        game.shipMovedThisRound[game.currentRound][_shipId] = true;
+        game.shipMovedThisRound[game.turnState.currentRound][_shipId] = true;
 
         // Remove ship from fleet
         if (isCreatorShip) {
-            fleets.removeShipFromFleet(game.creatorFleetId, _shipId);
+            fleets.removeShipFromFleet(game.metadata.creatorFleetId, _shipId);
         } else {
-            fleets.removeShipFromFleet(game.joinerFleetId, _shipId);
+            fleets.removeShipFromFleet(game.metadata.joinerFleetId, _shipId);
         }
 
         // Clean up ship data in the game contract
@@ -1016,7 +1036,7 @@ contract Game is Ownable, ReentrancyGuard {
 
     // Internal function to destroy a ship
     function _destroyShip(uint _gameId, uint _shipId) internal {
-        if (games[_gameId].gameId == 0) revert GameNotFound();
+        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
         GameData storage game = games[_gameId];
 
         // Check if ship exists and is in the game
@@ -1024,8 +1044,14 @@ contract Game is Ownable, ReentrancyGuard {
         if (ship.id == 0) revert ShipNotFound();
 
         // Check if ship is in the game (either creator or joiner fleet)
-        bool isCreatorShip = fleets.isShipInFleet(game.creatorFleetId, _shipId);
-        bool isJoinerShip = fleets.isShipInFleet(game.joinerFleetId, _shipId);
+        bool isCreatorShip = fleets.isShipInFleet(
+            game.metadata.creatorFleetId,
+            _shipId
+        );
+        bool isJoinerShip = fleets.isShipInFleet(
+            game.metadata.joinerFleetId,
+            _shipId
+        );
         if (!isCreatorShip && !isJoinerShip) revert ShipNotFound();
 
         // Check if ship is already destroyed
@@ -1036,7 +1062,7 @@ contract Game is Ownable, ReentrancyGuard {
         game.grid[shipPosition.row][shipPosition.col] = 0;
 
         // Mark ship as moved this round so it doesn't block round completion
-        game.shipMovedThisRound[game.currentRound][_shipId] = true;
+        game.shipMovedThisRound[game.turnState.currentRound][_shipId] = true;
 
         // Call the Ships contract to mark the ship as destroyed
         ships.setTimestampDestroyed(_shipId);
@@ -1096,7 +1122,7 @@ contract Game is Ownable, ReentrancyGuard {
         game.shipAttributes[_shipId].hullPoints = 0;
 
         // Mark ship as moved this round so it doesn't block round completion
-        game.shipMovedThisRound[game.currentRound][_shipId] = true;
+        game.shipMovedThisRound[game.turnState.currentRound][_shipId] = true;
     }
 
     // Debug function to set a ship's reactor critical timer (onlyOwner for testing)
@@ -1116,7 +1142,7 @@ contract Game is Ownable, ReentrancyGuard {
     ) external onlyOwner {
         GameData storage game = games[_gameId];
         // Mark ship as moved this round
-        game.shipMovedThisRound[game.currentRound][_shipId] = true;
+        game.shipMovedThisRound[game.turnState.currentRound][_shipId] = true;
     }
 
     // Debug function to set a ship in a specific position (onlyOwner for testing)
@@ -1254,7 +1280,7 @@ contract Game is Ownable, ReentrancyGuard {
         uint[] memory _creatorShipIds,
         uint[] memory _joinerShipIds
     ) public view returns (GameDataView memory) {
-        if (games[_gameId].gameId == 0) revert GameNotFound();
+        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
 
         GameData storage game = games[_gameId];
 
@@ -1281,19 +1307,228 @@ contract Game is Ownable, ReentrancyGuard {
 
         return
             GameDataView({
-                gameId: game.gameId,
-                lobbyId: game.lobbyId,
-                creator: game.creator,
-                joiner: game.joiner,
-                creatorFleetId: game.creatorFleetId,
-                joinerFleetId: game.joinerFleetId,
-                creatorGoesFirst: game.creatorGoesFirst,
-                startedAt: game.startedAt,
-                currentTurn: game.currentTurn,
+                gameId: game.metadata.gameId,
+                lobbyId: game.metadata.lobbyId,
+                creator: game.metadata.creator,
+                joiner: game.metadata.joiner,
+                creatorFleetId: game.metadata.creatorFleetId,
+                joinerFleetId: game.metadata.joinerFleetId,
+                creatorGoesFirst: game.metadata.creatorGoesFirst,
+                startedAt: game.metadata.startedAt,
+                currentTurn: game.turnState.currentTurn,
+                winner: game.metadata.winner,
                 shipAttributes: shipAttrs,
                 shipPositions: shipPositions,
-                gridWidth: game.gridWidth,
-                gridHeight: game.gridHeight
+                gridWidth: game.gridDimensions.gridWidth,
+                gridHeight: game.gridDimensions.gridHeight
             });
+    }
+
+    // Check if current turn has timed out
+    function _isTurnTimedOut(uint _gameId) internal view returns (bool) {
+        GameData storage game = games[_gameId];
+        return
+            block.timestamp >
+            game.turnState.turnStartTime + game.turnState.turnTime;
+    }
+
+    // Get remaining time for current turn
+    function getRemainingTurnTime(uint _gameId) external view returns (uint) {
+        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
+        GameData storage game = games[_gameId];
+
+        if (
+            block.timestamp >=
+            game.turnState.turnStartTime + game.turnState.turnTime
+        ) {
+            return 0; // Turn has timed out
+        }
+
+        return
+            game.turnState.turnStartTime +
+            game.turnState.turnTime -
+            block.timestamp;
+    }
+
+    // Get current turn information including timeout details
+    function getCurrentTurnInfo(
+        uint _gameId
+    )
+        external
+        view
+        returns (
+            address currentTurn,
+            uint turnStartTime,
+            uint turnTime,
+            uint remainingTime,
+            bool isTimedOut
+        )
+    {
+        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
+        GameData storage game = games[_gameId];
+
+        currentTurn = game.turnState.currentTurn;
+        turnStartTime = game.turnState.turnStartTime;
+        turnTime = game.turnState.turnTime;
+        isTimedOut = _isTurnTimedOut(_gameId);
+
+        // Calculate remaining time directly
+        if (
+            block.timestamp >=
+            game.turnState.turnStartTime + game.turnState.turnTime
+        ) {
+            remainingTime = 0; // Turn has timed out
+        } else {
+            remainingTime =
+                game.turnState.turnStartTime +
+                game.turnState.turnTime -
+                block.timestamp;
+        }
+
+        return (
+            currentTurn,
+            turnStartTime,
+            turnTime,
+            remainingTime,
+            isTimedOut
+        );
+    }
+
+    // Force a move when turn times out (only the other player can call this)
+    function forceMoveOnTimeout(uint _gameId) external {
+        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
+        if (!_isTurnTimedOut(_gameId)) revert TurnTimeoutNotReached();
+
+        GameData storage game = games[_gameId];
+
+        // Only the other player can force a timeout skip
+        if (msg.sender == game.turnState.currentTurn) revert NotYourTurn();
+
+        // Must be either the creator or joiner
+        if (
+            msg.sender != game.metadata.creator &&
+            msg.sender != game.metadata.joiner
+        ) revert NotInGame();
+
+        // Auto-pass the current player's turn
+        _autoPassTurn(_gameId);
+    }
+
+    // Flee function - either player can end the game at any time
+    function flee(uint _gameId) external {
+        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
+        GameData storage game = games[_gameId];
+
+        // Check if game is already ended
+        if (game.metadata.winner != address(0)) revert GameAlreadyEnded();
+
+        // Must be either the creator or joiner
+        if (
+            msg.sender != game.metadata.creator &&
+            msg.sender != game.metadata.joiner
+        ) revert NotInGame();
+
+        // Set the other player as the winner
+        game.metadata.winner = msg.sender == game.metadata.creator
+            ? game.metadata.joiner
+            : game.metadata.creator;
+
+        // Remove all ships from fleets
+        _removeAllShipsFromFleets(_gameId);
+
+        // Clear the grid
+        _clearGameGrid(_gameId);
+    }
+
+    // Internal function to remove all ships from fleets
+    function _removeAllShipsFromFleets(uint _gameId) internal {
+        GameData storage game = games[_gameId];
+
+        // Remove ships from creator fleet
+        uint[] memory creatorShipIds = fleets.getFleetShipIds(
+            game.metadata.creatorFleetId
+        );
+        for (uint i = 0; i < creatorShipIds.length; i++) {
+            fleets.removeShipFromFleet(
+                game.metadata.creatorFleetId,
+                creatorShipIds[i]
+            );
+        }
+
+        // Remove ships from joiner fleet
+        uint[] memory joinerShipIds = fleets.getFleetShipIds(
+            game.metadata.joinerFleetId
+        );
+        for (uint i = 0; i < joinerShipIds.length; i++) {
+            fleets.removeShipFromFleet(
+                game.metadata.joinerFleetId,
+                joinerShipIds[i]
+            );
+        }
+    }
+
+    // Internal function to clear the game grid
+    function _clearGameGrid(uint _gameId) internal {
+        GameData storage game = games[_gameId];
+
+        // Clear all positions on the grid
+        for (uint8 row = 0; row < game.gridDimensions.gridHeight; row++) {
+            for (uint8 col = 0; col < game.gridDimensions.gridWidth; col++) {
+                game.grid[row][col] = 0;
+            }
+        }
+    }
+
+    // Internal function to auto-pass a player's turn when they timeout
+    function _autoPassTurn(uint _gameId) internal {
+        GameData storage game = games[_gameId];
+
+        // Mark all unmoved ships of the current player as moved (auto-pass)
+        if (game.turnState.currentTurn == game.metadata.creator) {
+            _autoPassPlayerShips(_gameId, game.metadata.creatorFleetId);
+        } else {
+            _autoPassPlayerShips(_gameId, game.metadata.joinerFleetId);
+        }
+
+        // Check if round is complete after auto-pass
+        if (_checkRoundComplete(_gameId)) {
+            // End of round: destroy ships with reactorCriticalTimer >= 3
+            _destroyShipsWithCriticalReactor(_gameId);
+
+            game.turnState.currentRound++;
+
+            // Beginning of new round: increment reactorCriticalTimer for ships with 0 HP
+            _incrementReactorCriticalTimerForZeroHPShips(_gameId);
+
+            // Reset turn to the player who goes first
+            game.turnState.currentTurn = game.metadata.creatorGoesFirst
+                ? game.metadata.creator
+                : game.metadata.joiner;
+        } else {
+            // Switch turns only if the other player has unmoved ships
+            _switchTurnIfOtherPlayerHasShips(_gameId);
+        }
+
+        // Update turn start time for the new turn
+        game.turnState.turnStartTime = block.timestamp;
+    }
+
+    // Helper function to auto-pass all unmoved ships for a specific fleet
+    function _autoPassPlayerShips(uint _gameId, uint _fleetId) internal {
+        GameData storage game = games[_gameId];
+        uint[] memory shipIds = fleets.getFleetShipIds(_fleetId);
+
+        for (uint i = 0; i < shipIds.length; i++) {
+            uint shipId = shipIds[i];
+            if (
+                _isShipActive(_gameId, shipId) &&
+                !game.shipMovedThisRound[game.turnState.currentRound][shipId]
+            ) {
+                // Mark ship as moved (auto-pass)
+                game.shipMovedThisRound[game.turnState.currentRound][
+                    shipId
+                ] = true;
+            }
+        }
     }
 }

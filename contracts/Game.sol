@@ -460,6 +460,56 @@ contract Game is Ownable, ReentrancyGuard {
         return ship.shipData.timestampDestroyed == 0;
     }
 
+    // Helper function to check if a player has any active ships
+    function _playerHasActiveShips(
+        uint _gameId,
+        address _player
+    ) internal view returns (bool) {
+        GameData storage game = games[_gameId];
+
+        // Determine which fleet belongs to the player
+        uint fleetId;
+        if (_player == game.metadata.creator) {
+            fleetId = game.metadata.creatorFleetId;
+        } else if (_player == game.metadata.joiner) {
+            fleetId = game.metadata.joinerFleetId;
+        } else {
+            return false; // Player not in this game
+        }
+
+        // Get all ships in the player's fleet
+        uint[] memory shipIds = fleets.getFleetShipIds(fleetId);
+
+        // Check if any ship is active
+        for (uint i = 0; i < shipIds.length; i++) {
+            if (_isShipActive(_gameId, shipIds[i])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Helper function to check if the game should end due to a player having no active ships
+    function _checkGameEndCondition(uint _gameId) internal {
+        GameData storage game = games[_gameId];
+
+        // Skip if game already ended
+        if (game.metadata.winner != address(0)) return;
+
+        // Check if creator has no active ships
+        if (!_playerHasActiveShips(_gameId, game.metadata.creator)) {
+            game.metadata.winner = game.metadata.joiner;
+            return;
+        }
+
+        // Check if joiner has no active ships
+        if (!_playerHasActiveShips(_gameId, game.metadata.joiner)) {
+            game.metadata.winner = game.metadata.creator;
+            return;
+        }
+    }
+
     // Move a ship to a new position and perform an action (pass or shoot)
     // actionType: ActionType.Pass = 0, ActionType.Shoot = 1
     function moveShip(
@@ -1032,6 +1082,9 @@ contract Game is Ownable, ReentrancyGuard {
         // Clean up ship data in the game contract
         delete game.shipAttributes[_shipId];
         delete game.shipPositions[_shipId];
+
+        // Check if the game should end due to a player having no active ships
+        _checkGameEndCondition(_gameId);
     }
 
     // Internal function to destroy a ship
@@ -1066,6 +1119,9 @@ contract Game is Ownable, ReentrancyGuard {
 
         // Call the Ships contract to mark the ship as destroyed
         ships.setTimestampDestroyed(_shipId);
+
+        // Check if the game should end due to a player having no active ships
+        _checkGameEndCondition(_gameId);
     }
 
     // Internal function to destroy ships with reactorCriticalTimer >= 3
@@ -1175,9 +1231,7 @@ contract Game is Ownable, ReentrancyGuard {
             ? _currentPos.col - _newCol
             : _newCol - _currentPos.col;
 
-        // Only allow orthogonal movement (up, down, left, right)
-        if (rowDiff > 0 && colDiff > 0) revert InvalidMove();
-
+        // Allow diagonal movement - cost is Manhattan distance (rowDiff + colDiff)
         return rowDiff + colDiff;
     }
 

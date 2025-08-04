@@ -1236,7 +1236,7 @@ describe("Game", function () {
       ).to.be.rejectedWith("PositionOccupied");
     });
 
-    it("should prevent diagonal movement", async function () {
+    it("should allow diagonal movement", async function () {
       const {
         creatorLobbies,
         joinerLobbies,
@@ -1277,12 +1277,15 @@ describe("Game", function () {
       await creatorLobbies.write.createFleet([1n, [1n]]);
       await joinerLobbies.write.createFleet([1n, [6n]]);
 
-      // Try diagonal movement (both row and column change)
-      await expect(
-        game.write.moveShip([1n, 1n, 1, 1, ActionType.Pass, 0n], {
-          account: creator.account,
-        })
-      ).to.be.rejectedWith("InvalidMove");
+      // Try diagonal movement (both row and column change) - should work now
+      await game.write.moveShip([1n, 1n, 1, 1, ActionType.Pass, 0n], {
+        account: creator.account,
+      });
+
+      // Verify the ship moved to the new position
+      const shipPosition = await game.read.getShipPosition([1n, 1n]);
+      expect(shipPosition.row).to.equal(1);
+      expect(shipPosition.col).to.equal(1);
     });
 
     it("should handle different fleet sizes correctly", async function () {
@@ -1420,9 +1423,9 @@ describe("Game", function () {
       await creatorLobbies.write.createLobby([1000n, 300n, true]);
       await joinerLobbies.write.joinLobby([1n]);
 
-      // Create fleets to start the game
-      await creatorLobbies.write.createFleet([1n, [1n]]);
-      await joinerLobbies.write.createFleet([1n, [6n]]);
+      // Create fleets to start the game (multiple ships so destroying one doesn't end the game)
+      await creatorLobbies.write.createFleet([1n, [1n, 2n]]);
+      await joinerLobbies.write.createFleet([1n, [6n, 7n]]);
 
       // Destroy creator's ship
       await (game.write as any).debugDestroyShip([1n, 1n], {
@@ -3443,6 +3446,96 @@ describe("Game", function () {
       // Verify that the other player cannot flee again
       await expect(
         game.write.flee([gameId], { account: joiner.account })
+      ).to.be.rejectedWith("GameAlreadyEnded");
+    });
+
+    it("should end game when all ships are retreated", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        fleets,
+        lobbies,
+        randomManager,
+      } = await loadFixture(deployGameFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a lobby
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      const lobbyId = 1n;
+      await joinerLobbies.write.joinLobby([lobbyId]);
+
+      // Create fleets (this automatically starts the game)
+      await creatorLobbies.write.createFleet([lobbyId, [1n, 2n]]);
+      await joinerLobbies.write.createFleet([lobbyId, [6n, 7n]]);
+
+      const gameId = 1n;
+      const creatorShipIds = [1n, 2n];
+      const joinerShipIds = [6n, 7n];
+
+      // Check initial game status
+      const initialGame = await game.read.getGame([
+        gameId,
+        creatorShipIds,
+        joinerShipIds,
+      ]);
+      expect(initialGame.winner).to.equal(
+        "0x0000000000000000000000000000000000000000"
+      ); // No winner yet
+
+      // Creator retreats all their ships
+      await game.write.moveShip([gameId, 1n, 0n, 0n, 2n, 0n], {
+        account: creator.account,
+      }); // Retreat ship 1
+
+      // Complete the round so joiner can move (move to a valid position)
+      await game.write.moveShip([gameId, 6n, 49, 98, 0n, 0n], {
+        account: joiner.account,
+      }); // Joiner moves to complete round
+
+      await game.write.moveShip([gameId, 2n, 0n, 0n, 2n, 0n], {
+        account: creator.account,
+      }); // Retreat ship 2
+
+      // Check game status after all creator ships retreated
+      const gameAfterRetreat = await game.read.getGame([
+        gameId,
+        creatorShipIds,
+        joinerShipIds,
+      ]);
+      expect(gameAfterRetreat.winner.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
+      ); // Joiner wins because creator has no active ships
+
+      // Verify that moves are no longer allowed
+      await expect(
+        game.write.moveShip([gameId, 6n, 0n, 1n, 0n, 0n], {
+          account: joiner.account,
+        })
       ).to.be.rejectedWith("GameAlreadyEnded");
     });
   });

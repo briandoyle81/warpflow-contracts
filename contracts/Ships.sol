@@ -507,6 +507,10 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         return ships[_id];
     }
 
+    function isShipDestroyed(uint _id) public view returns (bool) {
+        return ships[_id].shipData.timestampDestroyed != 0;
+    }
+
     function getPurchaseInfo()
         public
         view

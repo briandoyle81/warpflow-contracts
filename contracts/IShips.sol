@@ -10,5 +10,9 @@ interface IShips {
 
     function getShip(uint _id) external view returns (Ship memory);
 
+    function isShipDestroyed(uint _id) external view returns (bool);
+
+    function setTimestampDestroyed(uint _id) external;
+
     function setInFleet(uint _id, bool _inFleet) external;
 }

@@ -4,11 +4,11 @@ pragma solidity ^0.8.28;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./Types.sol";
-import "./Ships.sol";
+import "./IShips.sol";
 import "./IFleets.sol";
 
 contract Game is Ownable, ReentrancyGuard {
-    Ships public ships;
+    IShips public ships;
     IFleets public fleets;
     address public lobbiesAddress;
 
@@ -49,7 +49,7 @@ contract Game is Ownable, ReentrancyGuard {
     error GameAlreadyEnded();
 
     constructor(address _ships) Ownable(msg.sender) {
-        ships = Ships(_ships);
+        ships = IShips(_ships);
 
         // Initialize attributes version 1
         currentAttributesVersion = 1;
@@ -452,12 +452,8 @@ contract Game is Ownable, ReentrancyGuard {
     }
 
     // Helper function to check if a ship is not destroyed (for functions that don't check hull points)
-    function _isShipNotDestroyed(
-        uint _gameId,
-        uint _shipId
-    ) internal view returns (bool) {
-        Ship memory ship = ships.getShip(_shipId);
-        return ship.shipData.timestampDestroyed == 0;
+    function _isShipNotDestroyed(uint _shipId) internal view returns (bool) {
+        return !ships.isShipDestroyed(_shipId);
     }
 
     // Helper function to check if a player has any active ships
@@ -1134,7 +1130,7 @@ contract Game is Ownable, ReentrancyGuard {
         GameData storage game = games[_gameId];
 
         // Only check non-destroyed ships
-        if (!_isShipNotDestroyed(_gameId, _shipId)) return;
+        if (!_isShipNotDestroyed(_shipId)) return;
 
         // Check if ship has critical reactor timer
         if (game.shipAttributes[_shipId].reactorCriticalTimer >= 3) {
@@ -1154,7 +1150,7 @@ contract Game is Ownable, ReentrancyGuard {
         GameData storage game = games[_gameId];
 
         // Only check non-destroyed ships
-        if (!_isShipNotDestroyed(_gameId, _shipId)) return;
+        if (!_isShipNotDestroyed(_shipId)) return;
 
         // Increment reactor critical timer for ships with 0 HP
         if (game.shipAttributes[_shipId].hullPoints == 0) {

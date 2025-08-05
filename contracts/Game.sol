@@ -273,19 +273,6 @@ contract Game is Ownable, ReentrancyGuard {
         return attributes;
     }
 
-    // Get all ship attributes for a player in a game
-    // External view, memory use ok
-    function getPlayerShipAttributes(
-        uint _gameId,
-        uint[] memory _shipIds
-    ) external view returns (Attributes[] memory) {
-        Attributes[] memory attributes = new Attributes[](_shipIds.length);
-        for (uint i = 0; i < _shipIds.length; i++) {
-            attributes[i] = getShipAttributes(_gameId, _shipIds[i]);
-        }
-        return attributes;
-    }
-
     // Get ship position on the grid
     // External view, memory use ok
     function getShipPosition(
@@ -1520,68 +1507,6 @@ contract Game is Ownable, ReentrancyGuard {
         return
             block.timestamp >
             game.turnState.turnStartTime + game.turnState.turnTime;
-    }
-
-    // Get remaining time for current turn
-    function getRemainingTurnTime(uint _gameId) external view returns (uint) {
-        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
-        GameData storage game = games[_gameId];
-
-        if (
-            block.timestamp >=
-            game.turnState.turnStartTime + game.turnState.turnTime
-        ) {
-            return 0; // Turn has timed out
-        }
-
-        return
-            game.turnState.turnStartTime +
-            game.turnState.turnTime -
-            block.timestamp;
-    }
-
-    // Get current turn information including timeout details
-    function getCurrentTurnInfo(
-        uint _gameId
-    )
-        external
-        view
-        returns (
-            address currentTurn,
-            uint turnStartTime,
-            uint turnTime,
-            uint remainingTime,
-            bool isTimedOut
-        )
-    {
-        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
-        GameData storage game = games[_gameId];
-
-        currentTurn = game.turnState.currentTurn;
-        turnStartTime = game.turnState.turnStartTime;
-        turnTime = game.turnState.turnTime;
-        isTimedOut = _isTurnTimedOut(_gameId);
-
-        // Calculate remaining time directly
-        if (
-            block.timestamp >=
-            game.turnState.turnStartTime + game.turnState.turnTime
-        ) {
-            remainingTime = 0; // Turn has timed out
-        } else {
-            remainingTime =
-                game.turnState.turnStartTime +
-                game.turnState.turnTime -
-                block.timestamp;
-        }
-
-        return (
-            currentTurn,
-            turnStartTime,
-            turnTime,
-            remainingTime,
-            isTimedOut
-        );
     }
 
     // Force a move when turn times out (only the other player can call this)

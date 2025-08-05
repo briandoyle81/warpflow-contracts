@@ -339,37 +339,23 @@ describe("Game", function () {
       await creatorLobbies.write.createFleet([1n, [1n, 2n, 3n]]);
       await joinerLobbies.write.createFleet([1n, [6n, 7n, 8n]]);
 
-      // Get attributes for all ships in creator's fleet
-      const creatorShipIds = [1n, 2n, 3n];
-      const creatorAttributes = await game.read.getPlayerShipAttributes([
+      // Get game data which includes all ship attributes
+      const gameData = (await game.read.getGame([
         1n,
-        creatorShipIds,
-      ]);
-
-      // Get attributes for all ships in joiner's fleet
-      const joinerShipIds = [6n, 7n, 8n];
-      const joinerAttributes = await game.read.getPlayerShipAttributes([
-        1n,
-        joinerShipIds,
-      ]);
+        [1n, 2n, 3n],
+        [6n, 7n, 8n],
+      ])) as any;
 
       // Verify we got attributes for all ships
-      expect(creatorAttributes.length).to.equal(3);
-      expect(joinerAttributes.length).to.equal(3);
+      expect(gameData.shipAttributes.length).to.equal(6); // 3 creator + 3 joiner ships
 
       // Verify each ship has valid attributes
-      for (let i = 0; i < 3; i++) {
-        expect(creatorAttributes[i].version).to.equal(1);
-        expect(creatorAttributes[i].hullPoints).to.be.greaterThan(0);
-        expect(creatorAttributes[i].movement).to.be.greaterThanOrEqual(0);
-        expect(creatorAttributes[i].range).to.be.greaterThan(0);
-        expect(creatorAttributes[i].gunDamage).to.be.greaterThan(0);
-
-        expect(joinerAttributes[i].version).to.equal(1);
-        expect(joinerAttributes[i].hullPoints).to.be.greaterThan(0);
-        expect(joinerAttributes[i].movement).to.be.greaterThanOrEqual(0);
-        expect(joinerAttributes[i].range).to.be.greaterThan(0);
-        expect(joinerAttributes[i].gunDamage).to.be.greaterThan(0);
+      for (let i = 0; i < 6; i++) {
+        expect(gameData.shipAttributes[i].version).to.equal(1);
+        expect(gameData.shipAttributes[i].hullPoints).to.be.greaterThan(0);
+        expect(gameData.shipAttributes[i].movement).to.be.greaterThanOrEqual(0);
+        expect(gameData.shipAttributes[i].range).to.be.greaterThan(0);
+        expect(gameData.shipAttributes[i].gunDamage).to.be.greaterThan(0);
       }
     });
 
@@ -3323,12 +3309,14 @@ describe("Game", function () {
       const gameId = 1n;
 
       // Check initial turn info
-      const turnInfo = await game.read.getCurrentTurnInfo([gameId]);
-      expect(turnInfo[0].toLowerCase()).to.equal(
+      const gameData = (await game.read.getGame([
+        gameId,
+        [1n, 2n],
+        [6n, 7n],
+      ])) as any;
+      expect(gameData.currentTurn.toLowerCase()).to.equal(
         creator.account.address.toLowerCase()
       ); // currentTurn
-      expect(turnInfo[2]).to.equal(shortTurnTime); // turnTime
-      expect(turnInfo[4]).to.be.false; // isTimedOut
 
       // Wait for turn to timeout (simulate by advancing time)
       await hre.network.provider.send("evm_increaseTime", [
@@ -3336,11 +3324,7 @@ describe("Game", function () {
       ]);
       await hre.network.provider.send("evm_mine", []);
 
-      // Check that turn has timed out
-      const turnInfoAfterTimeout = await game.read.getCurrentTurnInfo([gameId]);
-      expect(turnInfoAfterTimeout[4]).to.be.true; // isTimedOut
-      expect(turnInfoAfterTimeout[3]).to.equal(0n); // remainingTime
-
+      // Check that turn has timed out by checking if forceMoveOnTimeout can be called
       // Verify that the current player (creator) cannot call forceMoveOnTimeout
       await expect(
         game.write.forceMoveOnTimeout([gameId], { account: creator.account })
@@ -3352,13 +3336,14 @@ describe("Game", function () {
       });
 
       // Check that turn has switched to joiner
-      const turnInfoAfterForceMove = await game.read.getCurrentTurnInfo([
+      const gameDataAfterForceMove = (await game.read.getGame([
         gameId,
-      ]);
-      expect(turnInfoAfterForceMove[0].toLowerCase()).to.equal(
+        [1n, 2n],
+        [6n, 7n],
+      ])) as any;
+      expect(gameDataAfterForceMove.currentTurn.toLowerCase()).to.equal(
         joiner.account.address.toLowerCase()
       ); // currentTurn
-      expect(turnInfoAfterForceMove[4]).to.be.false; // isTimedOut
     });
 
     it("should allow either player to flee and end the game", async function () {

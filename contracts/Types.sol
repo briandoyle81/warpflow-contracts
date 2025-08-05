@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+
 enum MainWeapon {
     Laser,
     Railgun,
@@ -120,6 +122,8 @@ struct GameData {
     mapping(uint8 row => mapping(uint8 column => uint shipId)) grid;
     mapping(uint => Position) shipPositions; // shipId => position
     mapping(uint => mapping(uint => bool)) shipMovedThisRound; // round => shipId => hasMoved
+    // Store active ship IDs for each player to avoid repeated fleet calls
+    mapping(address => EnumerableSet.UintSet) playerActiveShipIds; // player => shipIds
 }
 
 struct GameDataView {
@@ -138,6 +142,9 @@ struct GameDataView {
     ShipPosition[] shipPositions; // All ship positions on the grid
     uint8 gridWidth;
     uint8 gridHeight;
+    // Active ship IDs for each player
+    uint[] creatorActiveShipIds;
+    uint[] joinerActiveShipIds;
 }
 
 struct Ship {

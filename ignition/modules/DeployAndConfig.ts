@@ -92,11 +92,14 @@ const DeployModule = buildModule("DeployModule", (m) => {
   // Finally deploy Ships with all dependencies
   const ships = m.contract("Ships", [metadataRenderer]);
 
+  // Deploy ShipAttributes contract
+  const shipAttributes = m.contract("ShipAttributes", [ships]);
+
   // Deploy ShipPurchaser
   const shipPurchaser = m.contract("ShipPurchaser", [ships, universalCredits]);
 
-  // Deploy Game contract
-  const game = m.contract("Game", [ships]);
+  // Deploy Game contract with ShipAttributes
+  const game = m.contract("Game", [ships, shipAttributes]);
 
   // Deploy Fleets contract
   const fleets = m.contract("Fleets", [ships]);
@@ -196,6 +199,7 @@ const DeployModule = buildModule("DeployModule", (m) => {
     shipNames,
     generateNewShip,
     ships,
+    shipAttributes,
     universalCredits,
     shipPurchaser,
     game,

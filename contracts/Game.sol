@@ -7,18 +7,16 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "./Types.sol";
 import "./IShips.sol";
 import "./IFleets.sol";
+import "./IShipAttributes.sol";
 
 contract Game is Ownable, ReentrancyGuard {
     IShips public ships;
     IFleets public fleets;
+    IShipAttributes public shipAttributes;
     address public lobbiesAddress;
 
     mapping(uint => GameData) public games;
     uint public gameCount;
-
-    // Attributes version tracking
-    mapping(uint16 => AttributesVersion) public attributesVersions;
-    uint16 public currentAttributesVersion;
 
     // Grid constants
     uint8 public constant GRID_WIDTH = 100; // Number of columns
@@ -49,51 +47,9 @@ contract Game is Ownable, ReentrancyGuard {
     error TurnTimeoutExceeded();
     error GameAlreadyEnded();
 
-    constructor(address _ships) Ownable(msg.sender) {
+    constructor(address _ships, address _shipAttributes) Ownable(msg.sender) {
         ships = IShips(_ships);
-
-        // Initialize attributes version 1
-        currentAttributesVersion = 1;
-
-        // Set up default attributes version 1
-        AttributesVersion storage v1 = attributesVersions[1];
-        v1.version = 1;
-        v1.baseHull = 100;
-        v1.baseSpeed = 5;
-
-        // Fore accuracy bonuses in whole number percentage multipliers
-        v1.foreAccuracy.push(0);
-        v1.foreAccuracy.push(125);
-        v1.foreAccuracy.push(150);
-
-        // Engine speed in raw movement modifier
-        v1.engineSpeeds.push(0);
-        v1.engineSpeeds.push(2);
-        v1.engineSpeeds.push(5);
-
-        // Initialize gun data
-        v1.guns.push(GunData(10, 15, 0)); // Laser
-        v1.guns.push(GunData(50, 10, 0)); // Railgun
-        v1.guns.push(GunData(40, 15, -1)); // MissileLauncher
-        v1.guns.push(GunData(4, 25, 0)); // PlasmaCannon
-
-        // Initialize armor data
-        v1.armors.push(ArmorData(0, 0)); // None
-        v1.armors.push(ArmorData(10, -1)); // Light
-        v1.armors.push(ArmorData(20, -2)); // Medium
-        v1.armors.push(ArmorData(30, -3)); // Heavy
-
-        // Initialize shield data
-        v1.shields.push(ShieldData(0, 0)); // None
-        v1.shields.push(ShieldData(10, 0)); // Light
-        v1.shields.push(ShieldData(20, -1)); // Medium
-        v1.shields.push(ShieldData(30, -2)); // Heavy
-
-        // Initialize special data
-        v1.specials.push(SpecialData(0, 0, 0)); // None
-        v1.specials.push(SpecialData(1, 1, 0)); // EMP
-        v1.specials.push(SpecialData(3, 25, 0)); // RepairDrones
-        v1.specials.push(SpecialData(5, 5, 0)); // FlakArray
+        shipAttributes = IShipAttributes(_shipAttributes);
     }
 
     function setLobbiesAddress(address _lobbiesAddress) public onlyOwner {
@@ -102,6 +58,12 @@ contract Game is Ownable, ReentrancyGuard {
 
     function setFleetsAddress(address _fleetsAddress) public onlyOwner {
         fleets = IFleets(_fleetsAddress);
+    }
+
+    function setShipAttributesAddress(
+        address _shipAttributes
+    ) public onlyOwner {
+        shipAttributes = IShipAttributes(_shipAttributes);
     }
 
     function startGame(
@@ -230,25 +192,22 @@ contract Game is Ownable, ReentrancyGuard {
 
     // Calculate and store attributes for a ship in a game
     function calculateShipAttributes(uint _gameId, uint _shipId) public {
-        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
-        Ship memory ship = ships.getShip(_shipId);
-        if (ship.id == 0) revert ShipNotFound();
         GameData storage game = games[_gameId];
         Attributes storage attributes = game.shipAttributes[_shipId];
-        // Calculate base attributes from ship traits and equipment
-        attributes.version = currentAttributesVersion;
-        attributes.range = attributesVersions[currentAttributesVersion]
-            .guns[uint8(ship.equipment.mainWeapon)]
-            .range;
-        attributes.gunDamage = attributesVersions[currentAttributesVersion]
-            .guns[uint8(ship.equipment.mainWeapon)]
-            .damage;
-        attributes.hullPoints = _calculateHullPoints(ship);
-        attributes.maxHullPoints = attributes.hullPoints;
-        attributes.movement = _calculateMovement(ship);
-        attributes.damageReduction = _calculateDamageReduction(ship);
-        // Initialize empty status effects array
-        attributes.statusEffects = new uint8[](0);
+
+        // Get calculated attributes from ShipAttributes contract
+        Attributes memory calculatedAttributes = shipAttributes
+            .calculateShipAttributesById(_shipId);
+
+        // Copy the calculated attributes to game storage
+        attributes.version = calculatedAttributes.version;
+        attributes.range = calculatedAttributes.range;
+        attributes.gunDamage = calculatedAttributes.gunDamage;
+        attributes.hullPoints = calculatedAttributes.hullPoints;
+        attributes.maxHullPoints = calculatedAttributes.maxHullPoints;
+        attributes.movement = calculatedAttributes.movement;
+        attributes.damageReduction = calculatedAttributes.damageReduction;
+        attributes.statusEffects = calculatedAttributes.statusEffects;
     }
 
     // Calculate attributes for all ships in a fleet
@@ -677,13 +636,14 @@ contract Game is Ownable, ReentrancyGuard {
             // Calculate damage for ships with > 0 hull points
             uint8 baseDamage = shooterAttributes.gunDamage;
             uint8 reduction = targetAttributes.damageReduction;
-            uint8 reducedDamage = baseDamage - ((baseDamage * reduction) / 100);
+            uint16 reducedDamage = baseDamage -
+                ((uint16(baseDamage) * reduction) / 100);
             // Truncate division result
             // Reduce hull points
             if (reducedDamage >= targetAttributes.hullPoints) {
                 targetAttributes.hullPoints = 0;
             } else {
-                targetAttributes.hullPoints -= reducedDamage;
+                targetAttributes.hullPoints -= uint8(reducedDamage);
             }
         } else if (actionType == ActionType.Retreat) {
             // Retreat: remove ship from the game
@@ -711,8 +671,6 @@ contract Game is Ownable, ReentrancyGuard {
 
     // Check if both players have moved all their ships (round complete)
     function _checkRoundComplete(uint _gameId) internal view returns (bool) {
-        GameData storage game = games[_gameId];
-
         // Use helper function to check if any active ship hasn't moved
         bool hasUnmovedShip = _iterateOverBothFleets(_gameId, _checkShipMoved);
         return !hasUnmovedShip;
@@ -788,9 +746,6 @@ contract Game is Ownable, ReentrancyGuard {
         uint8 _newCol,
         uint _targetShipId
     ) internal {
-        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
-        GameData storage game = games[_gameId];
-
         // Validate target ship exists
         Ship memory targetShip = ships.getShip(_targetShipId);
         if (targetShip.id == 0) revert ShipNotFound();
@@ -803,7 +758,6 @@ contract Game is Ownable, ReentrancyGuard {
         // Validate special-specific requirements
         _validateSpecialRequirements(
             _gameId,
-            _shipId,
             _newRow,
             _newCol,
             _targetShipId,
@@ -825,15 +779,12 @@ contract Game is Ownable, ReentrancyGuard {
     // Helper function to validate special-specific requirements
     function _validateSpecialRequirements(
         uint _gameId,
-        uint _shipId,
         uint8 _newRow,
         uint8 _newCol,
         uint _targetShipId,
         Ship memory _usingShip,
         Ship memory _targetShip
     ) internal view {
-        GameData storage game = games[_gameId];
-
         if (_usingShip.equipment.special == Special.RepairDrones) {
             // RepairDrones can only target friendly ships
             if (_targetShip.owner != _usingShip.owner) revert InvalidMove();
@@ -873,9 +824,7 @@ contract Game is Ownable, ReentrancyGuard {
         GameData storage game = games[_gameId];
         Position storage targetPos = game.shipPositions[_targetShipId];
         Position memory usingPos = Position(_newRow, _newCol);
-        uint8 specialRange = attributesVersions[currentAttributesVersion]
-            .specials[uint8(_special)]
-            .range;
+        uint8 specialRange = shipAttributes.getSpecialRange(_special);
         uint8 manhattan = _manhattanDistance(usingPos, targetPos);
         if (manhattan > specialRange) {
             revert InvalidMove();
@@ -909,7 +858,9 @@ contract Game is Ownable, ReentrancyGuard {
             _targetShipId
         ];
 
-        uint8 repairStrength = _getSpecialStrength(Special.RepairDrones);
+        uint8 repairStrength = shipAttributes.getSpecialStrength(
+            Special.RepairDrones
+        );
 
         // Increase hull points by the repair strength, but don't exceed max hull points
         uint8 newHullPoints = targetAttributes.hullPoints + repairStrength;
@@ -927,20 +878,10 @@ contract Game is Ownable, ReentrancyGuard {
             _targetShipId
         ];
 
-        uint8 empStrength = _getSpecialStrength(Special.EMP);
+        uint8 empStrength = shipAttributes.getSpecialStrength(Special.EMP);
 
         // Increase reactor critical timer by the EMP strength
         targetAttributes.reactorCriticalTimer += empStrength;
-    }
-
-    // Helper function to get special strength from attributes version
-    function _getSpecialStrength(
-        Special _special
-    ) internal view returns (uint8) {
-        return
-            attributesVersions[currentAttributesVersion]
-                .specials[uint8(_special)]
-                .strength;
     }
 
     // Internal function to perform FlakArray special
@@ -953,12 +894,10 @@ contract Game is Ownable, ReentrancyGuard {
         GameData storage game = games[_gameId];
 
         // Get the range and strength of FlakArray from the attributes version
-        uint8 flakRange = attributesVersions[currentAttributesVersion]
-            .specials[uint8(Special.FlakArray)]
-            .range;
-        uint8 flakStrength = attributesVersions[currentAttributesVersion]
-            .specials[uint8(Special.FlakArray)]
-            .strength;
+        uint8 flakRange = shipAttributes.getSpecialRange(Special.FlakArray);
+        uint8 flakStrength = shipAttributes.getSpecialStrength(
+            Special.FlakArray
+        );
 
         // Get both fleet ship IDs to check all ships
         EnumerableSet.UintSet storage creatorShipIds = game.playerActiveShipIds[
@@ -1345,82 +1284,6 @@ contract Game is Ownable, ReentrancyGuard {
         game.grid[_newRow][_newCol] = _shipId;
         game.shipPositions[_shipId] = Position(_newRow, _newCol);
     }
-
-    // Internal calculation functions
-
-    function _calculateHullPoints(
-        Ship memory _ship
-    ) internal view returns (uint8) {
-        AttributesVersion storage version = attributesVersions[
-            currentAttributesVersion
-        ];
-        uint8 baseHull = version.baseHull;
-        uint8 traitBonus = _ship.traits.hull * 10; // Convert trait to hull points
-        return baseHull + traitBonus;
-    }
-
-    function _calculateMovement(
-        Ship memory _ship
-    ) internal view returns (uint8) {
-        AttributesVersion storage version = attributesVersions[
-            currentAttributesVersion
-        ];
-        int8 baseMovement = int8(version.baseSpeed);
-
-        // Add trait bonus
-        baseMovement += int8(_ship.traits.speed);
-
-        // Extract equipment bonuses as int8 to avoid stack-too-deep or type mismatch
-        int8 gunMovement = version
-            .guns[uint8(_ship.equipment.mainWeapon)]
-            .movement;
-        int8 armorMovement = version
-            .armors[uint8(_ship.equipment.armor)]
-            .movement;
-        int8 shieldMovement = version
-            .shields[uint8(_ship.equipment.shields)]
-            .movement;
-        int8 specialMovement = version
-            .specials[uint8(_ship.equipment.special)]
-            .movement;
-
-        baseMovement +=
-            gunMovement +
-            armorMovement +
-            shieldMovement +
-            specialMovement;
-
-        return baseMovement > 0 ? uint8(baseMovement) : 0;
-    }
-
-    function _calculateDamageReduction(
-        Ship memory _ship
-    ) internal view returns (uint8) {
-        AttributesVersion storage version = attributesVersions[
-            currentAttributesVersion
-        ];
-
-        uint8 damageReduction = 0;
-
-        damageReduction += version
-            .armors[uint8(_ship.equipment.armor)]
-            .damageReduction;
-        damageReduction += version
-            .shields[uint8(_ship.equipment.shields)]
-            .damageReduction;
-
-        return damageReduction;
-    }
-
-    // Attributes version management
-    // TODO: CRITICAL Either enable viaIR or do this the hard way
-    // function setAttributesVersion(
-    //     AttributesVersion memory _version
-    // ) public onlyOwner {
-    //     currentAttributesVersion++;
-    //     _version.version = currentAttributesVersion;
-    //     attributesVersions[currentAttributesVersion] = _version;
-    // }
 
     // View functions
     function getGame(

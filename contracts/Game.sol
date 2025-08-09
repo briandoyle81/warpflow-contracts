@@ -19,8 +19,8 @@ contract Game is Ownable, ReentrancyGuard {
     uint public gameCount;
 
     // Grid constants
-    uint8 public constant GRID_WIDTH = 100; // Number of columns
-    uint8 public constant GRID_HEIGHT = 50; // Number of rows
+    int16 public constant GRID_WIDTH = 100; // Number of columns
+    int16 public constant GRID_HEIGHT = 50; // Number of rows
 
     event GameStarted(
         uint indexed gameId,
@@ -153,7 +153,7 @@ contract Game is Ownable, ReentrancyGuard {
         uint creatorShipCount = EnumerableSet.length(creatorShipIds);
         for (uint i = 0; i < creatorShipCount; i++) {
             uint shipId = EnumerableSet.at(creatorShipIds, i);
-            uint8 row = uint8(i * 2); // Skip a row between each ship (rows 0, 2, 4, ...)
+            int16 row = int16(uint16(i * 2)); // Skip a row between each ship (rows 0, 2, 4, ...)
             _placeShipOnGrid(_gameId, shipId, row, 0);
         }
 
@@ -164,7 +164,7 @@ contract Game is Ownable, ReentrancyGuard {
         uint joinerShipCount = EnumerableSet.length(joinerShipIds);
         for (uint i = 0; i < joinerShipCount; i++) {
             uint shipId = EnumerableSet.at(joinerShipIds, i);
-            uint8 row = uint8(GRID_HEIGHT - 1 - (i * 2)); // Skip a row between each ship (rows 49, 47, 45, ...)
+            int16 row = int16(uint16(GRID_HEIGHT - 1 - int16(uint16(i * 2)))); // Skip a row between each ship (rows 49, 47, 45, ...)
             _placeShipOnGrid(_gameId, shipId, row, GRID_WIDTH - 1);
         }
     }
@@ -173,8 +173,8 @@ contract Game is Ownable, ReentrancyGuard {
     function _placeShipOnGrid(
         uint _gameId,
         uint _shipId,
-        uint8 _row,
-        uint8 _column
+        int16 _row,
+        int16 _column
     ) internal {
         GameData storage game = games[_gameId];
 
@@ -247,8 +247,8 @@ contract Game is Ownable, ReentrancyGuard {
     // External view, memory use ok
     function getShipAtPosition(
         uint _gameId,
-        uint8 _row,
-        uint8 _column
+        int16 _row,
+        int16 _column
     ) external view returns (uint) {
         if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
         if (_row >= GRID_HEIGHT || _column >= GRID_WIDTH)
@@ -492,8 +492,8 @@ contract Game is Ownable, ReentrancyGuard {
     function moveShip(
         uint _gameId,
         uint _shipId,
-        uint8 _newRow,
-        uint8 _newCol,
+        int16 _newRow,
+        int16 _newCol,
         ActionType actionType,
         uint targetShipId
     ) external {
@@ -598,8 +598,8 @@ contract Game is Ownable, ReentrancyGuard {
         GameData storage game,
         uint _gameId,
         uint _shipId,
-        uint8 _newRow,
-        uint8 _newCol,
+        int16 _newRow,
+        int16 _newCol,
         ActionType actionType,
         uint targetShipId
     ) internal {
@@ -621,6 +621,19 @@ contract Game is Ownable, ReentrancyGuard {
             uint8 manhattan = _manhattanDistance(shooterPos, targetPos);
             Attributes storage shooterAttributes = game.shipAttributes[_shipId];
             if (manhattan > shooterAttributes.range) revert InvalidMove();
+
+            // Must have line of sight to target
+            if (
+                !hasLineOfSight(
+                    _gameId,
+                    _newCol,
+                    _newRow,
+                    targetPos.col,
+                    targetPos.row
+                )
+            ) {
+                revert InvalidMove();
+            }
 
             // Get target attributes
             Attributes storage targetAttributes = game.shipAttributes[
@@ -664,8 +677,12 @@ contract Game is Ownable, ReentrancyGuard {
         Position memory a,
         Position memory b
     ) internal pure returns (uint8) {
-        uint8 rowDiff = a.row > b.row ? a.row - b.row : b.row - a.row;
-        uint8 colDiff = a.col > b.col ? a.col - b.col : b.col - a.col;
+        uint8 rowDiff = a.row > b.row
+            ? uint8(uint16(a.row - b.row))
+            : uint8(uint16(b.row - a.row));
+        uint8 colDiff = a.col > b.col
+            ? uint8(uint16(a.col - b.col))
+            : uint8(uint16(b.col - a.col));
         return rowDiff + colDiff;
     }
 
@@ -742,8 +759,8 @@ contract Game is Ownable, ReentrancyGuard {
     function _performSpecial(
         uint _gameId,
         uint _shipId,
-        uint8 _newRow,
-        uint8 _newCol,
+        int16 _newRow,
+        int16 _newCol,
         uint _targetShipId
     ) internal {
         // Validate target ship exists
@@ -779,8 +796,8 @@ contract Game is Ownable, ReentrancyGuard {
     // Helper function to validate special-specific requirements
     function _validateSpecialRequirements(
         uint _gameId,
-        uint8 _newRow,
-        uint8 _newCol,
+        int16 _newRow,
+        int16 _newCol,
         uint _targetShipId,
         Ship memory _usingShip,
         Ship memory _targetShip
@@ -816,8 +833,8 @@ contract Game is Ownable, ReentrancyGuard {
     // Helper function to validate special range
     function _validateSpecialRange(
         uint _gameId,
-        uint8 _newRow,
-        uint8 _newCol,
+        int16 _newRow,
+        int16 _newCol,
         uint _targetShipId,
         Special _special
     ) internal view {
@@ -835,8 +852,8 @@ contract Game is Ownable, ReentrancyGuard {
     function _executeSpecialAction(
         uint _gameId,
         uint _shipId,
-        uint8 _newRow,
-        uint8 _newCol,
+        int16 _newRow,
+        int16 _newCol,
         uint _targetShipId,
         Special _special
     ) internal {
@@ -888,8 +905,8 @@ contract Game is Ownable, ReentrancyGuard {
     function _performFlakArray(
         uint _gameId,
         uint _shipId, // The id of the ship using the FlakArray
-        uint8 _newRow,
-        uint8 _newCol
+        int16 _newRow,
+        int16 _newCol
     ) internal {
         GameData storage game = games[_gameId];
 
@@ -968,8 +985,8 @@ contract Game is Ownable, ReentrancyGuard {
     function _performAssist(
         uint _gameId,
         uint _shipId,
-        uint8 _newRow,
-        uint8 _newCol,
+        int16 _newRow,
+        int16 _newCol,
         uint _targetShipId
     ) internal {
         if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
@@ -1238,8 +1255,8 @@ contract Game is Ownable, ReentrancyGuard {
     function debugSetShipPosition(
         uint _gameId,
         uint _shipId,
-        uint8 _row,
-        uint8 _col
+        int16 _row,
+        int16 _col
     ) external onlyOwner {
         // No checks needed for debug, assume correct info given
 
@@ -1250,19 +1267,194 @@ contract Game is Ownable, ReentrancyGuard {
         games[_gameId].grid[_row][_col] = _shipId;
     }
 
+    // LINE OF SIGHT FUNCTIONS
+
+    // Set a tile as blocked for line of sight
+    function setBlockedTile(
+        uint _gameId,
+        int16 _row,
+        int16 _col,
+        bool _blocked
+    ) external onlyOwner {
+        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
+        if (_row >= GRID_HEIGHT || _col >= GRID_WIDTH) revert InvalidPosition();
+        games[_gameId].blockedTiles[_row][_col] = _blocked;
+    }
+
+    // Set multiple tiles as blocked for line of sight
+    function setBlockedTiles(
+        uint _gameId,
+        int16[] memory _rows,
+        int16[] memory _cols,
+        bool[] memory _blocked
+    ) external onlyOwner {
+        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
+        if (_rows.length != _cols.length || _rows.length != _blocked.length)
+            revert InvalidMove();
+
+        for (uint i = 0; i < _rows.length; i++) {
+            if (_rows[i] >= GRID_HEIGHT || _cols[i] >= GRID_WIDTH)
+                revert InvalidPosition();
+            games[_gameId].blockedTiles[_rows[i]][_cols[i]] = _blocked[i];
+        }
+    }
+
+    // Check if a tile is blocked
+    function isTileBlocked(
+        uint _gameId,
+        int16 _row,
+        int16 _col
+    ) public view returns (bool) {
+        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
+        if (_row >= GRID_HEIGHT || _col >= GRID_WIDTH) revert InvalidPosition();
+        return games[_gameId].blockedTiles[_row][_col];
+    }
+
+    // Main line of sight function using Bresenham's algorithm
+    function hasLineOfSight(
+        uint _gameId,
+        int16 _x0,
+        int16 _y0,
+        int16 _x1,
+        int16 _y1
+    ) public view returns (bool) {
+        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
+        if (
+            _x0 >= GRID_WIDTH ||
+            _y0 >= GRID_HEIGHT ||
+            _x1 >= GRID_WIDTH ||
+            _y1 >= GRID_HEIGHT
+        ) revert InvalidPosition();
+
+        // Early checks - always check start and end
+        if (isTileBlocked(_gameId, _y0, _x0)) {
+            return false;
+        }
+
+        if (_x0 == _x1 && _y0 == _y1) {
+            return !isTileBlocked(_gameId, _y1, _x1);
+        }
+
+        // Use Bresenham's algorithm for line of sight (always permissive mode)
+        return _bresenhamLineOfSight(_gameId, _x0, _y0, _x1, _y1);
+    }
+
+    // Bresenham's algorithm implementation for line of sight (permissive mode)
+    function _bresenhamLineOfSight(
+        uint _gameId,
+        int16 _x0,
+        int16 _y0,
+        int16 _x1,
+        int16 _y1
+    ) internal view returns (bool) {
+        int16 dx = _x1 > _x0 ? _x1 - _x0 : _x0 - _x1;
+        int16 dy = _y1 > _y0 ? _y1 - _y0 : _y0 - _y1;
+        int16 sx = _x0 < _x1 ? int16(1) : int16(-1);
+        int16 sy = _y0 < _y1 ? int16(1) : int16(-1);
+
+        int16 err = dx - dy;
+        int16 x = _x0;
+        int16 y = _y0;
+
+        while (true) {
+            // Check if we've reached the target
+            if (x == _x1 && y == _y1) {
+                return !isTileBlocked(_gameId, y, x);
+            }
+
+            int16 e2 = 2 * err;
+
+            if (e2 > -dy) {
+                // X-step
+                err -= dy;
+                x += sx;
+
+                // Check if the next cell is blocked
+                if (x != _x1) {
+                    if (isTileBlocked(_gameId, y, x)) {
+                        return false;
+                    }
+                }
+            }
+
+            if (e2 < dx) {
+                // Y-step
+                err += dx;
+                y += sy;
+
+                // Check if the next cell is blocked
+                if (y != _y1) {
+                    if (isTileBlocked(_gameId, y, x)) {
+                        return false;
+                    }
+                }
+            }
+
+            // TIE case (diagonal step) - both X and Y would advance
+            if (e2 == 0) {
+                // Identify the two adjacent flankers
+                int16 flanker1X = x + sx;
+                int16 flanker1Y = y;
+                int16 flanker2X = x;
+                int16 flanker2Y = y + sy;
+
+                bool flanker1Blocked = isTileBlocked(
+                    _gameId,
+                    flanker1Y,
+                    flanker1X
+                );
+                bool flanker2Blocked = isTileBlocked(
+                    _gameId,
+                    flanker2Y,
+                    flanker2X
+                );
+
+                // Corner rule (permissive mode)
+                // Only fail if both flankers are blocked
+                if (flanker1Blocked && flanker2Blocked) {
+                    return false;
+                }
+
+                // Advance diagonally
+                x += sx;
+                y += sy;
+
+                // Check if the landing cell is blocked
+                if (x != _x1 && isTileBlocked(_gameId, y, x)) {
+                    return false;
+                }
+            }
+        }
+    }
+
+    // Check line of sight between two ships
+    function hasLineOfSightBetweenShips(
+        uint _gameId,
+        uint _shipId1,
+        uint _shipId2
+    ) public view returns (bool) {
+        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
+
+        GameData storage game = games[_gameId];
+        Position memory pos1 = game.shipPositions[_shipId1];
+        Position memory pos2 = game.shipPositions[_shipId2];
+
+        return hasLineOfSight(_gameId, pos1.col, pos1.row, pos2.col, pos2.row);
+    }
+
     // Internal helper functions
 
     function _calculateMovementCost(
         Position memory _currentPos,
-        uint8 _newRow,
-        uint8 _newCol
+        int16 _newRow,
+        int16 _newCol
     ) internal pure returns (uint8) {
         uint8 rowDiff = _currentPos.row > _newRow
-            ? _currentPos.row - _newRow
-            : _newRow - _currentPos.row;
+            ? uint8(uint16(_currentPos.row - _newRow))
+            : uint8(uint16(_newRow - _currentPos.row));
         uint8 colDiff = _currentPos.col > _newCol
-            ? _currentPos.col - _newCol
-            : _newCol - _currentPos.col;
+            ? uint8(uint16(_currentPos.col - _newCol))
+            : uint8(uint16(_newCol - _currentPos.col));
 
         // Allow diagonal movement - cost is Manhattan distance (rowDiff + colDiff)
         return rowDiff + colDiff;
@@ -1272,8 +1464,8 @@ contract Game is Ownable, ReentrancyGuard {
         uint _gameId,
         uint _shipId,
         Position memory _currentPos,
-        uint8 _newRow,
-        uint8 _newCol
+        int16 _newRow,
+        int16 _newCol
     ) internal {
         GameData storage game = games[_gameId];
 
@@ -1413,9 +1605,6 @@ contract Game is Ownable, ReentrancyGuard {
 
         // Remove all ships from fleets
         _removeAllShipsFromFleets(_gameId);
-
-        // Clear the grid
-        _clearGameGrid(_gameId);
     }
 
     // Internal function to remove all ships from fleets
@@ -1440,18 +1629,6 @@ contract Game is Ownable, ReentrancyGuard {
         for (uint i = 0; i < joinerShipCount; i++) {
             uint shipId = EnumerableSet.at(joinerShipIds, i);
             fleets.removeShipFromFleet(game.metadata.joinerFleetId, shipId);
-        }
-    }
-
-    // Internal function to clear the game grid
-    function _clearGameGrid(uint _gameId) internal {
-        GameData storage game = games[_gameId];
-
-        // Clear all positions on the grid
-        for (uint8 row = 0; row < game.gridDimensions.gridHeight; row++) {
-            for (uint8 col = 0; col < game.gridDimensions.gridWidth; col++) {
-                game.grid[row][col] = 0;
-            }
         }
     }
 

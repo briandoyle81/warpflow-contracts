@@ -74,8 +74,8 @@ struct Attributes {
 
 // Grid position structure
 struct Position {
-    uint8 row;
-    uint8 col;
+    int16 row;
+    int16 col;
 }
 
 // Ship position on the grid
@@ -108,8 +108,8 @@ struct GameTurnState {
 
 // Game grid dimensions
 struct GameGridDimensions {
-    uint8 gridWidth;
-    uint8 gridHeight;
+    int16 gridWidth;
+    int16 gridHeight;
 }
 
 struct GameData {
@@ -119,11 +119,13 @@ struct GameData {
     // Keep all mappings in GameData
     mapping(uint => Attributes) shipAttributes; // shipId => attributes
     // Grid state - grid[row][column] = shipId (0 if empty)
-    mapping(uint8 row => mapping(uint8 column => uint shipId)) grid;
+    mapping(int16 row => mapping(int16 column => uint shipId)) grid;
     mapping(uint => Position) shipPositions; // shipId => position
     mapping(uint => mapping(uint => bool)) shipMovedThisRound; // round => shipId => hasMoved
     // Store active ship IDs for each player to avoid repeated fleet calls
     mapping(address => EnumerableSet.UintSet) playerActiveShipIds; // player => shipIds
+    // Mapping for blocked tiles that affect line of sight
+    mapping(int16 row => mapping(int16 col => bool)) blockedTiles;
 }
 
 struct GameDataView {
@@ -140,8 +142,8 @@ struct GameDataView {
     Attributes[] shipAttributes; // Combined array of all ship attributes indexed by ship ID
     // Grid data
     ShipPosition[] shipPositions; // All ship positions on the grid
-    uint8 gridWidth;
-    uint8 gridHeight;
+    int16 gridWidth;
+    int16 gridHeight;
     // Active ship IDs for each player
     uint[] creatorActiveShipIds;
     uint[] joinerActiveShipIds;

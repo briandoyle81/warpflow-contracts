@@ -2,17 +2,18 @@
 pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "./Types.sol";
 import "./IShips.sol";
 import "./IFleets.sol";
 import "./IShipAttributes.sol";
+import "./ILineOfSight.sol";
 
-contract Game is Ownable, ReentrancyGuard {
+contract Game is Ownable {
     IShips public ships;
     IFleets public fleets;
     IShipAttributes public shipAttributes;
+    ILineOfSight public lineOfSight;
     address public lobbiesAddress;
 
     mapping(uint => GameData) public games;
@@ -50,6 +51,12 @@ contract Game is Ownable, ReentrancyGuard {
     constructor(address _ships, address _shipAttributes) Ownable(msg.sender) {
         ships = IShips(_ships);
         shipAttributes = IShipAttributes(_shipAttributes);
+    }
+
+    function setLineOfSightAddress(
+        address _lineOfSightAddress
+    ) public onlyOwner {
+        lineOfSight = ILineOfSight(_lineOfSightAddress);
     }
 
     function setLobbiesAddress(address _lobbiesAddress) public onlyOwner {
@@ -226,36 +233,12 @@ contract Game is Ownable, ReentrancyGuard {
         uint _shipId
     ) public view returns (Attributes memory) {
         if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
-        GameData storage game = games[_gameId];
-        Attributes storage attributes = game.shipAttributes[_shipId];
+        Attributes storage attributes = games[_gameId].shipAttributes[_shipId];
         if (attributes.version == 0) revert ShipNotFound();
         return attributes;
     }
 
     // Get ship position on the grid
-    // External view, memory use ok
-    function getShipPosition(
-        uint _gameId,
-        uint _shipId
-    ) external view returns (Position memory) {
-        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
-        GameData storage game = games[_gameId];
-        return game.shipPositions[_shipId];
-    }
-
-    // Get ship at a specific grid position
-    // External view, memory use ok
-    function getShipAtPosition(
-        uint _gameId,
-        int16 _row,
-        int16 _column
-    ) external view returns (uint) {
-        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
-        if (_row >= GRID_HEIGHT || _column >= GRID_WIDTH)
-            revert InvalidPosition();
-        GameData storage game = games[_gameId];
-        return game.grid[_row][_column];
-    }
 
     // Get all ship positions for a game
     // External view, memory use ok
@@ -265,97 +248,52 @@ contract Game is Ownable, ReentrancyGuard {
         if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
         GameData storage game = games[_gameId];
 
-        // Count non-destroyed ships
-        uint nonDestroyedShips = _countActiveShips(_gameId);
+        // First, count how many ships are actually in the grid (including 0 HP ships)
+        uint shipCount = 0;
+        for (int16 row = 0; row < GRID_HEIGHT; row++) {
+            for (int16 col = 0; col < GRID_WIDTH; col++) {
+                uint shipId = game.grid[row][col];
+                if (shipId > 0 && _isShipNotDestroyed(shipId)) {
+                    shipCount++;
+                }
+            }
+        }
 
-        ShipPosition[] memory positions = new ShipPosition[](nonDestroyedShips);
+        // Create array with actual count
+        ShipPosition[] memory positions = new ShipPosition[](shipCount);
         uint index = 0;
 
-        // Add creator ships
-        index = _addFleetPositions(
-            _gameId,
-            game.metadata.creatorFleetId,
-            positions,
-            index,
-            true
-        );
-
-        // Add joiner ships
-        index = _addFleetPositions(
-            _gameId,
-            game.metadata.joinerFleetId,
-            positions,
-            index,
-            false
-        );
+        // Iterate through the grid to find all ships
+        for (int16 row = 0; row < GRID_HEIGHT; row++) {
+            for (int16 col = 0; col < GRID_WIDTH; col++) {
+                uint shipId = game.grid[row][col];
+                if (shipId > 0 && _isShipNotDestroyed(shipId)) {
+                    // Determine if this is a creator or joiner ship
+                    bool isCreator = _isCreatorShip(_gameId, shipId);
+                    positions[index] = ShipPosition({
+                        shipId: shipId,
+                        position: Position({row: row, col: col}),
+                        isCreator: isCreator
+                    });
+                    index++;
+                }
+            }
+        }
 
         return positions;
     }
 
-    // Helper function to count active ships
-    function _countActiveShips(uint _gameId) internal view returns (uint) {
-        GameData storage game = games[_gameId];
-        EnumerableSet.UintSet storage creatorShipIds = game.playerActiveShipIds[
-            game.metadata.creator
-        ];
-        EnumerableSet.UintSet storage joinerShipIds = game.playerActiveShipIds[
-            game.metadata.joiner
-        ];
-
-        uint count = 0;
-
-        // Count creator ships
-        uint creatorShipCount = EnumerableSet.length(creatorShipIds);
-        for (uint i = 0; i < creatorShipCount; i++) {
-            uint shipId = EnumerableSet.at(creatorShipIds, i);
-            if (_isShipActive(_gameId, shipId)) {
-                count++;
-            }
-        }
-
-        // Count joiner ships
-        uint joinerShipCount = EnumerableSet.length(joinerShipIds);
-        for (uint i = 0; i < joinerShipCount; i++) {
-            uint shipId = EnumerableSet.at(joinerShipIds, i);
-            if (_isShipActive(_gameId, shipId)) {
-                count++;
-            }
-        }
-
-        return count;
-    }
-
-    // Helper function to add fleet positions to the array
-    function _addFleetPositions(
+    // Helper function to determine if a ship belongs to the creator
+    function _isCreatorShip(
         uint _gameId,
-        uint /* _fleetId */,
-        ShipPosition[] memory _positions,
-        uint _startIndex,
-        bool _isCreator
-    ) internal view returns (uint) {
+        uint _shipId
+    ) internal view returns (bool) {
         GameData storage game = games[_gameId];
-        address player = _isCreator
-            ? game.metadata.creator
-            : game.metadata.joiner;
-        EnumerableSet.UintSet storage shipIds = game.playerActiveShipIds[
-            player
-        ];
-        uint index = _startIndex;
-
-        uint shipCount = EnumerableSet.length(shipIds);
-        for (uint i = 0; i < shipCount; i++) {
-            uint shipId = EnumerableSet.at(shipIds, i);
-            if (_isShipActive(_gameId, shipId)) {
-                _positions[index] = ShipPosition({
-                    shipId: shipId,
-                    position: game.shipPositions[shipId],
-                    isCreator: _isCreator
-                });
-                index++;
-            }
-        }
-
-        return index;
+        return
+            EnumerableSet.contains(
+                game.playerActiveShipIds[game.metadata.creator],
+                _shipId
+            );
     }
 
     // Helper functions to consolidate fleet iteration logic
@@ -471,9 +409,6 @@ contract Game is Ownable, ReentrancyGuard {
     function _checkGameEndCondition(uint _gameId) internal {
         GameData storage game = games[_gameId];
 
-        // Skip if game already ended
-        if (game.metadata.winner != address(0)) return;
-
         // Check if creator has no active ships
         if (!_playerHasActiveShips(_gameId, game.metadata.creator)) {
             game.metadata.winner = game.metadata.joiner;
@@ -531,30 +466,35 @@ contract Game is Ownable, ReentrancyGuard {
         // Get current position
         Position storage currentPos = game.shipPositions[_shipId];
 
-        // Calculate movement cost
-        uint8 movementCost = _calculateMovementCost(
-            currentPos,
-            _newRow,
-            _newCol
-        );
-
-        // Get ship's movement attribute
-        Attributes storage attributes = game.shipAttributes[_shipId];
-
-        // Check if movement cost exceeds ship's movement
-        if (movementCost > attributes.movement) revert MovementExceeded();
-
-        // Validate new position
-        if (_newRow >= GRID_HEIGHT || _newCol >= GRID_WIDTH)
-            revert InvalidPosition();
-        // Allow moving to the current position (no-op move), skip PositionOccupied check and skip _executeMove
+        // Allow moving to the current position (no-op move), skip movement validation and PositionOccupied check
         bool isNoOpMove = (currentPos.row == _newRow &&
             currentPos.col == _newCol);
-        if (!isNoOpMove && game.grid[_newRow][_newCol] != 0)
-            revert PositionOccupied();
 
-        // Perform the move
-        _executeMove(_gameId, _shipId, currentPos, _newRow, _newCol);
+        if (!isNoOpMove) {
+            // Calculate movement cost only for actual moves
+            uint8 movementCost = _manhattanDistance(
+                currentPos,
+                Position(_newRow, _newCol)
+            );
+
+            // Get ship's movement attribute
+            Attributes storage attributes = game.shipAttributes[_shipId];
+
+            // Check if movement cost exceeds ship's movement
+            if (movementCost > attributes.movement) revert MovementExceeded();
+
+            // Validate new position
+            if (_newRow >= GRID_HEIGHT || _newCol >= GRID_WIDTH)
+                revert InvalidPosition();
+
+            // Check if position is occupied
+            if (game.grid[_newRow][_newCol] != 0) revert PositionOccupied();
+        }
+
+        // Perform the move only if it's not a no-op move
+        if (!isNoOpMove) {
+            _executeMove(_gameId, _shipId, currentPos, _newRow, _newCol);
+        }
 
         // Mark ship as moved this round
         game.shipMovedThisRound[game.turnState.currentRound][_shipId] = true;
@@ -624,7 +564,7 @@ contract Game is Ownable, ReentrancyGuard {
 
             // Must have line of sight to target
             if (
-                !hasLineOfSight(
+                !lineOfSight.hasLineOfSight(
                     _gameId,
                     _newCol,
                     _newRow,
@@ -1227,8 +1167,17 @@ contract Game is Ownable, ReentrancyGuard {
         // Set hull points to 0
         game.shipAttributes[_shipId].hullPoints = 0;
 
+        // Don't remove ship from grid to allow testing scenarios where we want
+        // to simulate 0 hull points but still have the ship in the game for repair
+
         // Mark ship as moved this round so it doesn't block round completion
         game.shipMovedThisRound[game.turnState.currentRound][_shipId] = true;
+
+        // Note: We don't remove from playerActiveShipIds to allow testing scenarios
+        // where we want to simulate 0 hull points but still have the ship participate
+        // in round completion logic (for reactor critical timer increments)
+        // We don't call _checkGameEndCondition here to allow testing scenarios
+        // where we want to simulate 0 hull points without ending the game
     }
 
     // Debug function to set a ship's reactor critical timer (onlyOwner for testing)
@@ -1260,186 +1209,16 @@ contract Game is Ownable, ReentrancyGuard {
     ) external onlyOwner {
         // No checks needed for debug, assume correct info given
 
+        // Clear old position in grid
+        games[_gameId].grid[games[_gameId].shipPositions[_shipId].row][
+            games[_gameId].shipPositions[_shipId].col
+        ] = 0;
+
         // Set ship position
         games[_gameId].shipPositions[_shipId] = Position(_row, _col);
 
         // Set ship in grid
         games[_gameId].grid[_row][_col] = _shipId;
-    }
-
-    // LINE OF SIGHT FUNCTIONS
-
-    // Set a tile as blocked for line of sight
-    function setBlockedTile(
-        uint _gameId,
-        int16 _row,
-        int16 _col,
-        bool _blocked
-    ) external onlyOwner {
-        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
-        if (_row >= GRID_HEIGHT || _col >= GRID_WIDTH) revert InvalidPosition();
-        games[_gameId].blockedTiles[_row][_col] = _blocked;
-    }
-
-    // Set multiple tiles as blocked for line of sight
-    function setBlockedTiles(
-        uint _gameId,
-        int16[] memory _rows,
-        int16[] memory _cols,
-        bool[] memory _blocked
-    ) external onlyOwner {
-        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
-        if (_rows.length != _cols.length || _rows.length != _blocked.length)
-            revert InvalidMove();
-
-        for (uint i = 0; i < _rows.length; i++) {
-            if (_rows[i] >= GRID_HEIGHT || _cols[i] >= GRID_WIDTH)
-                revert InvalidPosition();
-            games[_gameId].blockedTiles[_rows[i]][_cols[i]] = _blocked[i];
-        }
-    }
-
-    // Check if a tile is blocked
-    function isTileBlocked(
-        uint _gameId,
-        int16 _row,
-        int16 _col
-    ) public view returns (bool) {
-        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
-        if (_row >= GRID_HEIGHT || _col >= GRID_WIDTH) revert InvalidPosition();
-        return games[_gameId].blockedTiles[_row][_col];
-    }
-
-    // Main line of sight function using Bresenham's algorithm
-    function hasLineOfSight(
-        uint _gameId,
-        int16 _x0,
-        int16 _y0,
-        int16 _x1,
-        int16 _y1
-    ) public view returns (bool) {
-        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
-        if (
-            _x0 >= GRID_WIDTH ||
-            _y0 >= GRID_HEIGHT ||
-            _x1 >= GRID_WIDTH ||
-            _y1 >= GRID_HEIGHT
-        ) revert InvalidPosition();
-
-        // Early checks - always check start and end
-        if (isTileBlocked(_gameId, _y0, _x0)) {
-            return false;
-        }
-
-        if (_x0 == _x1 && _y0 == _y1) {
-            return !isTileBlocked(_gameId, _y1, _x1);
-        }
-
-        // Use Bresenham's algorithm for line of sight (always permissive mode)
-        return _bresenhamLineOfSight(_gameId, _x0, _y0, _x1, _y1);
-    }
-
-    // Bresenham's algorithm implementation for line of sight (permissive mode)
-    function _bresenhamLineOfSight(
-        uint _gameId,
-        int16 _x0,
-        int16 _y0,
-        int16 _x1,
-        int16 _y1
-    ) internal view returns (bool) {
-        int16 dx = _x1 > _x0 ? _x1 - _x0 : _x0 - _x1;
-        int16 dy = _y1 > _y0 ? _y1 - _y0 : _y0 - _y1;
-        int16 sx = _x0 < _x1 ? int16(1) : int16(-1);
-        int16 sy = _y0 < _y1 ? int16(1) : int16(-1);
-
-        int16 err = dx - dy;
-        int16 x = _x0;
-        int16 y = _y0;
-
-        while (true) {
-            // Check if we've reached the target
-            if (x == _x1 && y == _y1) {
-                return !isTileBlocked(_gameId, y, x);
-            }
-
-            int16 e2 = 2 * err;
-
-            if (e2 > -dy) {
-                // X-step
-                err -= dy;
-                x += sx;
-
-                // Check if the next cell is blocked
-                if (x != _x1) {
-                    if (isTileBlocked(_gameId, y, x)) {
-                        return false;
-                    }
-                }
-            }
-
-            if (e2 < dx) {
-                // Y-step
-                err += dx;
-                y += sy;
-
-                // Check if the next cell is blocked
-                if (y != _y1) {
-                    if (isTileBlocked(_gameId, y, x)) {
-                        return false;
-                    }
-                }
-            }
-
-            // TIE case (diagonal step) - both X and Y would advance
-            if (e2 == 0) {
-                // Identify the two adjacent flankers
-                int16 flanker1X = x + sx;
-                int16 flanker1Y = y;
-                int16 flanker2X = x;
-                int16 flanker2Y = y + sy;
-
-                bool flanker1Blocked = isTileBlocked(
-                    _gameId,
-                    flanker1Y,
-                    flanker1X
-                );
-                bool flanker2Blocked = isTileBlocked(
-                    _gameId,
-                    flanker2Y,
-                    flanker2X
-                );
-
-                // Corner rule (permissive mode)
-                // Only fail if both flankers are blocked
-                if (flanker1Blocked && flanker2Blocked) {
-                    return false;
-                }
-
-                // Advance diagonally
-                x += sx;
-                y += sy;
-
-                // Check if the landing cell is blocked
-                if (x != _x1 && isTileBlocked(_gameId, y, x)) {
-                    return false;
-                }
-            }
-        }
-    }
-
-    // Check line of sight between two ships
-    function hasLineOfSightBetweenShips(
-        uint _gameId,
-        uint _shipId1,
-        uint _shipId2
-    ) public view returns (bool) {
-        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
-
-        GameData storage game = games[_gameId];
-        Position memory pos1 = game.shipPositions[_shipId1];
-        Position memory pos2 = game.shipPositions[_shipId2];
-
-        return hasLineOfSight(_gameId, pos1.col, pos1.row, pos2.col, pos2.row);
     }
 
     // Internal helper functions

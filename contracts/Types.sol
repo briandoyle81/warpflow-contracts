@@ -124,8 +124,6 @@ struct GameData {
     mapping(uint => mapping(uint => bool)) shipMovedThisRound; // round => shipId => hasMoved
     // Store active ship IDs for each player to avoid repeated fleet calls
     mapping(address => EnumerableSet.UintSet) playerActiveShipIds; // player => shipIds
-    // Mapping for blocked tiles that affect line of sight
-    mapping(int16 row => mapping(int16 col => bool)) blockedTiles;
 }
 
 struct GameDataView {

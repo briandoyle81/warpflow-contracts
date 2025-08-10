@@ -1,0 +1,48 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.28;
+
+interface ILineOfSight {
+    // Grid constants
+    function GRID_WIDTH() external view returns (int16);
+
+    function GRID_HEIGHT() external view returns (int16);
+
+    // Blocked tiles mapping
+    function blockedTiles(
+        uint _gameId,
+        int16 _row,
+        int16 _col
+    ) external view returns (bool);
+
+    // Set a tile as blocked for line of sight
+    function setBlockedTile(
+        uint _gameId,
+        int16 _row,
+        int16 _col,
+        bool _blocked
+    ) external;
+
+    // Set multiple tiles as blocked for line of sight
+    function setBlockedTiles(
+        uint _gameId,
+        int16[] memory _rows,
+        int16[] memory _cols,
+        bool[] memory _blocked
+    ) external;
+
+    // Check if a tile is blocked
+    function isTileBlocked(
+        uint _gameId,
+        int16 _row,
+        int16 _col
+    ) external view returns (bool);
+
+    // Main line of sight function using Bresenham's algorithm
+    function hasLineOfSight(
+        uint _gameId,
+        int16 _x0,
+        int16 _y0,
+        int16 _x1,
+        int16 _y1
+    ) external view returns (bool);
+}

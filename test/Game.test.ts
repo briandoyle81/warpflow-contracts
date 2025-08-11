@@ -132,7 +132,12 @@ describe("Game", function () {
       const expectedHullPoints = 100 + constructedShip.traits.hull * 10;
 
       // Create a game and calculate attributes
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
@@ -179,7 +184,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
@@ -239,7 +249,12 @@ describe("Game", function () {
       const constructedShip = tupleToShip(constructedShipTuple);
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
@@ -294,7 +309,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
@@ -344,7 +364,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with multiple ships
@@ -405,7 +430,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets
@@ -494,7 +524,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
@@ -543,7 +578,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
@@ -592,7 +632,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with multiple ships for both players
@@ -701,7 +746,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
@@ -753,7 +803,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
@@ -811,7 +866,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
@@ -902,7 +962,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
@@ -958,7 +1023,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
@@ -1007,7 +1077,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
@@ -1056,7 +1131,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
@@ -1110,7 +1190,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with multiple ships
@@ -1207,7 +1292,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with multiple ships
@@ -1256,7 +1346,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
@@ -1313,7 +1408,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with different sizes: creator has 3 ships, joiner has 5 ships
@@ -1411,7 +1511,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game (multiple ships so destroying one doesn't end the game)
@@ -1466,7 +1571,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with multiple ships
@@ -1542,7 +1652,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
@@ -1604,7 +1719,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with multiple ships
@@ -1709,7 +1829,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
@@ -1763,7 +1888,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets: creator has 2 ships, joiner has 3 ships
@@ -1870,7 +2000,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets: both have 3 ships initially
@@ -1969,7 +2104,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with one ship each
@@ -2129,7 +2269,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with one ship each
@@ -2347,7 +2492,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with one ship each
@@ -2455,7 +2605,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with multiple ships
@@ -2563,7 +2718,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with one ship each
@@ -2729,7 +2889,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with one ship each
@@ -2810,7 +2975,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with two ships each
@@ -2967,7 +3137,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with two ships each
@@ -3077,7 +3252,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with two ships each
@@ -3219,7 +3399,12 @@ describe("Game", function () {
       await ships.write.constructShip([6n], { account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
@@ -3333,7 +3518,12 @@ describe("Game", function () {
       await ships.write.constructShip([6n], { account: joiner.account });
 
       // Create a game
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with one ship each
@@ -3458,7 +3648,12 @@ describe("Game", function () {
       await ships.write.constructShip([7n], { account: joiner.account });
 
       // 4. Create a lobby, fleet, game etc for both players
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with multiple ships each
@@ -3575,7 +3770,12 @@ describe("Game", function () {
 
       // Create a lobby with a short turn time (5 minutes - minimum allowed)
       const shortTurnTime = 300n;
-      await creatorLobbies.write.createLobby([1000n, shortTurnTime, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        shortTurnTime,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
 
       const lobbyId = 1n;
       await joinerLobbies.write.joinLobby([lobbyId]);
@@ -3661,7 +3861,12 @@ describe("Game", function () {
 
       // Create a lobby with a short turn time (5 minutes - minimum allowed)
       const shortTurnTime = 300n;
-      await creatorLobbies.write.createLobby([1000n, shortTurnTime, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        shortTurnTime,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
 
       const lobbyId = 1n;
       await joinerLobbies.write.joinLobby([lobbyId]);
@@ -3748,7 +3953,12 @@ describe("Game", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create a lobby
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       const lobbyId = 1n;
       await joinerLobbies.write.joinLobby([lobbyId]);
 

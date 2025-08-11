@@ -122,6 +122,7 @@ describe("Lobbies", function () {
       costLimit,
       turnTime,
       creatorGoesFirst,
+      0n, // selectedMapId - no preset map
     ]);
     await joinerLobbies.write.joinLobby([1n]);
 
@@ -163,6 +164,7 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
+        0n, // selectedMapId - no preset map
       ]);
       const receipt = await publicClient.getTransactionReceipt({ hash: tx });
 
@@ -199,6 +201,7 @@ describe("Lobbies", function () {
           costLimit,
           invalidTurnTime,
           creatorGoesFirst,
+          0n, // selectedMapId - no preset map
         ])
       ).to.be.rejectedWith("InvalidTurnTime");
     });
@@ -216,6 +219,7 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
+        0n, // selectedMapId - no preset map
       ]);
 
       // Second lobby should require fee
@@ -224,13 +228,14 @@ describe("Lobbies", function () {
           costLimit,
           turnTime,
           creatorGoesFirst,
+          0n, // selectedMapId - no preset map
         ])
       ).to.be.rejectedWith("InsufficientFee");
 
       // Should work with correct fee
       await expect(
         creatorLobbies.write.createLobby(
-          [costLimit, turnTime, creatorGoesFirst],
+          [costLimit, turnTime, creatorGoesFirst, 0n], // selectedMapId - no preset map
           {
             value: parseEther("1"),
           }
@@ -278,6 +283,7 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
+        0n, // selectedMapId - no preset map
       ]);
 
       // Check initial state
@@ -308,6 +314,7 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
+        0n, // selectedMapId - no preset map
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -317,7 +324,7 @@ describe("Lobbies", function () {
 
       // Create new lobby
       await creatorLobbies.write.createLobby(
-        [costLimit, turnTime, creatorGoesFirst],
+        [costLimit, turnTime, creatorGoesFirst, 0n], // selectedMapId - no preset map
         { value: parseEther("1") }
       );
 
@@ -340,6 +347,7 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
+        0n, // selectedMapId - no preset map
       ]);
 
       const tx = await joinerLobbies.write.joinLobby([1n]);
@@ -374,6 +382,7 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
+        0n, // selectedMapId - no preset map
       ]);
 
       // First player joins
@@ -384,6 +393,7 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
+        0n, // selectedMapId - no preset map
       ]);
 
       // Try to join first lobby while it's in FleetSelection state
@@ -405,6 +415,7 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
+        0n, // selectedMapId - no preset map
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -414,7 +425,7 @@ describe("Lobbies", function () {
 
       // Create new lobby
       await creatorLobbies.write.createLobby(
-        [costLimit, turnTime, creatorGoesFirst],
+        [costLimit, turnTime, creatorGoesFirst, 0n], // selectedMapId - no preset map
         { value: parseEther("1") }
       );
 
@@ -434,6 +445,7 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
+        0n, // selectedMapId - no preset map
       ]);
 
       await expect(creatorLobbies.write.joinLobby([1n])).to.be.rejectedWith(
@@ -454,6 +466,7 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
+        0n, // selectedMapId - no preset map
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -462,6 +475,7 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
+        0n, // selectedMapId - no preset map
       ]);
 
       // Try to join second lobby while in first lobby
@@ -483,6 +497,7 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
+        0n, // selectedMapId - no preset map
       ]);
 
       // First player joins
@@ -508,6 +523,7 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
+        0n, // selectedMapId - no preset map
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -546,6 +562,7 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
+        0n, // selectedMapId - no preset map
       ]);
 
       // Creator leaves
@@ -574,6 +591,7 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
+        0n, // selectedMapId - no preset map
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -608,6 +626,7 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
+        0n, // selectedMapId - no preset map
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -655,6 +674,7 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
+        0n, // selectedMapId - no preset map
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -767,7 +787,12 @@ describe("Lobbies", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create and join a lobby
-      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Try to create a fleet directly through the Fleets contract (should fail)

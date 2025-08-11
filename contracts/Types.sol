@@ -239,6 +239,7 @@ struct Lobby {
     uint turnTime; // Time in seconds for each turn
     uint joinedAt; // When the joiner joined the lobby
     uint joinerFleetSetAt; // When the joiner set their fleet
+    uint selectedMapId; // ID of the preset map to use for this game
 }
 
 struct Fleet {

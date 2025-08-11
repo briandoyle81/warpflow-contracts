@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
+// Import Position struct from Types
+import "./Types.sol";
+
 interface ILineOfSight {
     // Grid constants
     function GRID_WIDTH() external view returns (int16);
@@ -45,4 +48,26 @@ interface ILineOfSight {
         int16 _x1,
         int16 _y1
     ) external view returns (bool);
+
+    // Preset map functions
+    function createPresetMap(
+        Position[] calldata _blockedPositions
+    ) external returns (uint);
+
+    function updatePresetMap(
+        uint _mapId,
+        Position[] calldata _blockedPositions
+    ) external;
+
+    function deletePresetMap(uint _mapId) external;
+
+    function applyPresetMapToGame(uint _gameId, uint _mapId) external;
+
+    function getPresetMap(
+        uint _mapId
+    ) external view returns (Position[] memory);
+
+    function mapExists(uint _mapId) external view returns (bool);
+
+    function mapCount() external view returns (uint);
 }

@@ -12,10 +12,157 @@ contract LineOfSight is Ownable {
     mapping(uint => mapping(int16 => mapping(int16 => bool)))
         public blockedTiles;
 
+    // Preset maps: mapId => row => column => blocked
+    mapping(uint => mapping(int16 => mapping(int16 => bool))) public presetMaps;
+
+    // Counter for preset maps
+    uint public mapCount;
+
     // Custom error for invalid positions
     error InvalidPosition();
+    error MapNotFound();
 
     constructor() Ownable(msg.sender) {}
+
+    /**
+     * @dev Create a new preset map
+     * @param _blockedPositions Array of blocked positions
+     */
+    function createPresetMap(
+        Position[] calldata _blockedPositions
+    ) external onlyOwner {
+        mapCount++;
+
+        // Validate all positions
+        for (uint i = 0; i < _blockedPositions.length; i++) {
+            Position memory pos = _blockedPositions[i];
+            if (
+                pos.row < 0 ||
+                pos.row >= GRID_HEIGHT ||
+                pos.col < 0 ||
+                pos.col >= GRID_WIDTH
+            ) {
+                revert InvalidPosition();
+            }
+            presetMaps[mapCount][pos.row][pos.col] = true;
+        }
+    }
+
+    /**
+     * @dev Update an existing preset map
+     * @param _mapId The map ID to update
+     * @param _blockedPositions Array of blocked positions
+     */
+    function updatePresetMap(
+        uint _mapId,
+        Position[] calldata _blockedPositions
+    ) external onlyOwner {
+        if (_mapId == 0 || _mapId > mapCount) revert MapNotFound();
+
+        // Clear existing map
+        for (int16 row = 0; row < GRID_HEIGHT; row++) {
+            for (int16 col = 0; col < GRID_WIDTH; col++) {
+                presetMaps[_mapId][row][col] = false;
+            }
+        }
+
+        // Set new blocked positions
+        for (uint i = 0; i < _blockedPositions.length; i++) {
+            Position memory pos = _blockedPositions[i];
+            if (
+                pos.row < 0 ||
+                pos.row >= GRID_HEIGHT ||
+                pos.col < 0 ||
+                pos.col >= GRID_WIDTH
+            ) {
+                revert InvalidPosition();
+            }
+            presetMaps[_mapId][pos.row][pos.col] = true;
+        }
+    }
+
+    /**
+     * @dev Delete a preset map
+     * @param _mapId The map ID to delete
+     */
+    function deletePresetMap(uint _mapId) external onlyOwner {
+        if (_mapId == 0 || _mapId > mapCount) revert MapNotFound();
+
+        // Clear the map
+        for (int16 row = 0; row < GRID_HEIGHT; row++) {
+            for (int16 col = 0; col < GRID_WIDTH; col++) {
+                presetMaps[_mapId][row][col] = false;
+            }
+        }
+
+        // If this was the last map, decrement the counter
+        if (_mapId == mapCount) {
+            mapCount--;
+        }
+    }
+
+    /**
+     * @dev Apply a preset map to a specific game
+     * @param _gameId The game ID
+     * @param _mapId The preset map ID to apply
+     */
+    function applyPresetMapToGame(
+        uint _gameId,
+        uint _mapId
+    ) external onlyOwner {
+        if (_mapId == 0 || _mapId > mapCount) revert MapNotFound();
+
+        // Copy the preset map to the game's blockedTiles
+        for (int16 row = 0; row < GRID_HEIGHT; row++) {
+            for (int16 col = 0; col < GRID_WIDTH; col++) {
+                blockedTiles[_gameId][row][col] = presetMaps[_mapId][row][col];
+            }
+        }
+    }
+
+    /**
+     * @dev Get a preset map's blocked tiles
+     * @param _mapId The map ID
+     * @return Array of blocked positions
+     */
+    function getPresetMap(
+        uint _mapId
+    ) external view returns (Position[] memory) {
+        if (_mapId == 0 || _mapId > mapCount) revert MapNotFound();
+
+        // Count blocked positions first
+        uint blockedCount = 0;
+        for (int16 row = 0; row < GRID_HEIGHT; row++) {
+            for (int16 col = 0; col < GRID_WIDTH; col++) {
+                if (presetMaps[_mapId][row][col]) {
+                    blockedCount++;
+                }
+            }
+        }
+
+        // Create array and populate with blocked positions
+        Position[] memory blockedPositions = new Position[](blockedCount);
+        uint index = 0;
+        for (int16 row = 0; row < GRID_HEIGHT; row++) {
+            for (int16 col = 0; col < GRID_WIDTH; col++) {
+                if (presetMaps[_mapId][row][col]) {
+                    blockedPositions[index] = Position(row, col);
+                    index++;
+                }
+            }
+        }
+
+        return blockedPositions;
+    }
+
+    /**
+     * @dev Check if a preset map exists
+     * @param _mapId The map ID to check
+     * @return Whether the map exists
+     */
+    function mapExists(uint _mapId) external view returns (bool) {
+        return _mapId > 0 && _mapId <= mapCount;
+    }
 
     /**
      * @dev Set a tile as blocked or unblocked for a specific game
@@ -198,4 +345,10 @@ contract LineOfSight is Ownable {
             }
         }
     }
+}
+
+// Position struct for preset maps
+struct Position {
+    int16 row;
+    int16 col;
 }

@@ -9,8 +9,19 @@ import {
   tupleToShip,
   ActionType,
   Ship,
+  GameDataView,
 } from "./types";
 import DeployModule from "../ignition/modules/DeployAndConfig";
+
+// Helper function to find a ship's position from GameDataView
+function findShipPosition(gameData: GameDataView, shipId: bigint) {
+  for (const shipPosition of gameData.shipPositions) {
+    if (shipPosition.shipId === shipId) {
+      return shipPosition.position;
+    }
+  }
+  throw new Error(`Ship ${shipId} not found in game data`);
+}
 
 describe("Game", function () {
   async function deployGameFixture() {
@@ -70,6 +81,7 @@ describe("Game", function () {
       ships: deployed.ships,
       game: deployed.game,
       randomManager: deployed.randomManager,
+      lineOfSight: deployed.lineOfSight,
       owner,
       creator,
       joiner,
@@ -616,49 +628,41 @@ describe("Game", function () {
         expect(joinerShips[i].position.row).to.be.lessThan(50); // Within grid height
       }
 
-      // Verify specific ship positions using grid queries
-      // Creator ships should be at (row 0, col 0), (row 2, col 0), (row 4, col 0)
-      expect((await game.read.getShipAtPosition([1n, 0, 0])) as any).to.equal(
-        1n
-      );
-      expect((await game.read.getShipAtPosition([1n, 2, 0])) as any).to.equal(
-        2n
-      );
-      expect((await game.read.getShipAtPosition([1n, 4, 0])) as any).to.equal(
-        3n
-      );
+      // Verify specific ship positions using getAllShipPositions
+      const allShipPositions = await game.read.getAllShipPositions([1n]);
 
-      // Joiner ships should be at (row 49, col 99), (row 47, col 99), (row 45, col 99)
-      expect((await game.read.getShipAtPosition([1n, 49, 99])) as any).to.equal(
-        6n
-      );
-      expect((await game.read.getShipAtPosition([1n, 47, 99])) as any).to.equal(
-        7n
-      );
-      expect((await game.read.getShipAtPosition([1n, 45, 99])) as any).to.equal(
-        8n
-      );
+      // Find ships by their positions
+      const shipAt00 = allShipPositions.find((pos) => pos.shipId === 1n);
+      const shipAt20 = allShipPositions.find((pos) => pos.shipId === 2n);
+      const shipAt40 = allShipPositions.find((pos) => pos.shipId === 3n);
+      const shipAt4999 = allShipPositions.find((pos) => pos.shipId === 6n);
+      const shipAt4799 = allShipPositions.find((pos) => pos.shipId === 7n);
+      const shipAt4599 = allShipPositions.find((pos) => pos.shipId === 8n);
 
-      // Verify empty positions return 0
-      expect((await game.read.getShipAtPosition([1n, 25, 50])) as any).to.equal(
-        0n
-      );
-      expect((await game.read.getShipAtPosition([1n, 10, 10])) as any).to.equal(
-        0n
-      );
+      expect(shipAt00?.position.row).to.equal(0);
+      expect(shipAt00?.position.col).to.equal(0);
+      expect(shipAt20?.position.row).to.equal(2);
+      expect(shipAt20?.position.col).to.equal(0);
+      expect(shipAt40?.position.row).to.equal(4);
+      expect(shipAt40?.position.col).to.equal(0);
+      expect(shipAt4999?.position.row).to.equal(49);
+      expect(shipAt4999?.position.col).to.equal(99);
+      expect(shipAt4799?.position.row).to.equal(47);
+      expect(shipAt4799?.position.col).to.equal(99);
+      expect(shipAt4599?.position.row).to.equal(45);
+      expect(shipAt4599?.position.col).to.equal(99);
 
       // Verify individual ship position queries
-      const creatorShip1Position = (await game.read.getShipPosition([
+      const gameData = (await game.read.getGame([
         1n,
-        1n,
-      ])) as any;
+        [1n],
+        [6n],
+      ])) as GameDataView;
+      const creatorShip1Position = findShipPosition(gameData, 1n);
       expect(creatorShip1Position.row).to.equal(0);
       expect(creatorShip1Position.col).to.equal(0);
 
-      const joinerShip1Position = (await game.read.getShipPosition([
-        1n,
-        6n,
-      ])) as any;
+      const joinerShip1Position = findShipPosition(gameData, 6n);
       expect(joinerShip1Position.row).to.equal(49);
       expect(joinerShip1Position.col).to.equal(99);
     });
@@ -704,29 +708,15 @@ describe("Game", function () {
       await creatorLobbies.write.createFleet([1n, [1n]]);
       await joinerLobbies.write.createFleet([1n, [6n]]);
 
-      // Check that creator ship is at position (row 0, column 0)
-      const shipAtOrigin = (await game.read.getShipAtPosition([
-        1n,
-        0,
-        0,
-      ])) as any;
-      expect(shipAtOrigin).to.equal(1n);
+      // Check ship positions using getAllShipPositions
+      const allShipPositions = await game.read.getAllShipPositions([1n]);
+      const shipAtOrigin = allShipPositions.find((pos) => pos.shipId === 1n);
+      const shipAtEnd = allShipPositions.find((pos) => pos.shipId === 6n);
 
-      // Check that joiner ship is at position (row 49, column 99)
-      const shipAtEnd = (await game.read.getShipAtPosition([
-        1n,
-        49,
-        99,
-      ])) as any;
-      expect(shipAtEnd).to.equal(6n);
-
-      // Check that empty positions return 0
-      const emptyPosition = (await game.read.getShipAtPosition([
-        1n,
-        25,
-        50,
-      ])) as any;
-      expect(emptyPosition).to.equal(0n);
+      expect(shipAtOrigin?.position.row).to.equal(0);
+      expect(shipAtOrigin?.position.col).to.equal(0);
+      expect(shipAtEnd?.position.row).to.equal(49);
+      expect(shipAtEnd?.position.col).to.equal(99);
     });
 
     it("should allow querying individual ship positions", async function () {
@@ -771,17 +761,16 @@ describe("Game", function () {
       await joinerLobbies.write.createFleet([1n, [6n]]);
 
       // Get individual ship positions
-      const creatorShipPosition = (await game.read.getShipPosition([
+      const gameData = (await game.read.getGame([
         1n,
-        1n,
-      ])) as any;
+        [1n],
+        [6n],
+      ])) as unknown as GameDataView;
+      const creatorShipPosition = findShipPosition(gameData, 1n);
       expect(creatorShipPosition.row).to.equal(0);
       expect(creatorShipPosition.col).to.equal(0);
 
-      const joinerShipPosition = (await game.read.getShipPosition([
-        1n,
-        6n,
-      ])) as any;
+      const joinerShipPosition = findShipPosition(gameData, 6n);
       expect(joinerShipPosition.row).to.equal(49);
       expect(joinerShipPosition.col).to.equal(99);
     });
@@ -834,10 +823,12 @@ describe("Game", function () {
       const movementRange = creatorAttributes.movement;
 
       // Verify initial position
-      const initialPosition = (await game.read.getShipPosition([
+      let gameData = (await game.read.getGame([
         1n,
-        1n,
-      ])) as any;
+        [1n],
+        [6n],
+      ])) as unknown as GameDataView;
+      const initialPosition = findShipPosition(gameData, 1n);
       expect(initialPosition.row).to.equal(0);
       expect(initialPosition.col).to.equal(0);
 
@@ -848,20 +839,29 @@ describe("Game", function () {
         });
 
         // Verify new position
-        const newPosition = (await game.read.getShipPosition([1n, 1n])) as any;
+        let gameData = (await game.read.getGame([
+          1n,
+          [1n],
+          [6n],
+        ])) as unknown as GameDataView;
+        const newPosition = findShipPosition(gameData, 1n);
         expect(newPosition.row).to.equal(0);
         expect(newPosition.col).to.equal(2);
 
-        // Verify grid is updated
-        expect((await game.read.getShipAtPosition([1n, 0, 0])) as any).to.equal(
-          0n
+        // Verify grid is updated using getAllShipPositions
+        const allShipPositions = await game.read.getAllShipPositions([1n]);
+        const shipAt00 = allShipPositions.find(
+          (pos) => pos.position.row === 0 && pos.position.col === 0
         );
-        expect((await game.read.getShipAtPosition([1n, 0, 2])) as any).to.equal(
-          1n
+        const shipAt02 = allShipPositions.find(
+          (pos) => pos.position.row === 0 && pos.position.col === 2
         );
 
+        expect(shipAt00).to.be.undefined; // Should be empty
+        expect(shipAt02?.shipId).to.equal(1n); // Ship 1 should be at (0,2)
+
         // Verify turn switched to joiner
-        const gameData = (await game.read.getGame([1n, [1n], [6n]])) as any;
+        gameData = (await game.read.getGame([1n, [1n], [6n]])) as any;
         expect(gameData.currentTurn.toLowerCase()).to.equal(
           joiner.account.address.toLowerCase()
         );
@@ -1269,7 +1269,12 @@ describe("Game", function () {
       });
 
       // Verify the ship moved to the new position
-      const shipPosition = await game.read.getShipPosition([1n, 1n]);
+      const gameData = (await game.read.getGame([
+        1n,
+        [1n],
+        [6n],
+      ])) as unknown as GameDataView;
+      const shipPosition = findShipPosition(gameData, 1n);
       expect(shipPosition.row).to.equal(1);
       expect(shipPosition.col).to.equal(1);
     });
@@ -1545,9 +1550,11 @@ describe("Game", function () {
       await joinerLobbies.write.createFleet([1n, [6n]]);
 
       // Verify ship is initially on the grid
-      expect((await game.read.getShipAtPosition([1n, 0, 0])) as any).to.equal(
-        1n
+      let allShipPositions = await game.read.getAllShipPositions([1n]);
+      let shipAt00 = allShipPositions.find(
+        (pos) => pos.position.row === 0 && pos.position.col === 0
       );
+      expect(shipAt00?.shipId).to.equal(1n);
 
       // Destroy the ship
       await (game.write as any).debugDestroyShip([1n, 1n], {
@@ -1555,9 +1562,11 @@ describe("Game", function () {
       });
 
       // Verify ship is removed from grid
-      expect((await game.read.getShipAtPosition([1n, 0, 0])) as any).to.equal(
-        0n
+      allShipPositions = await game.read.getAllShipPositions([1n]);
+      shipAt00 = allShipPositions.find(
+        (pos) => pos.position.row === 0 && pos.position.col === 0
       );
+      expect(shipAt00).to.be.undefined;
     });
 
     it("should exclude destroyed ships from getAllShipPositions", async function () {
@@ -1968,8 +1977,13 @@ describe("Game", function () {
       await joinerLobbies.write.createFleet([1n, [6n]]);
 
       // Get initial positions and attributes
-      let creatorPos = await game.read.getShipPosition([1n, 1n]);
-      let joinerPos = await game.read.getShipPosition([1n, 6n]);
+      let gameData = (await game.read.getGame([
+        1n,
+        [1n],
+        [6n],
+      ])) as unknown as GameDataView;
+      let creatorPos = findShipPosition(gameData, 1n);
+      let joinerPos = findShipPosition(gameData, 6n);
       let creatorAttrs = await game.read.getShipAttributes([1n, 1n]);
       let joinerAttrs = await game.read.getShipAttributes([1n, 6n]);
       const range = creatorAttrs.range;
@@ -1981,8 +1995,13 @@ describe("Game", function () {
       let round = 0;
       while (true) {
         // Re-fetch positions each loop
-        creatorPos = await game.read.getShipPosition([1n, 1n]);
-        joinerPos = await game.read.getShipPosition([1n, 6n]);
+        gameData = (await game.read.getGame([
+          1n,
+          [1n],
+          [6n],
+        ])) as unknown as GameDataView;
+        creatorPos = findShipPosition(gameData, 1n);
+        joinerPos = findShipPosition(gameData, 6n);
         // Manhattan distance
         const manhattan =
           Math.abs(creatorPos.row - joinerPos.row) +
@@ -2035,13 +2054,18 @@ describe("Game", function () {
       }
 
       // Now in range, ensure it's the creator's turn before shooting
-      let gameData = (await game.read.getGame([1n, [1n], [6n]])) as any;
+      gameData = (await game.read.getGame([1n, [1n], [6n]])) as any;
       if (
         gameData.currentTurn.toLowerCase() !==
         creator.account.address.toLowerCase()
       ) {
         // Let joiner pass their turn (move in place)
-        joinerPos = await game.read.getShipPosition([1n, 6n]);
+        gameData = (await game.read.getGame([
+          1n,
+          [1n],
+          [6n],
+        ])) as unknown as GameDataView;
+        joinerPos = findShipPosition(gameData, 6n);
         await game.write.moveShip(
           [1n, 6n, joinerPos.row, joinerPos.col, ActionType.Pass, 0n],
           { account: joiner.account }
@@ -2051,7 +2075,12 @@ describe("Game", function () {
       joinerAttrs = await game.read.getShipAttributes([1n, 6n]);
       const hullBefore = joinerAttrs.hullPoints;
       // Move creator's ship (no movement, just shoot)
-      creatorPos = await game.read.getShipPosition([1n, 1n]);
+      gameData = (await game.read.getGame([
+        1n,
+        [1n],
+        [6n],
+      ])) as unknown as GameDataView;
+      creatorPos = findShipPosition(gameData, 1n);
       await game.write.moveShip(
         [1n, 1n, creatorPos.row, creatorPos.col, ActionType.Shoot, 6n],
         {
@@ -2063,10 +2092,335 @@ describe("Game", function () {
       const hullAfter = joinerAttrs.hullPoints;
       expect(hullAfter).to.be.lessThan(hullBefore);
     });
+
+    it("should block shooting when line of sight is obstructed", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+        owner,
+        lineOfSight,
+      } = await loadFixture(deployGameFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 2; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets with one ship each
+      await creatorLobbies.write.createFleet([1n, [1n]]);
+      await joinerLobbies.write.createFleet([1n, [6n]]);
+
+      // Get initial positions and attributes
+      let gameData = (await game.read.getGame([
+        1n,
+        [1n],
+        [6n],
+      ])) as unknown as GameDataView;
+      let creatorPos = findShipPosition(gameData, 1n);
+      let joinerPos = findShipPosition(gameData, 6n);
+      let creatorAttrs = await game.read.getShipAttributes([1n, 1n]);
+      let joinerAttrs = await game.read.getShipAttributes([1n, 6n]);
+      const range = creatorAttrs.range;
+      const creatorMovement = creatorAttrs.movement;
+      const joinerMovement = joinerAttrs.movement;
+
+      // Move ships toward each other until in range
+      let turn = "creator";
+      let round = 0;
+      while (true) {
+        // Re-fetch positions each loop
+        gameData = (await game.read.getGame([
+          1n,
+          [1n],
+          [6n],
+        ])) as unknown as GameDataView;
+        creatorPos = findShipPosition(gameData, 1n);
+        joinerPos = findShipPosition(gameData, 6n);
+        // Manhattan distance
+        const manhattan =
+          Math.abs(creatorPos.row - joinerPos.row) +
+          Math.abs(creatorPos.col - joinerPos.col);
+        if (manhattan <= range) break;
+        if (turn === "creator") {
+          // Move creator's ship down or right
+          let newRow = creatorPos.row;
+          let newCol = creatorPos.col;
+          if (creatorPos.row < joinerPos.row) {
+            newRow = Math.min(creatorPos.row + creatorMovement, joinerPos.row);
+          } else if (creatorPos.row > joinerPos.row) {
+            newRow = Math.max(creatorPos.row - creatorMovement, joinerPos.row);
+          } else if (creatorPos.col < joinerPos.col) {
+            newCol = Math.min(creatorPos.col + creatorMovement, joinerPos.col);
+          } else if (creatorPos.col > joinerPos.col) {
+            newCol = Math.max(creatorPos.col - creatorMovement, joinerPos.col);
+          }
+          await game.write.moveShip(
+            [1n, 1n, newRow, newCol, ActionType.Pass, 0n],
+            {
+              account: creator.account,
+            }
+          );
+          turn = "joiner";
+        } else {
+          // Move joiner's ship up or left
+          let newRow = joinerPos.row;
+          let newCol = joinerPos.col;
+          if (joinerPos.row > creatorPos.row) {
+            newRow = Math.max(joinerPos.row - joinerMovement, creatorPos.row);
+          } else if (joinerPos.row < creatorPos.row) {
+            newRow = Math.min(joinerPos.row + joinerMovement, creatorPos.row);
+          } else if (joinerPos.col > creatorPos.col) {
+            newCol = Math.max(joinerPos.col - joinerMovement, creatorPos.col);
+          } else if (joinerPos.col < creatorPos.col) {
+            newCol = Math.min(joinerPos.col + joinerMovement, creatorPos.col);
+          }
+          await game.write.moveShip(
+            [1n, 6n, newRow, newCol, ActionType.Pass, 0n],
+            {
+              account: joiner.account,
+            }
+          );
+          turn = "creator";
+        }
+        round++;
+        if (round > 100)
+          throw new Error("Failed to get in range after 100 rounds");
+      }
+
+      // Wall at the row between the ships, blocking the direct path
+      const wallRow = creatorPos.row; // Both ships should be on the same row after movement
+      const minCol = Math.min(creatorPos.col, joinerPos.col);
+      const maxCol = Math.max(creatorPos.col, joinerPos.col);
+      const wallStartCol = minCol + 2; // Start wall 2 columns away from closer ship
+      const wallEndCol = maxCol - 2; // End wall 2 columns away from farther ship
+      for (let col = wallStartCol; col <= wallEndCol; col++) {
+        await lineOfSight.write.setBlockedTile([1n, wallRow, col, true], {
+          account: owner.account,
+        });
+      }
+
+      // Now in range, ensure it's the creator's turn before shooting
+      gameData = (await game.read.getGame([1n, [1n], [6n]])) as any;
+      if (
+        gameData.currentTurn.toLowerCase() !==
+        creator.account.address.toLowerCase()
+      ) {
+        // Let joiner pass their turn (move in place)
+        gameData = (await game.read.getGame([
+          1n,
+          [1n],
+          [6n],
+        ])) as unknown as GameDataView;
+        joinerPos = findShipPosition(gameData, 6n);
+        await game.write.moveShip(
+          [1n, 6n, joinerPos.row, joinerPos.col, ActionType.Pass, 0n],
+          { account: joiner.account }
+        );
+      }
+      // Get joiner's hull before
+      joinerAttrs = await game.read.getShipAttributes([1n, 6n]);
+      const hullBefore = joinerAttrs.hullPoints;
+      // Move creator's ship (no movement, just shoot)
+      gameData = (await game.read.getGame([
+        1n,
+        [1n],
+        [6n],
+      ])) as unknown as GameDataView;
+      creatorPos = findShipPosition(gameData, 1n);
+      // Attempt to shoot - should fail
+      await expect(
+        game.write.moveShip(
+          [1n, 1n, creatorPos.row, creatorPos.col, ActionType.Shoot, 6n],
+          { account: creator.account }
+        )
+      ).to.be.rejectedWith("InvalidMove");
+    });
+
+    it("should allow special actions even when line of sight is obstructed (only range matters)", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        lineOfSight,
+        randomManager,
+        owner,
+      } = await loadFixture(deployGameFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 2; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct creator's ship with EMP using
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Create a ship with EMP for creator's first ship (ship 1)
+      const empShip: Ship = {
+        name: "EMP Ship",
+        id: 1n,
+        equipment: {
+          mainWeapon: 0, // Laser
+          armor: 0, // None
+          shields: 0, // None
+          special: 1, // EMP
+        },
+        traits: {
+          serialNumber: 12345n,
+          colors: { h1: 0, s1: 0, l1: 0, h2: 0, s2: 0, l2: 0 },
+          variant: 0,
+          accuracy: 0,
+          hull: 0,
+          speed: 2, // Use valid speed value (0, 1, or 2)
+        },
+        shipData: {
+          shipsDestroyed: 0,
+          costsVersion: 1,
+          cost: 0,
+          shiny: false,
+          constructed: false,
+          inFleet: false,
+          timestampDestroyed: 0n,
+        },
+        owner: creator.account.address,
+      };
+
+      // Authorize owner to create ships
+      await ships.write.setIsAllowedToCreateShips(
+        [owner.account.address, true],
+        { account: owner.account }
+      );
+
+      // Construct the EMP ship
+      await ships.write.constructSpecificShip([1n, empShip], {
+        account: owner.account,
+      });
+
+      // Construct joiner's ship
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([1000n, 300n, true]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets with one ship each
+      await creatorLobbies.write.createFleet([1n, [1n]]);
+      await joinerLobbies.write.createFleet([1n, [6n]]);
+
+      // Get initial positions and attributes
+      let gameData = (await game.read.getGame([
+        1n,
+        [1n],
+        [6n],
+      ])) as unknown as GameDataView;
+      let creatorPos = findShipPosition(gameData, 1n);
+      let joinerPos = findShipPosition(gameData, 6n);
+
+      // Move ships to positions where they can see each other but with a wall between them
+      // Creator at (10, 10), Joiner at (10, 20) - same row, different columns
+      // Use debugMove for this
+      await (game.write as any).debugSetShipPosition([1n, 1n, 10, 10], {
+        account: owner.account,
+      });
+      await (game.write as any).debugSetShipPosition([1n, 6n, 10, 20], {
+        account: owner.account,
+      });
+
+      // Create a wall between the ships to block line of sight
+      // Wall at row 10, columns 12-18 (blocking the direct path)
+      for (let col = 12; col <= 18; col++) {
+        await lineOfSight.write.setBlockedTile([1n, 10, col, true], {
+          account: owner.account,
+        });
+      }
+
+      // Ensure it's creator's turn
+      gameData = (await game.read.getGame([
+        1n,
+        [1n],
+        [6n],
+      ])) as unknown as GameDataView;
+      if (
+        gameData.currentTurn.toLowerCase() !==
+        creator.account.address.toLowerCase()
+      ) {
+        // Let joiner pass their turn
+        await game.write.moveShip(
+          [1n, 6n, joinerPos.row, joinerPos.col, ActionType.Pass, 0n],
+          { account: joiner.account }
+        );
+      }
+
+      // Try to use a special action - should succeed even with obstructed line of sight
+      // Note: This test assumes the ship has a special ability. If not, it will fail for that reason, not line of sight.
+      // The key point is that line of sight is not checked for special actions.
+      try {
+        await game.write.moveShip(
+          [1n, 1n, creatorPos.row, creatorPos.col, ActionType.Special, 6n],
+          { account: creator.account }
+        );
+        // If this succeeds, it means line of sight wasn't checked (which is correct)
+        // If it fails, it should be for a reason other than line of sight
+      } catch (error) {
+        // If it fails, it should be for a reason other than line of sight
+        // (e.g., ship doesn't have special ability, out of range, etc.)
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        expect(errorMessage).to.not.include("InvalidMove");
+        // The error should be something like "ship doesn't have special ability" not "line of sight blocked"
+      }
+    });
   });
 
   describe("Ships with 0 Hull Points", function () {
-    it("should treat ships with 0 hull points the same as destroyed ships", async function () {
+    it("should treat ships with 0 hull points the same as destroyed ships, but should still be included in getAllShipPositions", async function () {
       const {
         creatorLobbies,
         joinerLobbies,
@@ -2131,15 +2485,15 @@ describe("Game", function () {
         })
       ).to.be.rejectedWith("ShipDestroyed");
 
-      // Verify the ship with 0 hull points is excluded from getAllShipPositions
+      // Verify the ship with 0 hull points is still included in getAllShipPositions
       const updatedPositions = (await game.read.getAllShipPositions([
         1n,
       ])) as any;
-      expect(updatedPositions.length).to.equal(3); // Only 3 ships now
+      expect(updatedPositions.length).to.equal(4); // Still 4 ships now
 
-      // Verify ship 1 is not in the positions
+      // Verify ship 1 is still in the positions (allowing it to be repaired)
       const shipIds = updatedPositions.map((pos: any) => pos.shipId);
-      expect(shipIds).to.not.include(1n);
+      expect(shipIds).to.include(1n);
       expect(shipIds).to.include(2n);
       expect(shipIds).to.include(6n);
       expect(shipIds).to.include(7n);
@@ -2217,8 +2571,13 @@ describe("Game", function () {
       await joinerLobbies.write.createFleet([1n, [6n]]);
 
       // Move ships toward each other until in range (similar to shooting test)
-      let creatorPos = await game.read.getShipPosition([1n, 1n]);
-      let joinerPos = await game.read.getShipPosition([1n, 6n]);
+      let gameData = (await game.read.getGame([
+        1n,
+        [1n],
+        [6n],
+      ])) as unknown as GameDataView;
+      let creatorPos = findShipPosition(gameData, 1n);
+      let joinerPos = findShipPosition(gameData, 6n);
       let creatorAttrs = await game.read.getShipAttributes([1n, 1n]);
       let joinerAttrs = await game.read.getShipAttributes([1n, 6n]);
       const range = joinerAttrs.range; // Use joiner's range since joiner will be shooting
@@ -2230,8 +2589,11 @@ describe("Game", function () {
       let round = 0;
       while (true) {
         // Re-fetch positions each loop
-        creatorPos = await game.read.getShipPosition([1n, 1n]);
-        joinerPos = await game.read.getShipPosition([1n, 6n]);
+        const allShipPositions = await game.read.getAllShipPositions([1n]);
+        const creatorShip = allShipPositions.find((pos) => pos.shipId === 1n);
+        const joinerShip = allShipPositions.find((pos) => pos.shipId === 6n);
+        creatorPos = creatorShip!.position;
+        joinerPos = joinerShip!.position;
         // Manhattan distance
         const manhattan =
           Math.abs(creatorPos.row - joinerPos.row) +
@@ -2284,13 +2646,18 @@ describe("Game", function () {
       }
 
       // After ships are in range, ensure it's the creator's turn (first player)
-      let gameData = (await game.read.getGame([1n, [1n], [6n]])) as any;
+      gameData = (await game.read.getGame([1n, [1n], [6n]])) as any;
       if (
         gameData.currentTurn.toLowerCase() !==
         creator.account.address.toLowerCase()
       ) {
         // If it's joiner's turn, have them move in place to make it creator's turn
-        joinerPos = await game.read.getShipPosition([1n, 6n]);
+        gameData = (await game.read.getGame([
+          1n,
+          [1n],
+          [6n],
+        ])) as unknown as GameDataView;
+        joinerPos = findShipPosition(gameData, 6n);
         await game.write.moveShip(
           [1n, 6n, joinerPos.row, joinerPos.col, ActionType.Pass, 0n],
           { account: joiner.account }
@@ -2308,7 +2675,12 @@ describe("Game", function () {
       expect(ship6Attrs.reactorCriticalTimer).to.equal(0);
 
       // Have creator's ship shoot joiner's ship (which has 0 HP)
-      creatorPos = await game.read.getShipPosition([1n, 1n]);
+      gameData = (await game.read.getGame([
+        1n,
+        [1n],
+        [6n],
+      ])) as unknown as GameDataView;
+      creatorPos = findShipPosition(gameData, 1n);
       await game.write.moveShip(
         [1n, 1n, creatorPos.row, creatorPos.col, ActionType.Shoot, 6n],
         { account: creator.account }
@@ -2365,7 +2737,12 @@ describe("Game", function () {
       await joinerLobbies.write.createFleet([1n, [6n]]);
 
       // Have player 1 (creator) move in place
-      const creatorPos = await game.read.getShipPosition([1n, 1n]);
+      let gameData = (await game.read.getGame([
+        1n,
+        [1n],
+        [6n],
+      ])) as unknown as GameDataView;
+      const creatorPos = findShipPosition(gameData, 1n);
       await game.write.moveShip(
         [1n, 1n, creatorPos.row, creatorPos.col, ActionType.Pass, 0n],
         { account: creator.account }
@@ -2382,7 +2759,12 @@ describe("Game", function () {
       expect(ship1Attrs.reactorCriticalTimer).to.equal(0);
 
       // Have player 2 (joiner) move in place to complete the round
-      const joinerPos = await game.read.getShipPosition([1n, 6n]);
+      gameData = (await game.read.getGame([
+        1n,
+        [1n],
+        [6n],
+      ])) as unknown as GameDataView;
+      const joinerPos = findShipPosition(gameData, 6n);
       await game.write.moveShip(
         [1n, 6n, joinerPos.row, joinerPos.col, ActionType.Pass, 0n],
         { account: joiner.account }
@@ -2444,9 +2826,14 @@ describe("Game", function () {
       let round = 0;
       while (round < 3) {
         // Get current positions for no-op moves
-        const creatorPos2 = await game.read.getShipPosition([1n, 2n]);
-        const joinerPos1 = await game.read.getShipPosition([1n, 6n]);
-        const joinerPos2 = await game.read.getShipPosition([1n, 7n]);
+        const gameData = (await game.read.getGame([
+          1n,
+          [1n, 2n],
+          [6n, 7n],
+        ])) as unknown as GameDataView;
+        const creatorPos2 = findShipPosition(gameData, 2n);
+        const joinerPos1 = findShipPosition(gameData, 6n);
+        const joinerPos2 = findShipPosition(gameData, 7n);
 
         // Creator moves ship 2 in place (skip ship 1 since it has 0 HP)
         await game.write.moveShip(
@@ -2472,9 +2859,14 @@ describe("Game", function () {
       expect(ship1Attrs.reactorCriticalTimer).to.equal(3);
 
       // Complete one more round to trigger destruction
-      const creatorPos2 = await game.read.getShipPosition([1n, 2n]);
-      const joinerPos1 = await game.read.getShipPosition([1n, 6n]);
-      const joinerPos2 = await game.read.getShipPosition([1n, 7n]);
+      let gameData = (await game.read.getGame([
+        1n,
+        [1n, 2n],
+        [6n, 7n],
+      ])) as unknown as GameDataView;
+      const creatorPos2 = findShipPosition(gameData, 2n);
+      const joinerPos1 = findShipPosition(gameData, 6n);
+      const joinerPos2 = findShipPosition(gameData, 7n);
 
       // Creator moves ship 2 in place (skip ship 1 since it has 0 HP)
       await game.write.moveShip(
@@ -2507,8 +2899,13 @@ describe("Game", function () {
       expect(remainingShipIds).to.not.include(1n); // Ship 1 should be destroyed
 
       // Confirm that players can continue to play by having them move their remaining ships
-      const creatorPos2After = await game.read.getShipPosition([1n, 2n]);
-      const joinerPos1After = await game.read.getShipPosition([1n, 6n]);
+      gameData = (await game.read.getGame([
+        1n,
+        [1n, 2n],
+        [6n, 7n],
+      ])) as unknown as GameDataView;
+      const creatorPos2After = findShipPosition(gameData, 2n);
+      const joinerPos1After = findShipPosition(gameData, 6n);
 
       // Move remaining ships to new positions
       await game.write.moveShip(
@@ -2578,8 +2975,13 @@ describe("Game", function () {
       await joinerLobbies.write.createFleet([1n, [6n, 7n]]);
 
       // Get initial ship positions
-      const creatorPos1 = await game.read.getShipPosition([1n, 1n]);
-      const joinerPos1 = await game.read.getShipPosition([1n, 6n]);
+      let gameData = (await game.read.getGame([
+        1n,
+        [1n, 2n],
+        [6n, 7n],
+      ])) as unknown as GameDataView;
+      const creatorPos1 = findShipPosition(gameData, 1n);
+      const joinerPos1 = findShipPosition(gameData, 6n);
 
       // Have creator's ship 1 retreat
       await game.write.moveShip(
@@ -2588,12 +2990,13 @@ describe("Game", function () {
       );
 
       // Verify ship 1 is no longer on the grid
-      const shipAtPosition = await game.read.getShipAtPosition([
-        1n,
-        creatorPos1.row,
-        creatorPos1.col,
-      ]);
-      expect(shipAtPosition).to.equal(0n);
+      const allShipPositions = await game.read.getAllShipPositions([1n]);
+      const shipAtPosition = allShipPositions.find(
+        (pos) =>
+          pos.position.row === creatorPos1.row &&
+          pos.position.col === creatorPos1.col
+      );
+      expect(shipAtPosition).to.be.undefined;
 
       // Verify ship 1 is excluded from getAllShipPositions
       const positions = (await game.read.getAllShipPositions([1n])) as any;
@@ -2608,7 +3011,12 @@ describe("Game", function () {
 
       // Verify that the game can continue with remaining ships
       // After retreat, it should be joiner's turn
-      const joinerPos1After = await game.read.getShipPosition([1n, 6n]);
+      gameData = (await game.read.getGame([
+        1n,
+        [1n, 2n],
+        [6n, 7n],
+      ])) as unknown as GameDataView;
+      const joinerPos1After = findShipPosition(gameData, 6n);
       await game.write.moveShip(
         [
           1n,
@@ -2622,7 +3030,12 @@ describe("Game", function () {
       );
 
       // Now it should be creator's turn to move ship 2
-      const creatorPos2 = await game.read.getShipPosition([1n, 2n]);
+      gameData = (await game.read.getGame([
+        1n,
+        [1n, 2n],
+        [6n, 7n],
+      ])) as unknown as GameDataView;
+      const creatorPos2 = findShipPosition(gameData, 2n);
       await game.write.moveShip(
         [1n, 2n, creatorPos2.row + 1, creatorPos2.col, ActionType.Pass, 0n],
         { account: creator.account }
@@ -2672,8 +3085,13 @@ describe("Game", function () {
       await joinerLobbies.write.createFleet([1n, [6n, 7n]]);
 
       // Get initial ship positions
-      const creatorPos1 = await game.read.getShipPosition([1n, 1n]);
-      const creatorPos2 = await game.read.getShipPosition([1n, 2n]);
+      let gameData = (await game.read.getGame([
+        1n,
+        [1n, 2n],
+        [6n, 7n],
+      ])) as unknown as GameDataView;
+      const creatorPos1 = findShipPosition(gameData, 1n);
+      const creatorPos2 = findShipPosition(gameData, 2n);
 
       // Set ship 1's HP to 0 using debug function
       await (game.write as any).debugSetHullPointsToZero([1n, 1n], {
@@ -2692,8 +3110,11 @@ describe("Game", function () {
       });
 
       // Verify ship 1 was retreated (no longer on the grid)
-      const shipAtPosition = await game.read.getShipAtPosition([1n, 0, 0]);
-      expect(shipAtPosition).to.equal(0n);
+      const allShipPositions = await game.read.getAllShipPositions([1n]);
+      const shipAtPosition = allShipPositions.find(
+        (pos) => pos.position.row === 0 && pos.position.col === 0
+      );
+      expect(shipAtPosition).to.be.undefined;
 
       // Verify ship 1 is excluded from getAllShipPositions
       const positions = (await game.read.getAllShipPositions([1n])) as any;
@@ -2708,7 +3129,12 @@ describe("Game", function () {
 
       // Verify that the game can continue with remaining ships
       // After assist, it should be joiner's turn
-      const joinerPos1 = await game.read.getShipPosition([1n, 6n]);
+      gameData = (await game.read.getGame([
+        1n,
+        [1n, 2n],
+        [6n, 7n],
+      ])) as unknown as GameDataView;
+      const joinerPos1 = findShipPosition(gameData, 6n);
       await game.write.moveShip(
         [1n, 6n, joinerPos1.row - 1, joinerPos1.col, ActionType.Pass, 0n],
         { account: joiner.account }
@@ -2761,7 +3187,7 @@ describe("Game", function () {
           variant: 0,
           accuracy: 0,
           hull: 0,
-          speed: 0,
+          speed: 2, // Use valid speed value (0, 1, or 2)
         },
         shipData: {
           shipsDestroyed: 0,
@@ -2810,8 +3236,13 @@ describe("Game", function () {
       expect(ship2AttrsBefore.hullPoints).to.equal(0);
 
       // Get ship positions
-      const ship1Pos = await game.read.getShipPosition([1n, 1n]);
-      const ship2Pos = await game.read.getShipPosition([1n, 2n]);
+      const gameData = (await game.read.getGame([
+        1n,
+        [1n, 2n],
+        [6n],
+      ])) as unknown as GameDataView;
+      const ship1Pos = findShipPosition(gameData, 1n);
+      const ship2Pos = findShipPosition(gameData, 2n);
 
       // Move ship 1 to be within range 3 of ship 2 and use RepairDrones special
       // Since RepairDrones has range 3, we can move ship 1 to position (3, 0) which is 3 squares away from ship 2 at (0, 0)
@@ -2870,7 +3301,7 @@ describe("Game", function () {
           variant: 0,
           accuracy: 0,
           hull: 0,
-          speed: 0,
+          speed: 2, // Use valid speed value (0, 1, or 2)
         },
         shipData: {
           shipsDestroyed: 0,
@@ -2926,7 +3357,17 @@ describe("Game", function () {
       // Since we used debug functions to position ships, we need to ensure the turn is correct
 
       // Now use EMP from creator's ship to target joiner's ship
-      const creatorPos = await game.read.getShipPosition([1n, 1n]);
+      const gameData = (await game.read.getGame([
+        1n,
+        [1n],
+        [6n],
+      ])) as unknown as GameDataView;
+      // Loop through gameData.shipPositions and log the shipId and position
+      for (const ship of gameData.shipPositions) {
+        console.log("ship", ship.shipId, ship.position);
+      }
+      const creatorPos = findShipPosition(gameData, 1n);
+      console.log("creatorPos", creatorPos);
       await game.write.moveShip(
         [1n, 1n, creatorPos.row, creatorPos.col, ActionType.Special, 6n],
         {
@@ -2985,7 +3426,7 @@ describe("Game", function () {
           variant: 0,
           accuracy: 0,
           hull: 0,
-          speed: 0,
+          speed: 2, // Use valid speed value (0, 1, or 2)
         },
         shipData: {
           shipsDestroyed: 0,
@@ -3060,7 +3501,12 @@ describe("Game", function () {
       const ship7AttrsBefore = await game.read.getShipAttributes([1n, 7n]); // joiner's second ship (out of range)
 
       // 7. Use the first ship's first turn to stay in place and fire FlakArray
-      const flakPos = await game.read.getShipPosition([1n, 1n]);
+      const gameData = (await game.read.getGame([
+        1n,
+        [1n, 2n, 3n],
+        [6n, 7n],
+      ])) as unknown as GameDataView;
+      const flakPos = findShipPosition(gameData, 1n);
       await game.write.moveShip(
         [1n, 1n, flakPos.row, flakPos.col, ActionType.Special, 1n],
         { account: creator.account }
@@ -3255,7 +3701,7 @@ describe("Game", function () {
 
       // Verify that moves are no longer allowed
       await expect(
-        game.write.moveShip([gameId, 1n, 0n, 1n, 0n, 0n], {
+        game.write.moveShip([gameId, 1n, 0, 1, 0, 0n], {
           account: creator.account,
         })
       ).to.be.rejectedWith("GameAlreadyEnded");
@@ -3325,16 +3771,16 @@ describe("Game", function () {
       ); // No winner yet
 
       // Creator retreats all their ships
-      await game.write.moveShip([gameId, 1n, 0n, 0n, 2n, 0n], {
+      await game.write.moveShip([gameId, 1n, 0, 0, 2, 0n], {
         account: creator.account,
       }); // Retreat ship 1
 
       // Complete the round so joiner can move (move to a valid position)
-      await game.write.moveShip([gameId, 6n, 49n, 98n, 0n, 0n], {
+      await game.write.moveShip([gameId, 6n, 49, 98, 0, 0n], {
         account: joiner.account,
       }); // Joiner moves to complete round
 
-      await game.write.moveShip([gameId, 2n, 0n, 0n, 2n, 0n], {
+      await game.write.moveShip([gameId, 2n, 0, 0, 2, 0n], {
         account: creator.account,
       }); // Retreat ship 2
 
@@ -3350,7 +3796,7 @@ describe("Game", function () {
 
       // Verify that moves are no longer allowed
       await expect(
-        game.write.moveShip([gameId, 6n, 0n, 1n, 0n, 0n], {
+        game.write.moveShip([gameId, 6n, 0, 1, 0, 0n], {
           account: joiner.account,
         })
       ).to.be.rejectedWith("GameAlreadyEnded");

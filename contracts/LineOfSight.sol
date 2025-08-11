@@ -18,11 +18,23 @@ contract LineOfSight is Ownable {
     // Counter for preset maps
     uint public mapCount;
 
+    // Address of the Game contract that can apply preset maps
+    address public gameAddress;
+
     // Custom error for invalid positions
     error InvalidPosition();
     error MapNotFound();
+    error NotGameContract();
 
     constructor() Ownable(msg.sender) {}
+
+    /**
+     * @dev Set the address of the Game contract
+     * @param _gameAddress The address of the Game contract
+     */
+    function setGameAddress(address _gameAddress) external onlyOwner {
+        gameAddress = _gameAddress;
+    }
 
     /**
      * @dev Create a new preset map
@@ -106,10 +118,9 @@ contract LineOfSight is Ownable {
      * @param _gameId The game ID
      * @param _mapId The preset map ID to apply
      */
-    function applyPresetMapToGame(
-        uint _gameId,
-        uint _mapId
-    ) external onlyOwner {
+    function applyPresetMapToGame(uint _gameId, uint _mapId) external {
+        if (msg.sender != gameAddress && msg.sender != owner())
+            revert NotGameContract();
         if (_mapId == 0 || _mapId > mapCount) revert MapNotFound();
 
         // Copy the preset map to the game's blockedTiles

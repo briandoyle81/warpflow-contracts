@@ -2362,10 +2362,23 @@ describe("Game", function () {
       const wallRow = creatorPos.row; // Both ships should be on the same row after movement
       const minCol = Math.min(creatorPos.col, joinerPos.col);
       const maxCol = Math.max(creatorPos.col, joinerPos.col);
-      const wallStartCol = minCol + 2; // Start wall 2 columns away from closer ship
-      const wallEndCol = maxCol - 2; // End wall 2 columns away from farther ship
-      for (let col = wallStartCol; col <= wallEndCol; col++) {
-        await lineOfSight.write.setBlockedTile([1n, wallRow, col, true], {
+
+      // Place wall tiles between the ships, but not too close to them
+      // We need at least 1 column between each ship and the wall
+      const wallStartCol = minCol + 1; // Start wall 1 column away from closer ship
+      const wallEndCol = maxCol - 1; // End wall 1 column away from farther ship
+
+      // Only place wall if there's space for it
+      if (wallStartCol <= wallEndCol) {
+        for (let col = wallStartCol; col <= wallEndCol; col++) {
+          await lineOfSight.write.setBlockedTile([1n, wallRow, col, true], {
+            account: owner.account,
+          });
+        }
+      } else {
+        // If ships are too close, place wall at the middle column
+        const middleCol = Math.floor((minCol + maxCol) / 2);
+        await lineOfSight.write.setBlockedTile([1n, wallRow, middleCol, true], {
           account: owner.account,
         });
       }
@@ -2398,6 +2411,7 @@ describe("Game", function () {
         [6n],
       ])) as unknown as GameDataView;
       creatorPos = findShipPosition(gameData, 1n);
+
       // Attempt to shoot - should fail
       await expect(
         game.write.moveShip(
@@ -4010,6 +4024,121 @@ describe("Game", function () {
           account: joiner.account,
         })
       ).to.be.rejectedWith("GameAlreadyEnded");
+    });
+
+    it("should respect preset maps when calculating line of sight", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        fleets,
+        lobbies,
+        randomManager,
+        lineOfSight,
+        owner,
+      } = await loadFixture(deployGameFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a preset map with blocked tiles that will block line of sight
+      const blockedPositions = [
+        { row: 25, col: 50 }, // Block the middle of the grid
+        { row: 25, col: 51 },
+        { row: 25, col: 52 },
+      ];
+
+      await lineOfSight.write.createPresetMap([blockedPositions], {
+        account: owner.account,
+      });
+      const mapId = await lineOfSight.read.mapCount();
+
+      // Create a lobby with the selected preset map
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        mapId, // Use the preset map
+      ]);
+      const lobbyId = 1n;
+      await joinerLobbies.write.joinLobby([lobbyId]);
+
+      // Create fleets (this automatically starts the game and applies the preset map)
+      await creatorLobbies.write.createFleet([lobbyId, [1n]]);
+      await joinerLobbies.write.createFleet([lobbyId, [6n]]);
+
+      const gameId = 1n;
+      const creatorShipIds = [1n];
+      const joinerShipIds = [6n];
+
+      // Get game data to see ship positions
+      const gameData = (await game.read.getGame([
+        gameId,
+        creatorShipIds,
+        joinerShipIds,
+      ])) as unknown as GameDataView;
+
+      // Creator ships start at column 0, joiner ships start at column 99
+      // With the blocked tiles at row 25, columns 50-52, line of sight should be blocked
+      // when trying to shoot from one side to the other through the middle
+
+      // Test line of sight that should be blocked by the preset map
+      const hasLOS = await lineOfSight.read.hasLineOfSight([
+        BigInt(gameId),
+        25, // Start at row 25
+        0, // Start at column 0 (creator side)
+        25, // End at row 25
+        99, // End at column 99 (joiner side)
+      ]);
+
+      // Line of sight should be blocked because it passes through the blocked tiles
+      expect(hasLOS).to.be.false;
+
+      // Test line of sight that should be clear (above the blocked tiles)
+      const hasLOSAbove = await lineOfSight.read.hasLineOfSight([
+        BigInt(gameId),
+        20, // Start at row 20 (above blocked tiles)
+        0, // Start at column 0
+        20, // End at row 20
+        99, // End at column 99
+      ]);
+
+      // Line of sight should be clear above the blocked tiles
+      expect(hasLOSAbove).to.be.true;
+
+      // Test line of sight that should be clear (below the blocked tiles)
+      const hasLOSBelow = await lineOfSight.read.hasLineOfSight([
+        BigInt(gameId),
+        30, // Start at row 30 (below blocked tiles)
+        0, // Start at column 0
+        30, // End at row 30
+        99, // End at column 99
+      ]);
+
+      // Line of sight should be clear below the blocked tiles
+      expect(hasLOSBelow).to.be.true;
     });
   });
 });

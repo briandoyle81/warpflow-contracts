@@ -129,6 +129,9 @@ const DeployModule = buildModule("DeployModule", (m) => {
   // Set LineOfSight address in Game contract
   m.call(game, "setLineOfSightAddress", [lineOfSight]);
 
+  // Set Game address in LineOfSight contract
+  m.call(lineOfSight, "setGameAddress", [game]);
+
   // Set Game address in Lobbies contract
   m.call(lobbies, "setGameAddress", [game]);
 

@@ -291,34 +291,16 @@ contract Lobbies is Ownable, ReentrancyGuard {
             joinerState.activeLobbyId = 0;
 
             // Start the game
-            try
-                game.startGame(
-                    _lobbyId,
-                    lobby.creator,
-                    lobby.joiner,
-                    lobby.creatorFleetId,
-                    lobby.joinerFleetId,
-                    lobby.creatorGoesFirst,
-                    lobby.turnTime,
-                    lobby.selectedMapId
-                )
-            {
-                // Game started successfully
-            } catch {
-                // Reset lobby state if game start fails
-                lobby.status = LobbyStatus.FleetSelection;
-                lobby.gameStartedAt = 0;
-
-                // Restore player states
-                creatorState.hasActiveLobby = true;
-                creatorState.activeLobbyId = _lobbyId;
-                creatorState.activeLobbiesCount++;
-                joinerState.hasActiveLobby = true;
-                joinerState.activeLobbyId = _lobbyId;
-                joinerState.activeLobbiesCount++;
-
-                revert("GameStartFailed");
-            }
+            game.startGame(
+                _lobbyId,
+                lobby.creator,
+                lobby.joiner,
+                lobby.creatorFleetId,
+                lobby.joinerFleetId,
+                lobby.creatorGoesFirst,
+                lobby.turnTime,
+                lobby.selectedMapId
+            );
         }
     }
 

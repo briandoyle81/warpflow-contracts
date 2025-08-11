@@ -127,21 +127,12 @@ struct GameData {
 }
 
 struct GameDataView {
-    uint gameId;
-    uint lobbyId;
-    address creator;
-    address joiner;
-    uint creatorFleetId;
-    uint joinerFleetId;
-    bool creatorGoesFirst;
-    uint startedAt;
-    address currentTurn;
-    address winner; // Winner of the game (zero address if game is not over)
+    GameMetadata metadata;
+    GameTurnState turnState;
+    GameGridDimensions gridDimensions;
+    // Ship data arrays
     Attributes[] shipAttributes; // Combined array of all ship attributes indexed by ship ID
-    // Grid data
     ShipPosition[] shipPositions; // All ship positions on the grid
-    int16 gridWidth;
-    int16 gridHeight;
     // Active ship IDs for each player
     uint[] creatorActiveShipIds;
     uint[] joinerActiveShipIds;

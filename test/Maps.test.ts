@@ -81,6 +81,18 @@ describe("Line of Sight System", function () {
     }
   }
 
+  // Helper function to set multiple scoring tiles
+  async function setScoringTiles(
+    gameId: number,
+    positions: [number, number][]
+  ) {
+    for (const [row, col] of positions) {
+      await maps.write.setScoringTile([BigInt(gameId), row, col, true], {
+        account: owner.address,
+      });
+    }
+  }
+
   describe("Basic Functionality", function () {
     it("Should deploy with correct grid dimensions", async function () {
       const gridWidth = await maps.read.GRID_WIDTH();
@@ -1155,6 +1167,495 @@ describe("Line of Sight System", function () {
           .true; // Preset
         expect(await maps.read.isTileBlocked([BigInt(gameId), 6, 6])).to.be
           .true; // Additional
+      });
+    });
+  });
+
+  describe("Scoring Tiles", function () {
+    describe("Basic Scoring Tile Operations", function () {
+      it("Should allow owner to set scoring tiles", async function () {
+        const gameId = 1;
+        const row = 5;
+        const col = 10;
+
+        await maps.write.setScoringTile([BigInt(gameId), row, col, true], {
+          account: owner.address,
+        });
+
+        const isScoring = await maps.read.isTileScoring([
+          BigInt(gameId),
+          row,
+          col,
+        ]);
+        expect(isScoring).to.be.true;
+      });
+
+      it("Should allow owner to unset scoring tiles", async function () {
+        const gameId = 1;
+        const row = 5;
+        const col = 10;
+
+        // First set it as scoring
+        await maps.write.setScoringTile([BigInt(gameId), row, col, true], {
+          account: owner.address,
+        });
+
+        // Then unset it
+        await maps.write.setScoringTile([BigInt(gameId), row, col, false], {
+          account: owner.address,
+        });
+
+        const isScoring = await maps.read.isTileScoring([
+          BigInt(gameId),
+          row,
+          col,
+        ]);
+        expect(isScoring).to.be.false;
+      });
+
+      it("Should revert when non-owner tries to set scoring tiles", async function () {
+        const gameId = 1;
+        const row = 5;
+        const col = 10;
+
+        await expect(
+          userMaps.write.setScoringTile([BigInt(gameId), row, col, true])
+        ).to.be.rejected;
+      });
+
+      it("Should revert when setting scoring tiles outside grid bounds", async function () {
+        const gameId = 1;
+
+        // Test negative coordinates
+        await expect(
+          maps.write.setScoringTile([BigInt(gameId), -1, 0, true], {
+            account: owner.address,
+          })
+        ).to.be.rejected;
+
+        await expect(
+          maps.write.setScoringTile([BigInt(gameId), 0, -1, true], {
+            account: owner.address,
+          })
+        ).to.be.rejected;
+
+        // Test coordinates beyond grid size
+        await expect(
+          maps.write.setScoringTile([BigInt(gameId), 50, 0, true], {
+            account: owner.address,
+          })
+        ).to.be.rejected;
+
+        await expect(
+          maps.write.setScoringTile([BigInt(gameId), 0, 100, true], {
+            account: owner.address,
+          })
+        ).to.be.rejected;
+      });
+    });
+
+    describe("Preset Scoring Maps", function () {
+      it("Should allow owner to create preset scoring maps", async function () {
+        const scoringPositions = [
+          { row: 5, col: 5 },
+          { row: 10, col: 10 },
+          { row: 15, col: 15 },
+        ];
+
+        const initialMapCount = await maps.read.mapCount();
+        await maps.write.createPresetScoringMap([scoringPositions], {
+          account: owner.address,
+        });
+
+        const newMapCount = await maps.read.mapCount();
+        expect(newMapCount).to.equal(initialMapCount + 1n);
+
+        // Verify scoring positions are set
+        const mapId = newMapCount;
+        expect(await maps.read.presetScoringMaps([mapId, 5, 5])).to.be.true;
+        expect(await maps.read.presetScoringMaps([mapId, 10, 10])).to.be.true;
+        expect(await maps.read.presetScoringMaps([mapId, 15, 15])).to.be.true;
+
+        // Verify other positions are not scoring
+        expect(await maps.read.presetScoringMaps([mapId, 0, 0])).to.be.false;
+      });
+
+      it("Should allow owner to create multiple preset scoring maps", async function () {
+        const positions1 = [{ row: 1, col: 1 }];
+        const positions2 = [{ row: 2, col: 2 }];
+
+        await maps.write.createPresetScoringMap([positions1], {
+          account: owner.address,
+        });
+        await maps.write.createPresetScoringMap([positions2], {
+          account: owner.address,
+        });
+
+        const mapCount = await maps.read.mapCount();
+        expect(mapCount).to.equal(2n);
+      });
+
+      it("Should revert when non-owner tries to create preset scoring maps", async function () {
+        const scoringPositions = [{ row: 5, col: 5 }];
+
+        await expect(userMaps.write.createPresetScoringMap([scoringPositions]))
+          .to.be.rejected;
+      });
+
+      it("Should revert when creating preset scoring map with invalid positions", async function () {
+        const invalidPositions = [{ row: 100, col: 50 }];
+
+        await expect(
+          maps.write.createPresetScoringMap([invalidPositions], {
+            account: owner.address,
+          })
+        ).to.be.rejected;
+      });
+
+      it("Should retrieve preset scoring map correctly", async function () {
+        const scoringPositions = [
+          { row: 5, col: 5 },
+          { row: 10, col: 10 },
+        ];
+
+        await maps.write.createPresetScoringMap([scoringPositions], {
+          account: owner.address,
+        });
+
+        const mapId = await maps.read.mapCount();
+        const retrievedPositions = await maps.read.getPresetScoringMap([mapId]);
+
+        expect(retrievedPositions).to.have.length(2);
+        expect(retrievedPositions[0].row).to.equal(5);
+        expect(retrievedPositions[0].col).to.equal(5);
+        expect(retrievedPositions[1].row).to.equal(10);
+        expect(retrievedPositions[1].col).to.equal(10);
+      });
+
+      it("Should handle empty preset scoring maps", async function () {
+        const emptyPositions: { row: number; col: number }[] = [];
+
+        await maps.write.createPresetScoringMap([emptyPositions], {
+          account: owner.address,
+        });
+
+        const mapId = await maps.read.mapCount();
+        const retrievedPositions = await maps.read.getPresetScoringMap([mapId]);
+
+        expect(retrievedPositions).to.have.length(0);
+      });
+
+      it("Should revert when retrieving non-existent preset scoring map", async function () {
+        await expect(maps.read.getPresetScoringMap([999])).to.be.rejected;
+      });
+
+      it("Should allow owner to update existing preset scoring maps", async function () {
+        const initialPositions = [{ row: 5, col: 5 }];
+        await maps.write.createPresetScoringMap([initialPositions], {
+          account: owner.address,
+        });
+
+        const mapId = await maps.read.mapCount();
+        const updatedPositions = [{ row: 10, col: 10 }];
+
+        await maps.write.updatePresetScoringMap([mapId, updatedPositions], {
+          account: owner.address,
+        });
+
+        const retrievedPositions = await maps.read.getPresetScoringMap([mapId]);
+        expect(retrievedPositions).to.have.length(1);
+        expect(retrievedPositions[0].row).to.equal(10);
+        expect(retrievedPositions[0].col).to.equal(10);
+      });
+
+      it("Should clear all positions when updating preset scoring map", async function () {
+        const initialPositions = [
+          { row: 5, col: 5 },
+          { row: 10, col: 10 },
+        ];
+        await maps.write.createPresetScoringMap([initialPositions], {
+          account: owner.address,
+        });
+
+        const mapId = await maps.read.mapCount();
+        const updatedPositions = [{ row: 15, col: 15 }];
+
+        await maps.write.updatePresetScoringMap([mapId, updatedPositions], {
+          account: owner.address,
+        });
+
+        const retrievedPositions = await maps.read.getPresetScoringMap([mapId]);
+        expect(retrievedPositions).to.have.length(1);
+        expect(retrievedPositions[0].row).to.equal(15);
+        expect(retrievedPositions[0].col).to.equal(15);
+      });
+
+      it("Should revert when non-owner tries to update preset scoring maps", async function () {
+        const positions = [{ row: 5, col: 5 }];
+        await maps.write.createPresetScoringMap([positions], {
+          account: owner.address,
+        });
+
+        const mapId = await maps.read.mapCount();
+        await expect(userMaps.write.updatePresetScoringMap([mapId, positions]))
+          .to.be.rejected;
+      });
+
+      it("Should revert when updating non-existent preset scoring map", async function () {
+        const positions = [{ row: 5, col: 5 }];
+
+        await expect(
+          maps.write.updatePresetScoringMap([999, positions], {
+            account: owner.address,
+          })
+        ).to.be.rejected;
+      });
+
+      it("Should allow owner to delete preset scoring maps", async function () {
+        const positions = [{ row: 5, col: 5 }];
+        await maps.write.createPresetScoringMap([positions], {
+          account: owner.address,
+        });
+
+        const mapId = await maps.read.mapCount();
+        await maps.write.deletePresetScoringMap([mapId], {
+          account: owner.address,
+        });
+
+        await expect(maps.read.getPresetScoringMap([mapId])).to.be.rejected;
+      });
+
+      it("Should handle map counter correctly when deleting preset scoring maps", async function () {
+        const positions1 = [{ row: 1, col: 1 }];
+        const positions2 = [{ row: 2, col: 2 }];
+
+        await maps.write.createPresetScoringMap([positions1], {
+          account: owner.address,
+        });
+        await maps.write.createPresetScoringMap([positions2], {
+          account: owner.address,
+        });
+
+        const mapId1 = 1n;
+        const mapId2 = 2n;
+
+        // Delete the second map
+        await maps.write.deletePresetScoringMap([mapId2], {
+          account: owner.address,
+        });
+
+        // Map 1 should still exist
+        const retrievedPositions1 = await maps.read.getPresetScoringMap([
+          mapId1,
+        ]);
+        expect(retrievedPositions1).to.have.length(1);
+      });
+
+      it("Should revert when non-owner tries to delete preset scoring maps", async function () {
+        const positions = [{ row: 5, col: 5 }];
+        await maps.write.createPresetScoringMap([positions], {
+          account: owner.address,
+        });
+
+        const mapId = await maps.read.mapCount();
+        await expect(userMaps.write.deletePresetScoringMap([mapId])).to.be
+          .rejected;
+      });
+
+      it("Should revert when deleting non-existent preset scoring map", async function () {
+        await expect(
+          maps.write.deletePresetScoringMap([999], {
+            account: owner.address,
+          })
+        ).to.be.rejected;
+      });
+
+      it("Should apply preset scoring map to game correctly", async function () {
+        const scoringPositions = [
+          { row: 5, col: 5 },
+          { row: 10, col: 10 },
+        ];
+
+        await maps.write.createPresetScoringMap([scoringPositions], {
+          account: owner.address,
+        });
+
+        const mapId = await maps.read.mapCount();
+        const gameId = 123;
+
+        await maps.write.applyPresetScoringMapToGame([BigInt(gameId), mapId], {
+          account: owner.address,
+        });
+
+        // Verify scoring tiles are applied to the game
+        expect(await maps.read.isTileScoring([BigInt(gameId), 5, 5])).to.be
+          .true;
+        expect(await maps.read.isTileScoring([BigInt(gameId), 10, 10])).to.be
+          .true;
+        expect(await maps.read.isTileScoring([BigInt(gameId), 0, 0])).to.be
+          .false;
+      });
+
+      it("Should apply preset scoring map to multiple games independently", async function () {
+        const scoringPositions = [{ row: 5, col: 5 }];
+
+        await maps.write.createPresetScoringMap([scoringPositions], {
+          account: owner.address,
+        });
+
+        const mapId = await maps.read.mapCount();
+        const game1Id = 123;
+        const game2Id = 456;
+
+        await maps.write.applyPresetScoringMapToGame([BigInt(game1Id), mapId], {
+          account: owner.address,
+        });
+
+        // Game 2 should not have scoring tiles yet
+        expect(await maps.read.isTileScoring([BigInt(game2Id), 5, 5])).to.be
+          .false;
+
+        // Apply to game 2
+        await maps.write.applyPresetScoringMapToGame([BigInt(game2Id), mapId], {
+          account: owner.address,
+        });
+
+        // Now both games should have scoring tiles
+        expect(await maps.read.isTileScoring([BigInt(game1Id), 5, 5])).to.be
+          .true;
+        expect(await maps.read.isTileScoring([BigInt(game2Id), 5, 5])).to.be
+          .true;
+      });
+
+      it("Should revert when non-owner tries to apply scoring map to game", async function () {
+        const scoringPositions = [{ row: 5, col: 5 }];
+        await maps.write.createPresetScoringMap([scoringPositions], {
+          account: owner.address,
+        });
+
+        const mapId = await maps.read.mapCount();
+        const gameId = 123;
+        await expect(
+          userMaps.write.applyPresetScoringMapToGame([BigInt(gameId), mapId])
+        ).to.be.rejected;
+      });
+
+      it("Should revert when applying non-existent scoring map to game", async function () {
+        const gameId = 123;
+        await expect(
+          maps.write.applyPresetScoringMapToGame([BigInt(gameId), 999], {
+            account: owner.address,
+          })
+        ).to.be.rejected;
+      });
+    });
+
+    describe("Integration with Blocked Tiles", function () {
+      it("Should allow tiles to be both blocked and scoring", async function () {
+        const gameId = 1;
+        const row = 5;
+        const col = 5;
+
+        // Set tile as both blocked and scoring
+        await maps.write.setBlockedTile([BigInt(gameId), row, col, true], {
+          account: owner.address,
+        });
+        await maps.write.setScoringTile([BigInt(gameId), row, col, true], {
+          account: owner.address,
+        });
+
+        // Verify both properties
+        expect(await maps.read.isTileBlocked([BigInt(gameId), row, col])).to.be
+          .true;
+        expect(await maps.read.isTileScoring([BigInt(gameId), row, col])).to.be
+          .true;
+      });
+
+      it("Should handle preset maps with both blocked and scoring tiles", async function () {
+        const blockedPositions = [{ row: 5, col: 5 }];
+        const scoringPositions = [{ row: 10, col: 10 }];
+
+        // Create preset blocked map
+        await maps.write.createPresetMap([blockedPositions], {
+          account: owner.address,
+        });
+        const blockedMapId = await maps.read.mapCount();
+
+        // Create preset scoring map
+        await maps.write.createPresetScoringMap([scoringPositions], {
+          account: owner.address,
+        });
+        const scoringMapId = await maps.read.mapCount();
+
+        const gameId = 123;
+
+        // Apply blocked map to the game
+        await maps.write.applyPresetMapToGame([BigInt(gameId), blockedMapId], {
+          account: owner.address,
+        });
+
+        // Apply scoring map to the game
+        await maps.write.applyPresetScoringMapToGame(
+          [BigInt(gameId), scoringMapId],
+          {
+            account: owner.address,
+          }
+        );
+
+        // Verify both blocked and scoring tiles are applied
+        expect(await maps.read.isTileBlocked([BigInt(gameId), 5, 5])).to.be
+          .true;
+        expect(await maps.read.isTileScoring([BigInt(gameId), 10, 10])).to.be
+          .true;
+      });
+
+      it("Should maintain separate state for blocked and scoring tiles", async function () {
+        const gameId = 1;
+        const row = 5;
+        const col = 5;
+
+        // Set tile as blocked only
+        await maps.write.setBlockedTile([BigInt(gameId), row, col, true], {
+          account: owner.address,
+        });
+
+        // Verify blocked but not scoring
+        expect(await maps.read.isTileBlocked([BigInt(gameId), row, col])).to.be
+          .true;
+        expect(await maps.read.isTileScoring([BigInt(gameId), row, col])).to.be
+          .false;
+
+        // Set tile as scoring only
+        await maps.write.setBlockedTile([BigInt(gameId), row, col, false], {
+          account: owner.address,
+        });
+        await maps.write.setScoringTile([BigInt(gameId), row, col, true], {
+          account: owner.address,
+        });
+
+        // Verify scoring but not blocked
+        expect(await maps.read.isTileBlocked([BigInt(gameId), row, col])).to.be
+          .false;
+        expect(await maps.read.isTileScoring([BigInt(gameId), row, col])).to.be
+          .true;
+      });
+    });
+
+    describe("Safe Scoring Tile Checks", function () {
+      it("Should handle out-of-bounds coordinates safely", async function () {
+        const gameId = 1;
+
+        // These should not revert and should return false for out-of-bounds
+        // Note: We can't directly test _isTileScoringSafe as it's internal,
+        // but we can test the behavior through public functions
+        expect(await maps.read.isTileScoringSafe([BigInt(gameId), -1, 0])).to.be
+          .false;
+        expect(await maps.read.isTileScoringSafe([BigInt(gameId), 0, -1])).to.be
+          .false;
+        expect(await maps.read.isTileScoringSafe([BigInt(gameId), 50, 0])).to.be
+          .false;
+        expect(await maps.read.isTileScoringSafe([BigInt(gameId), 0, 100])).to
+          .be.false;
       });
     });
   });

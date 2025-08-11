@@ -446,17 +446,17 @@ describe("Game", function () {
       const gameData = (await game.read.getGame([1n, [1n], [6n]])) as any;
 
       // Verify game data structure
-      expect(gameData.gameId).to.equal(1n);
-      expect(gameData.lobbyId).to.equal(1n);
-      expect(gameData.creator.toLowerCase()).to.equal(
+      expect(gameData.metadata.gameId).to.equal(1n);
+      expect(gameData.metadata.lobbyId).to.equal(1n);
+      expect(gameData.metadata.creator.toLowerCase()).to.equal(
         creator.account.address.toLowerCase()
       );
-      expect(gameData.joiner.toLowerCase()).to.equal(
+      expect(gameData.metadata.joiner.toLowerCase()).to.equal(
         joiner.account.address.toLowerCase()
       );
-      expect(gameData.creatorGoesFirst).to.be.true;
-      expect(Number(gameData.startedAt)).to.be.greaterThan(0);
-      expect(gameData.currentTurn.toLowerCase()).to.equal(
+      expect(gameData.metadata.creatorGoesFirst).to.be.true;
+      expect(Number(gameData.metadata.startedAt)).to.be.greaterThan(0);
+      expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
         creator.account.address.toLowerCase()
       );
 
@@ -594,8 +594,8 @@ describe("Game", function () {
       const gridGameData = (await game.read.getGame([1n, [1n], [6n]])) as any;
 
       // Verify grid dimensions (50 rows x 100 columns)
-      expect(gridGameData.gridWidth).to.equal(100); // Number of columns
-      expect(gridGameData.gridHeight).to.equal(50); // Number of rows
+      expect(gridGameData.gridDimensions.gridWidth).to.equal(100); // Number of columns
+      expect(gridGameData.gridDimensions.gridHeight).to.equal(50); // Number of rows
     });
 
     it("should place both players' ships correctly at the start of a game", async function () {
@@ -922,7 +922,7 @@ describe("Game", function () {
 
         // Verify turn switched to joiner
         gameData = (await game.read.getGame([1n, [1n], [6n]])) as any;
-        expect(gameData.currentTurn.toLowerCase()).to.equal(
+        expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
           joiner.account.address.toLowerCase()
         );
       }
@@ -1204,7 +1204,7 @@ describe("Game", function () {
 
       // Check initial turn
       let gameData = (await game.read.getGame([1n, [1n, 2n], [6n, 7n]])) as any;
-      expect(gameData.currentTurn.toLowerCase()).to.equal(
+      expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
         creator.account.address.toLowerCase()
       );
 
@@ -1215,7 +1215,7 @@ describe("Game", function () {
 
       // Verify turn switched to joiner
       gameData = (await game.read.getGame([1n, [1n, 2n], [6n, 7n]])) as any;
-      expect(gameData.currentTurn.toLowerCase()).to.equal(
+      expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
         joiner.account.address.toLowerCase()
       );
 
@@ -1226,7 +1226,7 @@ describe("Game", function () {
 
       // Verify turn switched back to creator
       gameData = (await game.read.getGame([1n, [1n, 2n], [6n, 7n]])) as any;
-      expect(gameData.currentTurn.toLowerCase()).to.equal(
+      expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
         creator.account.address.toLowerCase()
       );
 
@@ -1237,7 +1237,7 @@ describe("Game", function () {
 
       // Verify turn switched to joiner
       gameData = (await game.read.getGame([1n, [1n, 2n], [6n, 7n]])) as any;
-      expect(gameData.currentTurn.toLowerCase()).to.equal(
+      expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
         joiner.account.address.toLowerCase()
       );
 
@@ -1248,7 +1248,7 @@ describe("Game", function () {
 
       // Verify turn is back to creator and round has incremented
       gameData = (await game.read.getGame([1n, [1n, 2n], [6n, 7n]])) as any;
-      expect(gameData.currentTurn.toLowerCase()).to.equal(
+      expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
         creator.account.address.toLowerCase()
       );
 
@@ -1466,7 +1466,7 @@ describe("Game", function () {
         [1n, 2n, 3n],
         [6n, 7n, 8n, 9n, 10n],
       ])) as any;
-      expect(gameData.currentTurn.toLowerCase()).to.equal(
+      expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
         creator.account.address.toLowerCase()
       );
 
@@ -1607,7 +1607,7 @@ describe("Game", function () {
         [1n, 2n],
         [6n, 7n],
       ])) as any;
-      expect(gameData.currentTurn.toLowerCase()).to.equal(
+      expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
         creator.account.address.toLowerCase()
       );
 
@@ -1784,7 +1784,7 @@ describe("Game", function () {
         [1n, 2n],
         [6n, 7n],
       ])) as any;
-      expect(gameData.currentTurn.toLowerCase()).to.equal(
+      expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
         creator.account.address.toLowerCase()
       );
 
@@ -1911,7 +1911,7 @@ describe("Game", function () {
         [1n, 2n],
         [6n, 7n, 8n],
       ])) as any;
-      expect(gameData.currentTurn.toLowerCase()).to.equal(
+      expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
         joiner.account.address.toLowerCase()
       );
 
@@ -1922,7 +1922,7 @@ describe("Game", function () {
 
       // Verify turn switched back to creator
       gameData = (await game.read.getGame([1n, [1n, 2n], [6n, 7n, 8n]])) as any;
-      expect(gameData.currentTurn.toLowerCase()).to.equal(
+      expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
         creator.account.address.toLowerCase()
       );
 
@@ -1933,7 +1933,7 @@ describe("Game", function () {
 
       // Verify turn stays with joiner (creator has no more ships)
       gameData = (await game.read.getGame([1n, [1n, 2n], [6n, 7n, 8n]])) as any;
-      expect(gameData.currentTurn.toLowerCase()).to.equal(
+      expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
         joiner.account.address.toLowerCase()
       );
 
@@ -1944,7 +1944,7 @@ describe("Game", function () {
 
       // Verify turn stays with joiner (creator still has no more ships)
       gameData = (await game.read.getGame([1n, [1n, 2n], [6n, 7n, 8n]])) as any;
-      expect(gameData.currentTurn.toLowerCase()).to.equal(
+      expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
         joiner.account.address.toLowerCase()
       );
 
@@ -1955,7 +1955,7 @@ describe("Game", function () {
 
       // Verify turn is back to creator and round has incremented
       gameData = (await game.read.getGame([1n, [1n, 2n], [6n, 7n, 8n]])) as any;
-      expect(gameData.currentTurn.toLowerCase()).to.equal(
+      expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
         creator.account.address.toLowerCase()
       );
 
@@ -2043,7 +2043,7 @@ describe("Game", function () {
         [1n, 2n, 3n],
         [6n, 7n, 8n],
       ])) as any;
-      expect(gameData.currentTurn.toLowerCase()).to.equal(
+      expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
         joiner.account.address.toLowerCase()
       );
 
@@ -2058,7 +2058,7 @@ describe("Game", function () {
         [1n, 2n, 3n],
         [6n, 7n, 8n],
       ])) as any;
-      expect(gameData.currentTurn.toLowerCase()).to.equal(
+      expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
         creator.account.address.toLowerCase()
       );
 
@@ -2196,7 +2196,7 @@ describe("Game", function () {
       // Now in range, ensure it's the creator's turn before shooting
       gameData = (await game.read.getGame([1n, [1n], [6n]])) as any;
       if (
-        gameData.currentTurn.toLowerCase() !==
+        gameData.turnState.currentTurn.toLowerCase() !==
         creator.account.address.toLowerCase()
       ) {
         // Let joiner pass their turn (move in place)
@@ -2386,7 +2386,7 @@ describe("Game", function () {
       // Now in range, ensure it's the creator's turn before shooting
       gameData = (await game.read.getGame([1n, [1n], [6n]])) as any;
       if (
-        gameData.currentTurn.toLowerCase() !==
+        gameData.turnState.currentTurn.toLowerCase() !==
         creator.account.address.toLowerCase()
       ) {
         // Let joiner pass their turn (move in place)
@@ -2552,7 +2552,7 @@ describe("Game", function () {
         [6n],
       ])) as unknown as GameDataView;
       if (
-        gameData.currentTurn.toLowerCase() !==
+        gameData.turnState.currentTurn.toLowerCase() !==
         creator.account.address.toLowerCase()
       ) {
         // Let joiner pass their turn
@@ -2685,7 +2685,7 @@ describe("Game", function () {
         [1n, 2n],
         [6n, 7n],
       ])) as any;
-      expect(gameData.currentTurn.toLowerCase()).to.equal(
+      expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
         creator.account.address.toLowerCase()
       );
 
@@ -2822,7 +2822,7 @@ describe("Game", function () {
       // After ships are in range, ensure it's the creator's turn (first player)
       gameData = (await game.read.getGame([1n, [1n], [6n]])) as any;
       if (
-        gameData.currentTurn.toLowerCase() !==
+        gameData.turnState.currentTurn.toLowerCase() !==
         creator.account.address.toLowerCase()
       ) {
         // If it's joiner's turn, have them move in place to make it creator's turn
@@ -3806,7 +3806,7 @@ describe("Game", function () {
         [1n, 2n],
         [6n, 7n],
       ])) as any;
-      expect(gameData.currentTurn.toLowerCase()).to.equal(
+      expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
         creator.account.address.toLowerCase()
       ); // currentTurn
 
@@ -3833,9 +3833,9 @@ describe("Game", function () {
         [1n, 2n],
         [6n, 7n],
       ])) as any;
-      expect(gameDataAfterForceMove.currentTurn.toLowerCase()).to.equal(
-        joiner.account.address.toLowerCase()
-      ); // currentTurn
+      expect(
+        gameDataAfterForceMove.turnState.currentTurn.toLowerCase()
+      ).to.equal(joiner.account.address.toLowerCase()); // currentTurn
     });
 
     it("should allow either player to flee and end the game", async function () {
@@ -3901,7 +3901,7 @@ describe("Game", function () {
         creatorShipIds,
         joinerShipIds,
       ]);
-      expect(initialGame.winner).to.equal(
+      expect(initialGame.metadata.winner).to.equal(
         "0x0000000000000000000000000000000000000000"
       ); // winner (zero address means game not over)
 
@@ -3914,7 +3914,7 @@ describe("Game", function () {
         creatorShipIds,
         joinerShipIds,
       ]);
-      expect(gameAfterFlee.winner.toLowerCase()).to.equal(
+      expect(gameAfterFlee.metadata.winner.toLowerCase()).to.equal(
         joiner.account.address.toLowerCase()
       ); // winner (joiner wins when creator flees)
 
@@ -3990,7 +3990,7 @@ describe("Game", function () {
         creatorShipIds,
         joinerShipIds,
       ]);
-      expect(initialGame.winner).to.equal(
+      expect(initialGame.metadata.winner).to.equal(
         "0x0000000000000000000000000000000000000000"
       ); // No winner yet
 
@@ -4014,7 +4014,7 @@ describe("Game", function () {
         creatorShipIds,
         joinerShipIds,
       ]);
-      expect(gameAfterRetreat.winner.toLowerCase()).to.equal(
+      expect(gameAfterRetreat.metadata.winner.toLowerCase()).to.equal(
         joiner.account.address.toLowerCase()
       ); // Joiner wins because creator has no active ships
 

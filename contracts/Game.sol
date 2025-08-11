@@ -1321,20 +1321,11 @@ contract Game is Ownable {
 
         return
             GameDataView({
-                gameId: game.metadata.gameId,
-                lobbyId: game.metadata.lobbyId,
-                creator: game.metadata.creator,
-                joiner: game.metadata.joiner,
-                creatorFleetId: game.metadata.creatorFleetId,
-                joinerFleetId: game.metadata.joinerFleetId,
-                creatorGoesFirst: game.metadata.creatorGoesFirst,
-                startedAt: game.metadata.startedAt,
-                currentTurn: game.turnState.currentTurn,
-                winner: game.metadata.winner,
+                metadata: game.metadata,
+                turnState: game.turnState,
+                gridDimensions: game.gridDimensions,
                 shipAttributes: shipAttrs,
                 shipPositions: shipPositions,
-                gridWidth: game.gridDimensions.gridWidth,
-                gridHeight: game.gridDimensions.gridHeight,
                 creatorActiveShipIds: creatorActiveShipIds,
                 joinerActiveShipIds: joinerActiveShipIds
             });

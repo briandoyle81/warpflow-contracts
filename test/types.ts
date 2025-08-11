@@ -129,6 +129,30 @@ export interface GameData {
   currentTurn: Address;
 }
 
+export interface GameMetadata {
+  gameId: bigint;
+  lobbyId: bigint;
+  creator: Address;
+  joiner: Address;
+  creatorFleetId: bigint;
+  joinerFleetId: bigint;
+  creatorGoesFirst: boolean;
+  startedAt: bigint;
+  winner: Address;
+}
+
+export interface GameTurnState {
+  currentTurn: Address;
+  turnTime: bigint;
+  turnStartTime: bigint;
+  currentRound: bigint;
+}
+
+export interface GameGridDimensions {
+  gridWidth: number;
+  gridHeight: number;
+}
+
 // Tuple types for contract return values
 export type LobbyTuple = [
   bigint, // id
@@ -243,22 +267,13 @@ export interface ShipPosition {
 }
 
 export interface GameDataView {
-  gameId: bigint;
-  lobbyId: bigint;
-  creator: string;
-  joiner: string;
-  creatorFleetId: bigint;
-  joinerFleetId: bigint;
-  creatorGoesFirst: boolean;
-  startedAt: bigint;
-  currentTurn: string;
-  winner: string;
+  metadata: GameMetadata;
+  turnState: GameTurnState;
+  gridDimensions: GameGridDimensions;
   shipAttributes: readonly Attributes[]; // Combined array of all ship attributes indexed by ship ID
   shipPositions: readonly ShipPosition[]; // All ship positions on the grid
   creatorActiveShipIds: readonly bigint[];
   joinerActiveShipIds: readonly bigint[];
-  gridWidth: number;
-  gridHeight: number;
 }
 
 export enum ActionType {

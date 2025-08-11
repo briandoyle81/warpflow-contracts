@@ -566,10 +566,10 @@ contract Game is Ownable {
             if (
                 !lineOfSight.hasLineOfSight(
                     _gameId,
-                    _newCol,
                     _newRow,
-                    targetPos.col,
-                    targetPos.row
+                    _newCol,
+                    targetPos.row,
+                    targetPos.col
                 )
             ) {
                 revert InvalidMove();

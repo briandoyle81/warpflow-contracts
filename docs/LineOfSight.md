@@ -17,7 +17,7 @@ The line-of-sight system determines whether a clear path exists between two poin
 
 ## Architecture
 
-The line-of-sight system is implemented as a separate contract (`LineOfSight.sol`) that can be used by multiple game contracts. The Game contract calls the LineOfSight contract for all LOS calculations.
+The line-of-sight system is implemented as a separate contract (`Maps.sol`) that can be used by multiple game contracts. The Game contract calls the Maps contract for all LOS calculations.
 
 ## Data Structures
 
@@ -31,41 +31,41 @@ mapping(uint => mapping(int16 row => mapping(int16 col => bool))) blockedTiles;
 
 ### Setting Up the System
 
-The LineOfSight contract is automatically deployed and configured when using the Ignition deployment script:
+The Maps contract is automatically deployed and configured when using the Ignition deployment script:
 
 ```bash
-# Deploy all contracts including LineOfSight
+# Deploy all contracts including Maps
 npx hardhat ignition deploy ignition/modules/DeployAndConfig.ts
 ```
 
 For manual deployment:
 
 ```solidity
-// Deploy LineOfSight contract
-LineOfSight lineOfSight = new LineOfSight();
+// Deploy Maps contract
+Maps maps = new Maps();
 
-// Set the LineOfSight contract address in Game contract
-game.setLineOfSightAddress(address(lineOfSight));
+// Set the Maps contract address in Game contract
+game.setMapsAddress(address(maps));
 
 // Set individual blocked tile
-lineOfSight.setBlockedTile(uint _gameId, int16 _row, int16 _col, bool _blocked);
+maps.setBlockedTile(uint _gameId, int16 _row, int16 _col, bool _blocked);
 
 // Set multiple blocked tiles at once
-lineOfSight.setBlockedTiles(uint _gameId, int16[] memory _rows, int16[] memory _cols, bool[] memory _blocked);
+maps.setBlockedTiles(uint _gameId, int16[] memory _rows, int16[] memory _cols, bool[] memory _blocked);
 ```
 
 ### Checking Line of Sight
 
 ```solidity
 // Main LOS function (called from Game contract)
-lineOfSight.hasLineOfSight(
+maps.hasMaps(
     uint _gameId,
     int16 _x0, int16 _y0,    // Start position
     int16 _x1, int16 _y1     // End position
 ) public view returns (bool)
 
 // Check LOS between two ships (Game contract wrapper)
-game.hasLineOfSightBetweenShips(
+game.hasMapsBetweenShips(
     uint _gameId,
     uint _shipId1,
     uint _shipId2
@@ -99,7 +99,7 @@ Line of sight is automatically checked when ships attempt to shoot:
 
 ```solidity
 // Must have line of sight to target
-if (!lineOfSight.hasLineOfSight(_gameId, _newCol, _newRow, targetPos.col, targetPos.row)) {
+if (!maps.hasMaps(_gameId, _newCol, _newRow, targetPos.col, targetPos.row)) {
     revert InvalidMove();
 }
 ```
@@ -126,10 +126,10 @@ await game.setBlockedTile(gameId, 5, 6, true);
 
 ```solidity
 // Check if there's clear LOS from (0,0) to (10,10)
-bool hasLOS = await lineOfSight.hasLineOfSight(gameId, 0, 0, 10, 10);
+bool hasLOS = await maps.hasMaps(gameId, 0, 0, 10, 10);
 
 // Check LOS between two ships
-bool canShoot = await game.hasLineOfSightBetweenShips(gameId, shipId1, shipId2);
+bool canShoot = await game.hasMapsBetweenShips(gameId, shipId1, shipId2);
 ```
 
 ## Test Cases

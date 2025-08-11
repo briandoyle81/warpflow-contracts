@@ -3,7 +3,7 @@ pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract LineOfSight is Ownable {
+contract Maps is Ownable {
     // Grid dimensions
     int16 public constant GRID_WIDTH = 100; // Number of columns
     int16 public constant GRID_HEIGHT = 50; // Number of rows
@@ -239,7 +239,7 @@ contract LineOfSight is Ownable {
      * @param _col1 Ending column coordinate (0-99)
      * @return Whether there's a clear line of sight
      */
-    function hasLineOfSight(
+    function hasMaps(
         uint _gameId,
         int16 _row0,
         int16 _col0,
@@ -267,7 +267,7 @@ contract LineOfSight is Ownable {
         }
 
         // Use Bresenham's algorithm for line of sight (always permissive mode)
-        return _bresenhamLineOfSight(_gameId, _row0, _col0, _row1, _col1);
+        return _bresenhamMaps(_gameId, _row0, _col0, _row1, _col1);
     }
 
     /**
@@ -275,7 +275,7 @@ contract LineOfSight is Ownable {
      * Uses permissive corner mode (only blocks if both flankers are blocked)
      * Optimized to avoid stack too deep errors
      */
-    function _bresenhamLineOfSight(
+    function _bresenhamMaps(
         uint _gameId,
         int16 _row0,
         int16 _col0,

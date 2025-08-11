@@ -81,7 +81,7 @@ describe("Game", function () {
       ships: deployed.ships,
       game: deployed.game,
       randomManager: deployed.randomManager,
-      lineOfSight: deployed.lineOfSight,
+      maps: deployed.maps,
       owner,
       creator,
       joiner,
@@ -2243,7 +2243,7 @@ describe("Game", function () {
         game,
         randomManager,
         owner,
-        lineOfSight,
+        maps,
       } = await loadFixture(deployGameFixture);
 
       // Purchase and construct ships for both players
@@ -2371,14 +2371,14 @@ describe("Game", function () {
       // Only place wall if there's space for it
       if (wallStartCol <= wallEndCol) {
         for (let col = wallStartCol; col <= wallEndCol; col++) {
-          await lineOfSight.write.setBlockedTile([1n, wallRow, col, true], {
+          await maps.write.setBlockedTile([1n, wallRow, col, true], {
             account: owner.account,
           });
         }
       } else {
         // If ships are too close, place wall at the middle column
         const middleCol = Math.floor((minCol + maxCol) / 2);
-        await lineOfSight.write.setBlockedTile([1n, wallRow, middleCol, true], {
+        await maps.write.setBlockedTile([1n, wallRow, middleCol, true], {
           account: owner.account,
         });
       }
@@ -2429,7 +2429,7 @@ describe("Game", function () {
         joiner,
         ships,
         game,
-        lineOfSight,
+        maps,
         randomManager,
         owner,
       } = await loadFixture(deployGameFixture);
@@ -2540,7 +2540,7 @@ describe("Game", function () {
       // Create a wall between the ships to block line of sight
       // Wall at row 10, columns 12-18 (blocking the direct path)
       for (let col = 12; col <= 18; col++) {
-        await lineOfSight.write.setBlockedTile([1n, 10, col, true], {
+        await maps.write.setBlockedTile([1n, 10, col, true], {
           account: owner.account,
         });
       }
@@ -4037,7 +4037,7 @@ describe("Game", function () {
         fleets,
         lobbies,
         randomManager,
-        lineOfSight,
+        maps,
         owner,
       } = await loadFixture(deployGameFixture);
 
@@ -4070,10 +4070,10 @@ describe("Game", function () {
         { row: 25, col: 52 },
       ];
 
-      await lineOfSight.write.createPresetMap([blockedPositions], {
+      await maps.write.createPresetMap([blockedPositions], {
         account: owner.account,
       });
-      const mapId = await lineOfSight.read.mapCount();
+      const mapId = await maps.read.mapCount();
 
       // Create a lobby with the selected preset map
       await creatorLobbies.write.createLobby([
@@ -4105,7 +4105,7 @@ describe("Game", function () {
       // when trying to shoot from one side to the other through the middle
 
       // Test line of sight that should be blocked by the preset map
-      const hasLOS = await lineOfSight.read.hasLineOfSight([
+      const hasLOS = await maps.read.hasMaps([
         BigInt(gameId),
         25, // Start at row 25
         0, // Start at column 0 (creator side)
@@ -4117,7 +4117,7 @@ describe("Game", function () {
       expect(hasLOS).to.be.false;
 
       // Test line of sight that should be clear (above the blocked tiles)
-      const hasLOSAbove = await lineOfSight.read.hasLineOfSight([
+      const hasLOSAbove = await maps.read.hasMaps([
         BigInt(gameId),
         20, // Start at row 20 (above blocked tiles)
         0, // Start at column 0
@@ -4129,7 +4129,7 @@ describe("Game", function () {
       expect(hasLOSAbove).to.be.true;
 
       // Test line of sight that should be clear (below the blocked tiles)
-      const hasLOSBelow = await lineOfSight.read.hasLineOfSight([
+      const hasLOSBelow = await maps.read.hasMaps([
         BigInt(gameId),
         30, // Start at row 30 (below blocked tiles)
         0, // Start at column 0

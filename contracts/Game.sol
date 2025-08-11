@@ -7,13 +7,13 @@ import "./Types.sol";
 import "./IShips.sol";
 import "./IFleets.sol";
 import "./IShipAttributes.sol";
-import "./ILineOfSight.sol";
+import "./IMaps.sol";
 
 contract Game is Ownable {
     IShips public ships;
     IFleets public fleets;
     IShipAttributes public shipAttributes;
-    ILineOfSight public lineOfSight;
+    IMaps public maps;
     address public lobbiesAddress;
 
     mapping(uint => GameData) public games;
@@ -53,10 +53,8 @@ contract Game is Ownable {
         shipAttributes = IShipAttributes(_shipAttributes);
     }
 
-    function setLineOfSightAddress(
-        address _lineOfSightAddress
-    ) public onlyOwner {
-        lineOfSight = ILineOfSight(_lineOfSightAddress);
+    function setMapsAddress(address _mapsAddress) public onlyOwner {
+        maps = IMaps(_mapsAddress);
     }
 
     function setLobbiesAddress(address _lobbiesAddress) public onlyOwner {
@@ -110,7 +108,7 @@ contract Game is Ownable {
 
         // Apply the selected preset map to this game if a map was selected
         if (_selectedMapId > 0) {
-            lineOfSight.applyPresetMapToGame(gameCount, _selectedMapId);
+            maps.applyPresetMapToGame(gameCount, _selectedMapId);
         }
 
         // Calculate fleet attributes and place ships on grid
@@ -571,7 +569,7 @@ contract Game is Ownable {
             // Must have line of sight to target if manhattan > 1, can always see adjacent to shoot
             if (
                 manhattan > 1 &&
-                !lineOfSight.hasLineOfSight(
+                !maps.hasMaps(
                     _gameId,
                     _newRow,
                     _newCol,

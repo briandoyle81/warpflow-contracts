@@ -3,40 +3,37 @@ import { loadFixture } from "@nomicfoundation/hardhat-toolbox-viem/network-helpe
 import hre from "hardhat";
 
 describe("Line of Sight System", function () {
-  let lineOfSight: any;
-  let userLineOfSight: any;
+  let maps: any;
+  let userMaps: any;
   let owner: any;
   let user: any;
 
-  async function deployLineOfSightFixture() {
+  async function deployMapsFixture() {
     const [ownerAccount, userAccount] = await hre.viem.getWalletClients();
 
-    const lineOfSightContract = await hre.viem.deployContract(
-      "LineOfSight",
-      []
-    );
+    const mapsContract = await hre.viem.deployContract("Maps", []);
 
     // Create separate contract instances for each user
-    const userLineOfSight = await hre.viem.getContractAt(
-      "LineOfSight",
-      lineOfSightContract.address,
+    const userMaps = await hre.viem.getContractAt(
+      "Maps",
+      mapsContract.address,
       {
         client: { wallet: userAccount },
       }
     );
 
     return {
-      lineOfSight: lineOfSightContract,
-      userLineOfSight: userLineOfSight,
+      maps: mapsContract,
+      userMaps: userMaps,
       owner: ownerAccount,
       user: userAccount,
     };
   }
 
   beforeEach(async function () {
-    const fixture = await loadFixture(deployLineOfSightFixture);
-    lineOfSight = fixture.lineOfSight;
-    userLineOfSight = fixture.userLineOfSight;
+    const fixture = await loadFixture(deployMapsFixture);
+    maps = fixture.maps;
+    userMaps = fixture.userMaps;
     owner = fixture.owner;
     user = fixture.user;
   });
@@ -78,7 +75,7 @@ describe("Line of Sight System", function () {
     positions: [number, number][]
   ) {
     for (const [row, col] of positions) {
-      await lineOfSight.write.setBlockedTile([BigInt(gameId), row, col, true], {
+      await maps.write.setBlockedTile([BigInt(gameId), row, col, true], {
         account: owner.address,
       });
     }
@@ -86,8 +83,8 @@ describe("Line of Sight System", function () {
 
   describe("Basic Functionality", function () {
     it("Should deploy with correct grid dimensions", async function () {
-      const gridWidth = await lineOfSight.read.GRID_WIDTH();
-      const gridHeight = await lineOfSight.read.GRID_HEIGHT();
+      const gridWidth = await maps.read.GRID_WIDTH();
+      const gridHeight = await maps.read.GRID_HEIGHT();
 
       expect(gridWidth).to.equal(100);
       expect(gridHeight).to.equal(50);
@@ -98,11 +95,11 @@ describe("Line of Sight System", function () {
       const row = 5;
       const col = 10;
 
-      await lineOfSight.write.setBlockedTile([BigInt(gameId), row, col, true], {
+      await maps.write.setBlockedTile([BigInt(gameId), row, col, true], {
         account: owner.address,
       });
 
-      const isBlocked = await lineOfSight.read.isTileBlocked([
+      const isBlocked = await maps.read.isTileBlocked([
         BigInt(gameId),
         row,
         col,
@@ -116,19 +113,16 @@ describe("Line of Sight System", function () {
       const col = 10;
 
       // First block it
-      await lineOfSight.write.setBlockedTile([BigInt(gameId), row, col, true], {
+      await maps.write.setBlockedTile([BigInt(gameId), row, col, true], {
         account: owner.address,
       });
 
       // Then unblock it
-      await lineOfSight.write.setBlockedTile(
-        [BigInt(gameId), row, col, false],
-        {
-          account: owner.address,
-        }
-      );
+      await maps.write.setBlockedTile([BigInt(gameId), row, col, false], {
+        account: owner.address,
+      });
 
-      const isBlocked = await lineOfSight.read.isTileBlocked([
+      const isBlocked = await maps.read.isTileBlocked([
         BigInt(gameId),
         row,
         col,
@@ -142,7 +136,7 @@ describe("Line of Sight System", function () {
       const col = 10;
 
       await expect(
-        userLineOfSight.write.setBlockedTile([BigInt(gameId), row, col, true])
+        userMaps.write.setBlockedTile([BigInt(gameId), row, col, true])
       ).to.be.rejected;
     });
   });
@@ -153,26 +147,26 @@ describe("Line of Sight System", function () {
 
       // Test negative coordinates
       await expect(
-        lineOfSight.write.setBlockedTile([BigInt(gameId), -1, 0, true], {
+        maps.write.setBlockedTile([BigInt(gameId), -1, 0, true], {
           account: owner.address,
         })
       ).to.be.rejected;
 
       await expect(
-        lineOfSight.write.setBlockedTile([BigInt(gameId), 0, -1, true], {
+        maps.write.setBlockedTile([BigInt(gameId), 0, -1, true], {
           account: owner.address,
         })
       ).to.be.rejected;
 
       // Test coordinates beyond grid size
       await expect(
-        lineOfSight.write.setBlockedTile([BigInt(gameId), 50, 0, true], {
+        maps.write.setBlockedTile([BigInt(gameId), 50, 0, true], {
           account: owner.address,
         })
       ).to.be.rejected;
 
       await expect(
-        lineOfSight.write.setBlockedTile([BigInt(gameId), 0, 100, true], {
+        maps.write.setBlockedTile([BigInt(gameId), 0, 100, true], {
           account: owner.address,
         })
       ).to.be.rejected;
@@ -182,22 +176,18 @@ describe("Line of Sight System", function () {
       const gameId = 1;
 
       // Test negative coordinates
-      await expect(
-        lineOfSight.read.hasLineOfSight([BigInt(gameId), -1, 0, 5, 5])
-      ).to.be.rejected;
+      await expect(maps.read.hasMaps([BigInt(gameId), -1, 0, 5, 5])).to.be
+        .rejected;
 
-      await expect(
-        lineOfSight.read.hasLineOfSight([BigInt(gameId), 0, -1, 5, 5])
-      ).to.be.rejected;
+      await expect(maps.read.hasMaps([BigInt(gameId), 0, -1, 5, 5])).to.be
+        .rejected;
 
       // Test coordinates beyond grid size
-      await expect(
-        lineOfSight.read.hasLineOfSight([BigInt(gameId), 50, 0, 5, 5])
-      ).to.be.rejected;
+      await expect(maps.read.hasMaps([BigInt(gameId), 50, 0, 5, 5])).to.be
+        .rejected;
 
-      await expect(
-        lineOfSight.read.hasLineOfSight([BigInt(gameId), 0, 100, 5, 5])
-      ).to.be.rejected;
+      await expect(maps.read.hasMaps([BigInt(gameId), 0, 100, 5, 5])).to.be
+        .rejected;
     });
   });
 
@@ -208,7 +198,7 @@ describe("Line of Sight System", function () {
         const startPos: [number, number] = [5, 2];
         const endPos: [number, number] = [5, 8];
 
-        const hasLOS = await lineOfSight.read.hasLineOfSight([
+        const hasLOS = await maps.read.hasMaps([
           BigInt(gameId),
           startPos[0],
           startPos[1],
@@ -225,7 +215,7 @@ describe("Line of Sight System", function () {
         const startPos: [number, number] = [2, 5];
         const endPos: [number, number] = [8, 5];
 
-        const hasLOS = await lineOfSight.read.hasLineOfSight([
+        const hasLOS = await maps.read.hasMaps([
           BigInt(gameId),
           startPos[0],
           startPos[1],
@@ -242,7 +232,7 @@ describe("Line of Sight System", function () {
         const startPos: [number, number] = [2, 2];
         const endPos: [number, number] = [6, 6];
 
-        const hasLOS = await lineOfSight.read.hasLineOfSight([
+        const hasLOS = await maps.read.hasMaps([
           BigInt(gameId),
           startPos[0],
           startPos[1],
@@ -258,7 +248,7 @@ describe("Line of Sight System", function () {
         const gameId = 1;
         const pos: [number, number] = [5, 5];
 
-        const hasLOS = await lineOfSight.read.hasLineOfSight([
+        const hasLOS = await maps.read.hasMaps([
           BigInt(gameId),
           pos[0],
           pos[1],
@@ -280,7 +270,7 @@ describe("Line of Sight System", function () {
 
         await setBlockedTiles(gameId, blockedPositions);
 
-        const hasLOS = await lineOfSight.read.hasLineOfSight([
+        const hasLOS = await maps.read.hasMaps([
           BigInt(gameId),
           startPos[0],
           startPos[1],
@@ -302,7 +292,7 @@ describe("Line of Sight System", function () {
 
         await setBlockedTiles(gameId, blockedPositions);
 
-        const hasLOS = await lineOfSight.read.hasLineOfSight([
+        const hasLOS = await maps.read.hasMaps([
           BigInt(gameId),
           startPos[0],
           startPos[1],
@@ -324,7 +314,7 @@ describe("Line of Sight System", function () {
 
         await setBlockedTiles(gameId, blockedPositions);
 
-        const hasLOS = await lineOfSight.read.hasLineOfSight([
+        const hasLOS = await maps.read.hasMaps([
           BigInt(gameId),
           startPos[0],
           startPos[1],
@@ -349,7 +339,7 @@ describe("Line of Sight System", function () {
 
         await setBlockedTiles(gameId, blockedPositions);
 
-        const hasLOS = await lineOfSight.read.hasLineOfSight([
+        const hasLOS = await maps.read.hasMaps([
           BigInt(gameId),
           startPos[0],
           startPos[1],
@@ -375,7 +365,7 @@ describe("Line of Sight System", function () {
 
         await setBlockedTiles(gameId, blockedPositions);
 
-        const hasLOS = await lineOfSight.read.hasLineOfSight([
+        const hasLOS = await maps.read.hasMaps([
           BigInt(gameId),
           startPos[0],
           startPos[1],
@@ -394,7 +384,7 @@ describe("Line of Sight System", function () {
         const startPos: [number, number] = [1, 1];
         const endPos: [number, number] = [8, 2]; // Very steep diagonal
 
-        const hasLOS = await lineOfSight.read.hasLineOfSight([
+        const hasLOS = await maps.read.hasMaps([
           BigInt(gameId),
           startPos[0],
           startPos[1],
@@ -411,7 +401,7 @@ describe("Line of Sight System", function () {
         const startPos: [number, number] = [1, 1];
         const endPos: [number, number] = [2, 8]; // Very shallow diagonal
 
-        const hasLOS = await lineOfSight.read.hasLineOfSight([
+        const hasLOS = await maps.read.hasMaps([
           BigInt(gameId),
           startPos[0],
           startPos[1],
@@ -439,7 +429,7 @@ describe("Line of Sight System", function () {
 
         await setBlockedTiles(gameId, blockedPositions);
 
-        const hasLOS = await lineOfSight.read.hasLineOfSight([
+        const hasLOS = await maps.read.hasMaps([
           BigInt(gameId),
           startPos[0],
           startPos[1],
@@ -469,7 +459,7 @@ describe("Line of Sight System", function () {
 
         await setBlockedTiles(gameId, blockedPositions);
 
-        const hasLOS = await lineOfSight.read.hasLineOfSight([
+        const hasLOS = await maps.read.hasMaps([
           BigInt(gameId),
           startPos[0],
           startPos[1],
@@ -490,7 +480,7 @@ describe("Line of Sight System", function () {
         const startPos: [number, number] = [5, 5];
         const endPos: [number, number] = [0, 0]; // Top-left corner
 
-        const hasLOS = await lineOfSight.read.hasLineOfSight([
+        const hasLOS = await maps.read.hasMaps([
           BigInt(gameId),
           startPos[0],
           startPos[1],
@@ -507,7 +497,7 @@ describe("Line of Sight System", function () {
         const startPos: [number, number] = [0, 0]; // Top-left corner
         const endPos: [number, number] = [5, 5];
 
-        const hasLOS = await lineOfSight.read.hasLineOfSight([
+        const hasLOS = await maps.read.hasMaps([
           BigInt(gameId),
           startPos[0],
           startPos[1],
@@ -524,7 +514,7 @@ describe("Line of Sight System", function () {
         const startPos: [number, number] = [0, 0];
         const endPos: [number, number] = [0, 9]; // Along top edge
 
-        const hasLOS = await lineOfSight.read.hasLineOfSight([
+        const hasLOS = await maps.read.hasMaps([
           BigInt(gameId),
           startPos[0],
           startPos[1],
@@ -544,7 +534,7 @@ describe("Line of Sight System", function () {
       const startPos: [number, number] = [0, 0];
       const endPos: [number, number] = [4, 4]; // Perfect diagonal
 
-      const hasLOS = await lineOfSight.read.hasLineOfSight([
+      const hasLOS = await maps.read.hasMaps([
         BigInt(gameId),
         startPos[0],
         startPos[1],
@@ -561,7 +551,7 @@ describe("Line of Sight System", function () {
       const startPos: [number, number] = [0, 0];
       const endPos: [number, number] = [5, 5]; // Perfect diagonal with odd dimensions
 
-      const hasLOS = await lineOfSight.read.hasLineOfSight([
+      const hasLOS = await maps.read.hasMaps([
         BigInt(gameId),
         startPos[0],
         startPos[1],
@@ -578,7 +568,7 @@ describe("Line of Sight System", function () {
       const startPos: [number, number] = [0, 0];
       const endPos: [number, number] = [6, 3]; // Creates tie case in algorithm
 
-      const hasLOS = await lineOfSight.read.hasLineOfSight([
+      const hasLOS = await maps.read.hasMaps([
         BigInt(gameId),
         startPos[0],
         startPos[1],
@@ -598,7 +588,7 @@ describe("Line of Sight System", function () {
 
       await setBlockedTiles(gameId, blockedPositions);
 
-      const hasLOS = await lineOfSight.read.hasLineOfSight([
+      const hasLOS = await maps.read.hasMaps([
         BigInt(gameId),
         startPos[0],
         startPos[1],
@@ -621,20 +611,17 @@ describe("Line of Sight System", function () {
       const col = 5;
 
       // Block tile in game 1
-      await lineOfSight.write.setBlockedTile(
-        [BigInt(game1Id), row, col, true],
-        {
-          account: owner.address,
-        }
-      );
+      await maps.write.setBlockedTile([BigInt(game1Id), row, col, true], {
+        account: owner.address,
+      });
 
       // Check that game 2 is not affected
-      const isBlockedInGame1 = await lineOfSight.read.isTileBlocked([
+      const isBlockedInGame1 = await maps.read.isTileBlocked([
         BigInt(game1Id),
         row,
         col,
       ]);
-      const isBlockedInGame2 = await lineOfSight.read.isTileBlocked([
+      const isBlockedInGame2 = await maps.read.isTileBlocked([
         BigInt(game2Id),
         row,
         col,
@@ -651,18 +638,18 @@ describe("Line of Sight System", function () {
       const endPos: [number, number] = [3, 3];
 
       // Block diagonal path in game 1 only
-      await lineOfSight.write.setBlockedTile([BigInt(game1Id), 2, 2, true], {
+      await maps.write.setBlockedTile([BigInt(game1Id), 2, 2, true], {
         account: owner.address,
       });
 
-      const hasLOSInGame1 = await lineOfSight.read.hasLineOfSight([
+      const hasLOSInGame1 = await maps.read.hasMaps([
         BigInt(game1Id),
         startPos[0],
         startPos[1],
         endPos[0],
         endPos[1],
       ]);
-      const hasLOSInGame2 = await lineOfSight.read.hasLineOfSight([
+      const hasLOSInGame2 = await maps.read.hasMaps([
         BigInt(game2Id),
         startPos[0],
         startPos[1],
@@ -681,7 +668,7 @@ describe("Line of Sight System", function () {
       const startPos: [number, number] = [25, 0];
       const endPos: [number, number] = [25, 99]; // Full width of grid
 
-      const hasLOS = await lineOfSight.read.hasLineOfSight([
+      const hasLOS = await maps.read.hasMaps([
         BigInt(gameId),
         startPos[0],
         startPos[1],
@@ -698,7 +685,7 @@ describe("Line of Sight System", function () {
       const startPos: [number, number] = [0, 50];
       const endPos: [number, number] = [49, 50]; // Full height of grid
 
-      const hasLOS = await lineOfSight.read.hasLineOfSight([
+      const hasLOS = await maps.read.hasMaps([
         BigInt(gameId),
         startPos[0],
         startPos[1],
@@ -715,7 +702,7 @@ describe("Line of Sight System", function () {
       const startPos: [number, number] = [0, 0];
       const endPos: [number, number] = [49, 49]; // Full diagonal
 
-      const hasLOS = await lineOfSight.read.hasLineOfSight([
+      const hasLOS = await maps.read.hasMaps([
         BigInt(gameId),
         startPos[0],
         startPos[1],
@@ -751,7 +738,7 @@ describe("Line of Sight System", function () {
 
       await setBlockedTiles(gameId, blockedPositions);
 
-      const hasLOS = await lineOfSight.read.hasLineOfSight([
+      const hasLOS = await maps.read.hasMaps([
         BigInt(gameId),
         startPos[0],
         startPos[1],
@@ -777,23 +764,23 @@ describe("Line of Sight System", function () {
         ];
 
         // Get initial map count
-        const initialMapCount = await lineOfSight.read.mapCount();
+        const initialMapCount = await maps.read.mapCount();
         expect(initialMapCount).to.equal(0n);
 
         // Create the map (this returns a transaction hash, not the map ID)
-        await lineOfSight.write.createPresetMap([blockedPositions], {
+        await maps.write.createPresetMap([blockedPositions], {
           account: owner.address,
         });
 
         // Check that map count increased
-        const newMapCount = await lineOfSight.read.mapCount();
+        const newMapCount = await maps.read.mapCount();
         expect(newMapCount).to.equal(1n);
 
         // The new map ID should be the new map count
         const newMapId = newMapCount;
 
         // Verify the map was created by checking if it exists
-        expect(await lineOfSight.read.mapExists([newMapId])).to.be.true;
+        expect(await maps.read.mapExists([newMapId])).to.be.true;
       });
 
       it("Should create multiple maps with sequential IDs", async function () {
@@ -801,31 +788,31 @@ describe("Line of Sight System", function () {
         const positions2 = [{ row: 2, col: 2 }];
 
         // Create first map
-        await lineOfSight.write.createPresetMap([positions1], {
+        await maps.write.createPresetMap([positions1], {
           account: owner.address,
         });
 
         // Check first map was created
-        const mapCount1 = await lineOfSight.read.mapCount();
+        const mapCount1 = await maps.read.mapCount();
         expect(mapCount1).to.equal(1n);
-        expect(await lineOfSight.read.mapExists([1n])).to.be.true;
+        expect(await maps.read.mapExists([1n])).to.be.true;
 
         // Create second map
-        await lineOfSight.write.createPresetMap([positions2], {
+        await maps.write.createPresetMap([positions2], {
           account: owner.address,
         });
 
         // Check second map was created
-        const mapCount2 = await lineOfSight.read.mapCount();
+        const mapCount2 = await maps.read.mapCount();
         expect(mapCount2).to.equal(2n);
-        expect(await lineOfSight.read.mapExists([2n])).to.be.true;
+        expect(await maps.read.mapExists([2n])).to.be.true;
       });
 
       it("Should revert when non-owner tries to create preset maps", async function () {
         const blockedPositions = [{ row: 5, col: 5 }];
 
-        await expect(userLineOfSight.write.createPresetMap([blockedPositions]))
-          .to.be.rejected;
+        await expect(userMaps.write.createPresetMap([blockedPositions])).to.be
+          .rejected;
       });
 
       it("Should validate positions when creating maps", async function () {
@@ -835,7 +822,7 @@ describe("Line of Sight System", function () {
         ];
 
         await expect(
-          lineOfSight.write.createPresetMap([invalidPositions], {
+          maps.write.createPresetMap([invalidPositions], {
             account: owner.address,
           })
         ).to.be.rejected;
@@ -850,12 +837,12 @@ describe("Line of Sight System", function () {
           { row: 6, col: 5 },
         ];
 
-        await lineOfSight.write.createPresetMap([blockedPositions], {
+        await maps.write.createPresetMap([blockedPositions], {
           account: owner.address,
         });
 
-        const mapId = await lineOfSight.read.mapCount();
-        const retrievedPositions = await lineOfSight.read.getPresetMap([mapId]);
+        const mapId = await maps.read.mapCount();
+        const retrievedPositions = await maps.read.getPresetMap([mapId]);
 
         expect(retrievedPositions.length).to.equal(3);
 
@@ -871,17 +858,17 @@ describe("Line of Sight System", function () {
       it("Should return empty array for map with no blocked positions", async function () {
         const emptyPositions: any[] = [];
 
-        await lineOfSight.write.createPresetMap([emptyPositions], {
+        await maps.write.createPresetMap([emptyPositions], {
           account: owner.address,
         });
 
-        const mapId = await lineOfSight.read.mapCount();
-        const retrievedPositions = await lineOfSight.read.getPresetMap([mapId]);
+        const mapId = await maps.read.mapCount();
+        const retrievedPositions = await maps.read.getPresetMap([mapId]);
         expect(retrievedPositions.length).to.equal(0);
       });
 
       it("Should revert when retrieving non-existent map", async function () {
-        await expect(lineOfSight.read.getPresetMap([999])).to.be.rejected;
+        await expect(maps.read.getPresetMap([999])).to.be.rejected;
       });
     });
 
@@ -890,16 +877,16 @@ describe("Line of Sight System", function () {
         const initialPositions = [{ row: 5, col: 5 }];
         const updatedPositions = [{ row: 6, col: 6 }];
 
-        await lineOfSight.write.createPresetMap([initialPositions], {
+        await maps.write.createPresetMap([initialPositions], {
           account: owner.address,
         });
 
-        const mapId = await lineOfSight.read.mapCount();
-        await lineOfSight.write.updatePresetMap([mapId, updatedPositions], {
+        const mapId = await maps.read.mapCount();
+        await maps.write.updatePresetMap([mapId, updatedPositions], {
           account: owner.address,
         });
 
-        const retrievedPositions = await lineOfSight.read.getPresetMap([mapId]);
+        const retrievedPositions = await maps.read.getPresetMap([mapId]);
 
         expect(retrievedPositions.length).to.equal(1);
         expect(retrievedPositions[0].row).to.equal(6);
@@ -912,18 +899,18 @@ describe("Line of Sight System", function () {
           { row: 5, col: 6 },
         ];
 
-        await lineOfSight.write.createPresetMap([initialPositions], {
+        await maps.write.createPresetMap([initialPositions], {
           account: owner.address,
         });
 
-        const mapId = await lineOfSight.read.mapCount();
+        const mapId = await maps.read.mapCount();
         // Update with fewer positions
         const updatedPositions = [{ row: 6, col: 6 }];
-        await lineOfSight.write.updatePresetMap([mapId, updatedPositions], {
+        await maps.write.updatePresetMap([mapId, updatedPositions], {
           account: owner.address,
         });
 
-        const retrievedPositions = await lineOfSight.read.getPresetMap([mapId]);
+        const retrievedPositions = await maps.read.getPresetMap([mapId]);
         expect(retrievedPositions.length).to.equal(1);
         expect(retrievedPositions[0].row).to.equal(6);
         expect(retrievedPositions[0].col).to.equal(6);
@@ -931,20 +918,20 @@ describe("Line of Sight System", function () {
 
       it("Should revert when non-owner tries to update maps", async function () {
         const positions = [{ row: 5, col: 5 }];
-        await lineOfSight.write.createPresetMap([positions], {
+        await maps.write.createPresetMap([positions], {
           account: owner.address,
         });
 
-        const mapId = await lineOfSight.read.mapCount();
-        await expect(userLineOfSight.write.updatePresetMap([mapId, positions]))
-          .to.be.rejected;
+        const mapId = await maps.read.mapCount();
+        await expect(userMaps.write.updatePresetMap([mapId, positions])).to.be
+          .rejected;
       });
 
       it("Should revert when updating non-existent map", async function () {
         const positions = [{ row: 5, col: 5 }];
 
         await expect(
-          lineOfSight.write.updatePresetMap([999, positions], {
+          maps.write.updatePresetMap([999, positions], {
             account: owner.address,
           })
         ).to.be.rejected;
@@ -954,71 +941,70 @@ describe("Line of Sight System", function () {
     describe("Map Deletion", function () {
       it("Should allow owner to delete preset maps", async function () {
         const positions = [{ row: 5, col: 5 }];
-        await lineOfSight.write.createPresetMap([positions], {
+        await maps.write.createPresetMap([positions], {
           account: owner.address,
         });
 
-        const mapId = await lineOfSight.read.mapCount();
-        await lineOfSight.write.deletePresetMap([mapId], {
+        const mapId = await maps.read.mapCount();
+        await maps.write.deletePresetMap([mapId], {
           account: owner.address,
         });
 
-        await expect(lineOfSight.read.getPresetMap([mapId])).to.be.rejected;
+        await expect(maps.read.getPresetMap([mapId])).to.be.rejected;
       });
 
       it("Should decrement map count when deleting last map", async function () {
         const positions = [{ row: 5, col: 5 }];
-        await lineOfSight.write.createPresetMap([positions], {
+        await maps.write.createPresetMap([positions], {
           account: owner.address,
         });
 
-        const mapId = await lineOfSight.read.mapCount();
-        expect(await lineOfSight.read.mapCount()).to.equal(1n);
+        const mapId = await maps.read.mapCount();
+        expect(await maps.read.mapCount()).to.equal(1n);
 
-        await lineOfSight.write.deletePresetMap([mapId], {
+        await maps.write.deletePresetMap([mapId], {
           account: owner.address,
         });
 
-        expect(await lineOfSight.read.mapCount()).to.equal(0n);
+        expect(await maps.read.mapCount()).to.equal(0n);
       });
 
       it("Should not decrement map count when deleting non-last map", async function () {
         const positions1 = [{ row: 1, col: 1 }];
         const positions2 = [{ row: 2, col: 2 }];
 
-        await lineOfSight.write.createPresetMap([positions1], {
+        await maps.write.createPresetMap([positions1], {
           account: owner.address,
         });
-        const mapId1 = await lineOfSight.read.mapCount();
-        await lineOfSight.write.createPresetMap([positions2], {
+        const mapId1 = await maps.read.mapCount();
+        await maps.write.createPresetMap([positions2], {
           account: owner.address,
         });
-        const mapId2 = await lineOfSight.read.mapCount();
+        const mapId2 = await maps.read.mapCount();
 
-        expect(await lineOfSight.read.mapCount()).to.equal(2n);
+        expect(await maps.read.mapCount()).to.equal(2n);
 
         // Delete first map
-        await lineOfSight.write.deletePresetMap([mapId1], {
+        await maps.write.deletePresetMap([mapId1], {
           account: owner.address,
         });
 
-        expect(await lineOfSight.read.mapCount()).to.equal(2n); // Count stays the same
+        expect(await maps.read.mapCount()).to.equal(2n); // Count stays the same
       });
 
       it("Should revert when non-owner tries to delete maps", async function () {
         const positions = [{ row: 5, col: 5 }];
-        await lineOfSight.write.createPresetMap([positions], {
+        await maps.write.createPresetMap([positions], {
           account: owner.address,
         });
 
-        const mapId = await lineOfSight.read.mapCount();
-        await expect(userLineOfSight.write.deletePresetMap([mapId])).to.be
-          .rejected;
+        const mapId = await maps.read.mapCount();
+        await expect(userMaps.write.deletePresetMap([mapId])).to.be.rejected;
       });
 
       it("Should revert when deleting non-existent map", async function () {
         await expect(
-          lineOfSight.write.deletePresetMap([999], {
+          maps.write.deletePresetMap([999], {
             account: owner.address,
           })
         ).to.be.rejected;
@@ -1032,66 +1018,66 @@ describe("Line of Sight System", function () {
           { row: 5, col: 6 },
         ];
 
-        await lineOfSight.write.createPresetMap([blockedPositions], {
+        await maps.write.createPresetMap([blockedPositions], {
           account: owner.address,
         });
 
-        const mapId = await lineOfSight.read.mapCount();
+        const mapId = await maps.read.mapCount();
         const gameId = 123;
-        await lineOfSight.write.applyPresetMapToGame([BigInt(gameId), mapId], {
+        await maps.write.applyPresetMapToGame([BigInt(gameId), mapId], {
           account: owner.address,
         });
 
         // Check that the game now has the blocked tiles
-        expect(await lineOfSight.read.isTileBlocked([BigInt(gameId), 5, 5])).to
-          .be.true;
-        expect(await lineOfSight.read.isTileBlocked([BigInt(gameId), 5, 6])).to
-          .be.true;
-        expect(await lineOfSight.read.isTileBlocked([BigInt(gameId), 6, 6])).to
-          .be.false; // Not blocked
+        expect(await maps.read.isTileBlocked([BigInt(gameId), 5, 5])).to.be
+          .true;
+        expect(await maps.read.isTileBlocked([BigInt(gameId), 5, 6])).to.be
+          .true;
+        expect(await maps.read.isTileBlocked([BigInt(gameId), 6, 6])).to.be
+          .false; // Not blocked
       });
 
       it("Should apply map without affecting other games", async function () {
         const blockedPositions = [{ row: 5, col: 5 }];
-        await lineOfSight.write.createPresetMap([blockedPositions], {
+        await maps.write.createPresetMap([blockedPositions], {
           account: owner.address,
         });
 
-        const mapId = await lineOfSight.read.mapCount();
+        const mapId = await maps.read.mapCount();
         const game1Id = 123;
         const game2Id = 456;
 
         // Apply map to game 1
-        await lineOfSight.write.applyPresetMapToGame([BigInt(game1Id), mapId], {
+        await maps.write.applyPresetMapToGame([BigInt(game1Id), mapId], {
           account: owner.address,
         });
 
         // Check that game 1 has blocked tile
-        expect(await lineOfSight.read.isTileBlocked([BigInt(game1Id), 5, 5])).to
-          .be.true;
+        expect(await maps.read.isTileBlocked([BigInt(game1Id), 5, 5])).to.be
+          .true;
 
         // Check that game 2 is unaffected
-        expect(await lineOfSight.read.isTileBlocked([BigInt(game2Id), 5, 5])).to
-          .be.false;
+        expect(await maps.read.isTileBlocked([BigInt(game2Id), 5, 5])).to.be
+          .false;
       });
 
       it("Should revert when non-owner tries to apply map to game", async function () {
         const blockedPositions = [{ row: 5, col: 5 }];
-        await lineOfSight.write.createPresetMap([blockedPositions], {
+        await maps.write.createPresetMap([blockedPositions], {
           account: owner.address,
         });
 
-        const mapId = await lineOfSight.read.mapCount();
+        const mapId = await maps.read.mapCount();
         const gameId = 123;
         await expect(
-          userLineOfSight.write.applyPresetMapToGame([BigInt(gameId), mapId])
+          userMaps.write.applyPresetMapToGame([BigInt(gameId), mapId])
         ).to.be.rejected;
       });
 
       it("Should revert when applying non-existent map to game", async function () {
         const gameId = 123;
         await expect(
-          lineOfSight.write.applyPresetMapToGame([BigInt(gameId), 999], {
+          maps.write.applyPresetMapToGame([BigInt(gameId), 999], {
             account: owner.address,
           })
         ).to.be.rejected;
@@ -1101,20 +1087,20 @@ describe("Line of Sight System", function () {
     describe("Map Existence Checks", function () {
       it("Should correctly identify existing maps", async function () {
         const positions = [{ row: 5, col: 5 }];
-        await lineOfSight.write.createPresetMap([positions], {
+        await maps.write.createPresetMap([positions], {
           account: owner.address,
         });
 
-        const mapId = await lineOfSight.read.mapCount();
-        expect(await lineOfSight.read.mapExists([mapId])).to.be.true;
-        expect(await lineOfSight.read.mapExists([999])).to.be.false;
-        expect(await lineOfSight.read.mapExists([0])).to.be.false;
+        const mapId = await maps.read.mapCount();
+        expect(await maps.read.mapExists([mapId])).to.be.true;
+        expect(await maps.read.mapExists([999])).to.be.false;
+        expect(await maps.read.mapExists([0])).to.be.false;
       });
 
       it("Should handle edge cases for map existence", async function () {
         // No maps created yet
-        expect(await lineOfSight.read.mapExists([1])).to.be.false;
-        expect(await lineOfSight.read.mapExists([0])).to.be.false;
+        expect(await maps.read.mapExists([1])).to.be.false;
+        expect(await maps.read.mapExists([0])).to.be.false;
       });
     });
 
@@ -1125,18 +1111,18 @@ describe("Line of Sight System", function () {
           { row: 5, col: 6 },
         ];
 
-        await lineOfSight.write.createPresetMap([blockedPositions], {
+        await maps.write.createPresetMap([blockedPositions], {
           account: owner.address,
         });
 
-        const mapId = await lineOfSight.read.mapCount();
+        const mapId = await maps.read.mapCount();
         const gameId = 123;
-        await lineOfSight.write.applyPresetMapToGame([BigInt(gameId), mapId], {
+        await maps.write.applyPresetMapToGame([BigInt(gameId), mapId], {
           account: owner.address,
         });
 
         // Test line of sight that should be blocked by the preset map
-        const hasLOS = await lineOfSight.read.hasLineOfSight([
+        const hasLOS = await maps.read.hasMaps([
           BigInt(gameId),
           5,
           2, // Start position
@@ -1149,26 +1135,26 @@ describe("Line of Sight System", function () {
 
       it("Should allow additional blocked tiles after applying preset map", async function () {
         const presetPositions = [{ row: 5, col: 5 }];
-        await lineOfSight.write.createPresetMap([presetPositions], {
+        await maps.write.createPresetMap([presetPositions], {
           account: owner.address,
         });
 
-        const mapId = await lineOfSight.read.mapCount();
+        const mapId = await maps.read.mapCount();
         const gameId = 123;
-        await lineOfSight.write.applyPresetMapToGame([BigInt(gameId), mapId], {
+        await maps.write.applyPresetMapToGame([BigInt(gameId), mapId], {
           account: owner.address,
         });
 
         // Add additional blocked tile
-        await lineOfSight.write.setBlockedTile([BigInt(gameId), 6, 6, true], {
+        await maps.write.setBlockedTile([BigInt(gameId), 6, 6, true], {
           account: owner.address,
         });
 
         // Check that both preset and additional blocked tiles are active
-        expect(await lineOfSight.read.isTileBlocked([BigInt(gameId), 5, 5])).to
-          .be.true; // Preset
-        expect(await lineOfSight.read.isTileBlocked([BigInt(gameId), 6, 6])).to
-          .be.true; // Additional
+        expect(await maps.read.isTileBlocked([BigInt(gameId), 5, 5])).to.be
+          .true; // Preset
+        expect(await maps.read.isTileBlocked([BigInt(gameId), 6, 6])).to.be
+          .true; // Additional
       });
     });
   });

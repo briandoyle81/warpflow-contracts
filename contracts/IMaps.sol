@@ -4,7 +4,7 @@ pragma solidity ^0.8.28;
 // Import Position struct from Types
 import "./Types.sol";
 
-interface ILineOfSight {
+interface IMaps {
     // Grid constants
     function GRID_WIDTH() external view returns (int16);
 
@@ -41,7 +41,7 @@ interface ILineOfSight {
     ) external view returns (bool);
 
     // Main line of sight function using Bresenham's algorithm
-    function hasLineOfSight(
+    function hasMaps(
         uint _gameId,
         int16 _x0,
         int16 _y0,

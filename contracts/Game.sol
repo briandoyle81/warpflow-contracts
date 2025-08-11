@@ -568,8 +568,9 @@ contract Game is Ownable {
             Attributes storage shooterAttributes = game.shipAttributes[_shipId];
             if (manhattan > shooterAttributes.range) revert InvalidMove();
 
-            // Must have line of sight to target
+            // Must have line of sight to target if manhattan > 1, can always see adjacent to shoot
             if (
+                manhattan > 1 &&
                 !lineOfSight.hasLineOfSight(
                     _gameId,
                     _newRow,

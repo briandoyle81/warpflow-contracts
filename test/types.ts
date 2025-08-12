@@ -91,6 +91,7 @@ export interface LobbyGameConfig {
   creatorGoesFirst: boolean;
   turnTime: bigint;
   selectedMapId: bigint;
+  maxScore: bigint; // Maximum score needed to win the game
 }
 
 export interface LobbyState {
@@ -185,7 +186,8 @@ export type LobbyTuple = [
   bigint, // turnTime
   bigint, // joinedAt
   bigint, // joinerFleetSetAt
-  bigint // selectedMapId
+  bigint, // selectedMapId
+  bigint // maxScore
 ];
 
 export type FleetTuple = [
@@ -237,6 +239,7 @@ export function tupleToLobby(tuple: LobbyTuple): Lobby {
       creatorGoesFirst: tuple[9],
       turnTime: tuple[10],
       selectedMapId: tuple[13],
+      maxScore: tuple[14],
     },
     state: {
       status: tuple[4],
@@ -297,6 +300,7 @@ export interface GameDataView {
   metadata: GameMetadata;
   turnState: GameTurnState;
   gridDimensions: GameGridDimensions;
+  maxScore: bigint; // Maximum score needed to win the game
   shipAttributes: readonly Attributes[]; // Combined array of all ship attributes indexed by ship ID
   shipPositions: readonly ShipPosition[]; // All ship positions on the grid
   creatorActiveShipIds: readonly bigint[];

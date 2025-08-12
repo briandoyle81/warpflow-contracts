@@ -116,6 +116,7 @@ struct GameData {
     GameMetadata metadata;
     GameTurnState turnState;
     GameGridDimensions gridDimensions;
+    uint maxScore; // Maximum score needed to win the game
     // Keep all mappings in GameData
     mapping(uint => Attributes) shipAttributes; // shipId => attributes
     // Grid state - grid[row][column] = shipId (0 if empty)
@@ -130,6 +131,7 @@ struct GameDataView {
     GameMetadata metadata;
     GameTurnState turnState;
     GameGridDimensions gridDimensions;
+    uint maxScore; // Maximum score needed to win the game
     // Ship data arrays
     Attributes[] shipAttributes; // Combined array of all ship attributes indexed by ship ID
     ShipPosition[] shipPositions; // All ship positions on the grid
@@ -238,6 +240,7 @@ struct LobbyGameConfig {
     bool creatorGoesFirst;
     uint turnTime; // Time in seconds for each turn
     uint selectedMapId; // ID of the preset map to use for this game
+    uint maxScore; // Maximum score needed to win the game
 }
 
 // Lobby state and status

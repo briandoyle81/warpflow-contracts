@@ -122,7 +122,8 @@ describe("Lobbies", function () {
       costLimit,
       turnTime,
       creatorGoesFirst,
-      0n, // selectedMapId - no preset map
+      0n, // selectedMapId - no preset map,
+      100n, // maxScore
     ]);
     await joinerLobbies.write.joinLobby([1n]);
 
@@ -164,7 +165,8 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
-        0n, // selectedMapId - no preset map
+        0n, // selectedMapId - no preset map,
+        100n, // maxScore
       ]);
       const receipt = await publicClient.getTransactionReceipt({ hash: tx });
 
@@ -201,7 +203,8 @@ describe("Lobbies", function () {
           costLimit,
           invalidTurnTime,
           creatorGoesFirst,
-          0n, // selectedMapId - no preset map
+          0n, // selectedMapId - no preset map,
+          100n, // maxScore
         ])
       ).to.be.rejectedWith("InvalidTurnTime");
     });
@@ -219,7 +222,8 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
-        0n, // selectedMapId - no preset map
+        0n, // selectedMapId - no preset map,
+        100n, // maxScore
       ]);
 
       // Second lobby should require fee
@@ -228,14 +232,15 @@ describe("Lobbies", function () {
           costLimit,
           turnTime,
           creatorGoesFirst,
-          0n, // selectedMapId - no preset map
+          0n, // selectedMapId - no preset map,
+          100n, // maxScore
         ])
       ).to.be.rejectedWith("InsufficientFee");
 
       // Should work with correct fee
       await expect(
         creatorLobbies.write.createLobby(
-          [costLimit, turnTime, creatorGoesFirst, 0n], // selectedMapId - no preset map
+          [costLimit, turnTime, creatorGoesFirst, 0n, 100n], // selectedMapId - no preset map, maxScore
           {
             value: parseEther("1"),
           }
@@ -283,7 +288,8 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
-        0n, // selectedMapId - no preset map
+        0n, // selectedMapId - no preset map,
+        100n, // maxScore
       ]);
 
       // Check initial state
@@ -314,7 +320,8 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
-        0n, // selectedMapId - no preset map
+        0n, // selectedMapId - no preset map,
+        100n, // maxScore
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -324,7 +331,7 @@ describe("Lobbies", function () {
 
       // Create new lobby
       await creatorLobbies.write.createLobby(
-        [costLimit, turnTime, creatorGoesFirst, 0n], // selectedMapId - no preset map
+        [costLimit, turnTime, creatorGoesFirst, 0n, 100n], // selectedMapId - no preset map, maxScore
         { value: parseEther("1") }
       );
 
@@ -347,7 +354,8 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
-        0n, // selectedMapId - no preset map
+        0n, // selectedMapId - no preset map,
+        100n, // maxScore
       ]);
 
       const tx = await joinerLobbies.write.joinLobby([1n]);
@@ -382,7 +390,8 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
-        0n, // selectedMapId - no preset map
+        0n, // selectedMapId - no preset map,
+        100n, // maxScore
       ]);
 
       // First player joins
@@ -393,7 +402,8 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
-        0n, // selectedMapId - no preset map
+        0n, // selectedMapId - no preset map,
+        100n, // maxScore
       ]);
 
       // Try to join first lobby while it's in FleetSelection state
@@ -415,7 +425,8 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
-        0n, // selectedMapId - no preset map
+        0n, // selectedMapId - no preset map,
+        100n, // maxScore
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -425,7 +436,7 @@ describe("Lobbies", function () {
 
       // Create new lobby
       await creatorLobbies.write.createLobby(
-        [costLimit, turnTime, creatorGoesFirst, 0n], // selectedMapId - no preset map
+        [costLimit, turnTime, creatorGoesFirst, 0n, 100n], // selectedMapId - no preset map, maxScore
         { value: parseEther("1") }
       );
 
@@ -445,7 +456,8 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
-        0n, // selectedMapId - no preset map
+        0n, // selectedMapId - no preset map,
+        100n, // maxScore
       ]);
 
       await expect(creatorLobbies.write.joinLobby([1n])).to.be.rejectedWith(
@@ -466,7 +478,8 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
-        0n, // selectedMapId - no preset map
+        0n, // selectedMapId - no preset map,
+        100n, // maxScore
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -475,7 +488,8 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
-        0n, // selectedMapId - no preset map
+        0n, // selectedMapId - no preset map,
+        100n, // maxScore
       ]);
 
       // Try to join second lobby while in first lobby
@@ -497,7 +511,8 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
-        0n, // selectedMapId - no preset map
+        0n, // selectedMapId - no preset map,
+        100n, // maxScore
       ]);
 
       // First player joins
@@ -523,7 +538,8 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
-        0n, // selectedMapId - no preset map
+        0n, // selectedMapId - no preset map,
+        100n, // maxScore
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -562,7 +578,8 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
-        0n, // selectedMapId - no preset map
+        0n, // selectedMapId - no preset map,
+        100n, // maxScore
       ]);
 
       // Creator leaves
@@ -591,7 +608,8 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
-        0n, // selectedMapId - no preset map
+        0n, // selectedMapId - no preset map,
+        100n, // maxScore
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -626,7 +644,8 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
-        0n, // selectedMapId - no preset map
+        0n, // selectedMapId - no preset map,
+        100n, // maxScore
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -674,7 +693,8 @@ describe("Lobbies", function () {
         costLimit,
         turnTime,
         creatorGoesFirst,
-        0n, // selectedMapId - no preset map
+        0n, // selectedMapId - no preset map,
+        100n, // maxScore
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -791,7 +811,8 @@ describe("Lobbies", function () {
         1000n,
         300n,
         true,
-        0n, // selectedMapId - no preset map
+        0n, // selectedMapId - no preset map,
+        100n, // maxScore
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 

@@ -27,7 +27,8 @@ contract Lobbies is Ownable, ReentrancyGuard {
         uint costLimit,
         uint turnTime,
         bool creatorGoesFirst,
-        uint selectedMapId
+        uint selectedMapId,
+        uint maxScore
     );
     event PlayerJoinedLobby(uint indexed lobbyId, address indexed joiner);
     event GameStarted(uint indexed lobbyId);
@@ -132,7 +133,8 @@ contract Lobbies is Ownable, ReentrancyGuard {
         uint _costLimit,
         uint _turnTime,
         bool _creatorGoesFirst,
-        uint _selectedMapId
+        uint _selectedMapId,
+        uint _maxScore
     ) public payable nonReentrant {
         if (paused) revert LobbyCreationPaused();
         if (_turnTime < MIN_TIMEOUT || _turnTime > MAX_TURN_TIME)
@@ -161,6 +163,7 @@ contract Lobbies is Ownable, ReentrancyGuard {
         newLobby.gameConfig.creatorGoesFirst = _creatorGoesFirst;
         newLobby.gameConfig.turnTime = _turnTime;
         newLobby.gameConfig.selectedMapId = _selectedMapId;
+        newLobby.gameConfig.maxScore = _maxScore;
 
         state.hasActiveLobby = true;
         state.activeLobbyId = lobbyCount;
@@ -172,7 +175,8 @@ contract Lobbies is Ownable, ReentrancyGuard {
             _costLimit,
             _turnTime,
             _creatorGoesFirst,
-            _selectedMapId
+            _selectedMapId,
+            _maxScore
         );
     }
 
@@ -322,7 +326,8 @@ contract Lobbies is Ownable, ReentrancyGuard {
                 lobby.players.joinerFleetId,
                 lobby.gameConfig.creatorGoesFirst,
                 lobby.gameConfig.turnTime,
-                lobby.gameConfig.selectedMapId
+                lobby.gameConfig.selectedMapId,
+                lobby.gameConfig.maxScore
             );
         }
     }

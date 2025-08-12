@@ -79,7 +79,8 @@ contract Game is Ownable {
         uint _joinerFleetId,
         bool _creatorGoesFirst,
         uint _turnTime,
-        uint _selectedMapId
+        uint _selectedMapId,
+        uint _maxScore
     ) external {
         if (msg.sender != lobbiesAddress) revert NotLobbiesContract();
 
@@ -105,6 +106,9 @@ contract Game is Ownable {
         // Initialize grid dimensions
         game.gridDimensions.gridWidth = GRID_WIDTH; // Number of columns
         game.gridDimensions.gridHeight = GRID_HEIGHT; // Number of rows
+
+        // Set max score for the game
+        game.maxScore = _maxScore;
 
         // Apply the selected preset map to this game if a map was selected
         if (_selectedMapId > 0) {
@@ -1324,6 +1328,7 @@ contract Game is Ownable {
                 metadata: game.metadata,
                 turnState: game.turnState,
                 gridDimensions: game.gridDimensions,
+                maxScore: game.maxScore,
                 shipAttributes: shipAttrs,
                 shipPositions: shipPositions,
                 creatorActiveShipIds: creatorActiveShipIds,

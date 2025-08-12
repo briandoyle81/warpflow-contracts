@@ -301,6 +301,8 @@ export interface GameDataView {
   turnState: GameTurnState;
   gridDimensions: GameGridDimensions;
   maxScore: bigint; // Maximum score needed to win the game
+  creatorScore: bigint; // Current score of the creator player
+  joinerScore: bigint; // Current score of the joiner player
   shipAttributes: readonly Attributes[]; // Combined array of all ship attributes indexed by ship ID
   shipPositions: readonly ShipPosition[]; // All ship positions on the grid
   creatorActiveShipIds: readonly bigint[];

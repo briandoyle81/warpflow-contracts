@@ -1329,6 +1329,8 @@ contract Game is Ownable {
                 turnState: game.turnState,
                 gridDimensions: game.gridDimensions,
                 maxScore: game.maxScore,
+                creatorScore: game.creatorScore,
+                joinerScore: game.joinerScore,
                 shipAttributes: shipAttrs,
                 shipPositions: shipPositions,
                 creatorActiveShipIds: creatorActiveShipIds,
@@ -1464,6 +1466,45 @@ contract Game is Ownable {
                 game.shipMovedThisRound[game.turnState.currentRound][
                     shipId
                 ] = true;
+            }
+        }
+    }
+
+    // Function to update player scores
+    function updatePlayerScore(
+        uint _gameId,
+        address _player,
+        uint _scoreIncrement
+    ) external {
+        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
+        if (games[_gameId].metadata.winner != address(0))
+            revert GameAlreadyEnded();
+
+        GameData storage game = games[_gameId];
+
+        // Only allow the game contract itself or authorized systems to update scores
+        if (msg.sender != address(this) && msg.sender != owner())
+            revert NotLobbiesContract();
+
+        // Update the appropriate player's score
+        if (_player == game.metadata.creator) {
+            game.creatorScore += _scoreIncrement;
+        } else if (_player == game.metadata.joiner) {
+            game.joinerScore += _scoreIncrement;
+        } else {
+            revert NotInGame();
+        }
+
+        // Check if either player has reached the max score
+        if (
+            game.creatorScore >= game.maxScore ||
+            game.joinerScore >= game.maxScore
+        ) {
+            // Determine winner based on scores
+            if (game.creatorScore >= game.joinerScore) {
+                game.metadata.winner = game.metadata.creator;
+            } else {
+                game.metadata.winner = game.metadata.joiner;
             }
         }
     }

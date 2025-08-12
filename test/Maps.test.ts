@@ -87,7 +87,7 @@ describe("Line of Sight System", function () {
     positions: [number, number][]
   ) {
     for (const [row, col] of positions) {
-      await maps.write.setScoringTile([BigInt(gameId), row, col, true], {
+      await maps.write.setScoringTile([BigInt(gameId), row, col, 1], {
         account: owner.address,
       });
     }
@@ -1178,7 +1178,7 @@ describe("Line of Sight System", function () {
         const row = 5;
         const col = 10;
 
-        await maps.write.setScoringTile([BigInt(gameId), row, col, true], {
+        await maps.write.setScoringTile([BigInt(gameId), row, col, 1], {
           account: owner.address,
         });
 
@@ -1187,7 +1187,7 @@ describe("Line of Sight System", function () {
           row,
           col,
         ]);
-        expect(isScoring).to.be.true;
+        expect(isScoring).to.equal(1);
       });
 
       it("Should allow owner to unset scoring tiles", async function () {
@@ -1196,12 +1196,12 @@ describe("Line of Sight System", function () {
         const col = 10;
 
         // First set it as scoring
-        await maps.write.setScoringTile([BigInt(gameId), row, col, true], {
+        await maps.write.setScoringTile([BigInt(gameId), row, col, 1], {
           account: owner.address,
         });
 
         // Then unset it
-        await maps.write.setScoringTile([BigInt(gameId), row, col, false], {
+        await maps.write.setScoringTile([BigInt(gameId), row, col, 0], {
           account: owner.address,
         });
 
@@ -1210,7 +1210,7 @@ describe("Line of Sight System", function () {
           row,
           col,
         ]);
-        expect(isScoring).to.be.false;
+        expect(isScoring).to.equal(0);
       });
 
       it("Should revert when non-owner tries to set scoring tiles", async function () {
@@ -1219,7 +1219,7 @@ describe("Line of Sight System", function () {
         const col = 10;
 
         await expect(
-          userMaps.write.setScoringTile([BigInt(gameId), row, col, true])
+          userMaps.write.setScoringTile([BigInt(gameId), row, col, 1])
         ).to.be.rejected;
       });
 
@@ -1228,26 +1228,26 @@ describe("Line of Sight System", function () {
 
         // Test negative coordinates
         await expect(
-          maps.write.setScoringTile([BigInt(gameId), -1, 0, true], {
+          maps.write.setScoringTile([BigInt(gameId), -1, 0, 1], {
             account: owner.address,
           })
         ).to.be.rejected;
 
         await expect(
-          maps.write.setScoringTile([BigInt(gameId), 0, -1, true], {
+          maps.write.setScoringTile([BigInt(gameId), 0, -1, 1], {
             account: owner.address,
           })
         ).to.be.rejected;
 
         // Test coordinates beyond grid size
         await expect(
-          maps.write.setScoringTile([BigInt(gameId), 50, 0, true], {
+          maps.write.setScoringTile([BigInt(gameId), 50, 0, 1], {
             account: owner.address,
           })
         ).to.be.rejected;
 
         await expect(
-          maps.write.setScoringTile([BigInt(gameId), 0, 100, true], {
+          maps.write.setScoringTile([BigInt(gameId), 0, 100, 1], {
             account: owner.address,
           })
         ).to.be.rejected;
@@ -1257,9 +1257,9 @@ describe("Line of Sight System", function () {
     describe("Preset Scoring Maps", function () {
       it("Should allow owner to create preset scoring maps", async function () {
         const scoringPositions = [
-          { row: 5, col: 5 },
-          { row: 10, col: 10 },
-          { row: 15, col: 15 },
+          { row: 5, col: 5, points: 1 },
+          { row: 10, col: 10, points: 2 },
+          { row: 15, col: 15, points: 3 },
         ];
 
         const initialMapCount = await maps.read.mapCount();
@@ -1272,17 +1272,17 @@ describe("Line of Sight System", function () {
 
         // Verify scoring positions are set
         const mapId = newMapCount;
-        expect(await maps.read.presetScoringMaps([mapId, 5, 5])).to.be.true;
-        expect(await maps.read.presetScoringMaps([mapId, 10, 10])).to.be.true;
-        expect(await maps.read.presetScoringMaps([mapId, 15, 15])).to.be.true;
+        expect(await maps.read.presetScoringMaps([mapId, 5, 5])).to.equal(1);
+        expect(await maps.read.presetScoringMaps([mapId, 10, 10])).to.equal(2);
+        expect(await maps.read.presetScoringMaps([mapId, 15, 15])).to.equal(3);
 
         // Verify other positions are not scoring
-        expect(await maps.read.presetScoringMaps([mapId, 0, 0])).to.be.false;
+        expect(await maps.read.presetScoringMaps([mapId, 0, 0])).to.equal(0);
       });
 
       it("Should allow owner to create multiple preset scoring maps", async function () {
-        const positions1 = [{ row: 1, col: 1 }];
-        const positions2 = [{ row: 2, col: 2 }];
+        const positions1 = [{ row: 1, col: 1, points: 1 }];
+        const positions2 = [{ row: 2, col: 2, points: 1 }];
 
         await maps.write.createPresetScoringMap([positions1], {
           account: owner.address,
@@ -1296,14 +1296,14 @@ describe("Line of Sight System", function () {
       });
 
       it("Should revert when non-owner tries to create preset scoring maps", async function () {
-        const scoringPositions = [{ row: 5, col: 5 }];
+        const scoringPositions = [{ row: 5, col: 5, points: 1 }];
 
         await expect(userMaps.write.createPresetScoringMap([scoringPositions]))
           .to.be.rejected;
       });
 
       it("Should revert when creating preset scoring map with invalid positions", async function () {
-        const invalidPositions = [{ row: 100, col: 50 }];
+        const invalidPositions = [{ row: 100, col: 50, points: 1 }];
 
         await expect(
           maps.write.createPresetScoringMap([invalidPositions], {
@@ -1314,8 +1314,8 @@ describe("Line of Sight System", function () {
 
       it("Should retrieve preset scoring map correctly", async function () {
         const scoringPositions = [
-          { row: 5, col: 5 },
-          { row: 10, col: 10 },
+          { row: 5, col: 5, points: 1 },
+          { row: 10, col: 10, points: 2 },
         ];
 
         await maps.write.createPresetScoringMap([scoringPositions], {
@@ -1350,13 +1350,13 @@ describe("Line of Sight System", function () {
       });
 
       it("Should allow owner to update existing preset scoring maps", async function () {
-        const initialPositions = [{ row: 5, col: 5 }];
+        const initialPositions = [{ row: 5, col: 5, points: 1 }];
         await maps.write.createPresetScoringMap([initialPositions], {
           account: owner.address,
         });
 
         const mapId = await maps.read.mapCount();
-        const updatedPositions = [{ row: 10, col: 10 }];
+        const updatedPositions = [{ row: 10, col: 10, points: 2 }];
 
         await maps.write.updatePresetScoringMap([mapId, updatedPositions], {
           account: owner.address,
@@ -1366,19 +1366,20 @@ describe("Line of Sight System", function () {
         expect(retrievedPositions).to.have.length(1);
         expect(retrievedPositions[0].row).to.equal(10);
         expect(retrievedPositions[0].col).to.equal(10);
+        expect(retrievedPositions[0].points).to.equal(2);
       });
 
       it("Should clear all positions when updating preset scoring map", async function () {
         const initialPositions = [
-          { row: 5, col: 5 },
-          { row: 10, col: 10 },
+          { row: 5, col: 5, points: 1 },
+          { row: 10, col: 10, points: 1 },
         ];
         await maps.write.createPresetScoringMap([initialPositions], {
           account: owner.address,
         });
 
         const mapId = await maps.read.mapCount();
-        const updatedPositions = [{ row: 15, col: 15 }];
+        const updatedPositions = [{ row: 15, col: 15, points: 2 }];
 
         await maps.write.updatePresetScoringMap([mapId, updatedPositions], {
           account: owner.address,
@@ -1391,7 +1392,7 @@ describe("Line of Sight System", function () {
       });
 
       it("Should revert when non-owner tries to update preset scoring maps", async function () {
-        const positions = [{ row: 5, col: 5 }];
+        const positions = [{ row: 5, col: 5, points: 1 }];
         await maps.write.createPresetScoringMap([positions], {
           account: owner.address,
         });
@@ -1402,7 +1403,7 @@ describe("Line of Sight System", function () {
       });
 
       it("Should revert when updating non-existent preset scoring map", async function () {
-        const positions = [{ row: 5, col: 5 }];
+        const positions = [{ row: 5, col: 5, points: 1 }];
 
         await expect(
           maps.write.updatePresetScoringMap([999, positions], {
@@ -1412,7 +1413,7 @@ describe("Line of Sight System", function () {
       });
 
       it("Should allow owner to delete preset scoring maps", async function () {
-        const positions = [{ row: 5, col: 5 }];
+        const positions = [{ row: 5, col: 5, points: 1 }];
         await maps.write.createPresetScoringMap([positions], {
           account: owner.address,
         });
@@ -1426,8 +1427,8 @@ describe("Line of Sight System", function () {
       });
 
       it("Should handle map counter correctly when deleting preset scoring maps", async function () {
-        const positions1 = [{ row: 1, col: 1 }];
-        const positions2 = [{ row: 2, col: 2 }];
+        const positions1 = [{ row: 1, col: 1, points: 1 }];
+        const positions2 = [{ row: 2, col: 2, points: 1 }];
 
         await maps.write.createPresetScoringMap([positions1], {
           account: owner.address,
@@ -1452,7 +1453,7 @@ describe("Line of Sight System", function () {
       });
 
       it("Should revert when non-owner tries to delete preset scoring maps", async function () {
-        const positions = [{ row: 5, col: 5 }];
+        const positions = [{ row: 5, col: 5, points: 1 }];
         await maps.write.createPresetScoringMap([positions], {
           account: owner.address,
         });
@@ -1472,8 +1473,8 @@ describe("Line of Sight System", function () {
 
       it("Should apply preset scoring map to game correctly", async function () {
         const scoringPositions = [
-          { row: 5, col: 5 },
-          { row: 10, col: 10 },
+          { row: 5, col: 5, points: 1 },
+          { row: 10, col: 10, points: 1 },
         ];
 
         await maps.write.createPresetScoringMap([scoringPositions], {
@@ -1488,16 +1489,19 @@ describe("Line of Sight System", function () {
         });
 
         // Verify scoring tiles are applied to the game
-        expect(await maps.read.isTileScoring([BigInt(gameId), 5, 5])).to.be
-          .true;
-        expect(await maps.read.isTileScoring([BigInt(gameId), 10, 10])).to.be
-          .true;
-        expect(await maps.read.isTileScoring([BigInt(gameId), 0, 0])).to.be
-          .false;
+        expect(await maps.read.isTileScoring([BigInt(gameId), 5, 5])).to.equal(
+          1
+        );
+        expect(
+          await maps.read.isTileScoring([BigInt(gameId), 10, 10])
+        ).to.equal(1);
+        expect(await maps.read.isTileScoring([BigInt(gameId), 0, 0])).to.equal(
+          0
+        );
       });
 
       it("Should apply preset scoring map to multiple games independently", async function () {
-        const scoringPositions = [{ row: 5, col: 5 }];
+        const scoringPositions = [{ row: 5, col: 5, points: 1 }];
 
         await maps.write.createPresetScoringMap([scoringPositions], {
           account: owner.address,
@@ -1512,8 +1516,9 @@ describe("Line of Sight System", function () {
         });
 
         // Game 2 should not have scoring tiles yet
-        expect(await maps.read.isTileScoring([BigInt(game2Id), 5, 5])).to.be
-          .false;
+        expect(await maps.read.isTileScoring([BigInt(game2Id), 5, 5])).to.equal(
+          0
+        );
 
         // Apply to game 2
         await maps.write.applyPresetScoringMapToGame([BigInt(game2Id), mapId], {
@@ -1521,14 +1526,16 @@ describe("Line of Sight System", function () {
         });
 
         // Now both games should have scoring tiles
-        expect(await maps.read.isTileScoring([BigInt(game1Id), 5, 5])).to.be
-          .true;
-        expect(await maps.read.isTileScoring([BigInt(game2Id), 5, 5])).to.be
-          .true;
+        expect(await maps.read.isTileScoring([BigInt(game1Id), 5, 5])).to.equal(
+          1
+        );
+        expect(await maps.read.isTileScoring([BigInt(game2Id), 5, 5])).to.equal(
+          1
+        );
       });
 
       it("Should revert when non-owner tries to apply scoring map to game", async function () {
-        const scoringPositions = [{ row: 5, col: 5 }];
+        const scoringPositions = [{ row: 5, col: 5, points: 1 }];
         await maps.write.createPresetScoringMap([scoringPositions], {
           account: owner.address,
         });
@@ -1560,20 +1567,21 @@ describe("Line of Sight System", function () {
         await maps.write.setBlockedTile([BigInt(gameId), row, col, true], {
           account: owner.address,
         });
-        await maps.write.setScoringTile([BigInt(gameId), row, col, true], {
+        await maps.write.setScoringTile([BigInt(gameId), row, col, 1], {
           account: owner.address,
         });
 
         // Verify both properties
         expect(await maps.read.isTileBlocked([BigInt(gameId), row, col])).to.be
           .true;
-        expect(await maps.read.isTileScoring([BigInt(gameId), row, col])).to.be
-          .true;
+        expect(
+          await maps.read.isTileScoring([BigInt(gameId), row, col])
+        ).to.equal(1);
       });
 
       it("Should handle preset maps with both blocked and scoring tiles", async function () {
-        const blockedPositions = [{ row: 5, col: 5 }];
-        const scoringPositions = [{ row: 10, col: 10 }];
+        const blockedPositions = [{ row: 5, col: 5, points: 1 }];
+        const scoringPositions = [{ row: 10, col: 10, points: 1 }];
 
         // Create preset blocked map
         await maps.write.createPresetMap([blockedPositions], {
@@ -1605,8 +1613,9 @@ describe("Line of Sight System", function () {
         // Verify both blocked and scoring tiles are applied
         expect(await maps.read.isTileBlocked([BigInt(gameId), 5, 5])).to.be
           .true;
-        expect(await maps.read.isTileScoring([BigInt(gameId), 10, 10])).to.be
-          .true;
+        expect(
+          await maps.read.isTileScoring([BigInt(gameId), 10, 10])
+        ).to.equal(1);
       });
 
       it("Should maintain separate state for blocked and scoring tiles", async function () {
@@ -1629,15 +1638,16 @@ describe("Line of Sight System", function () {
         await maps.write.setBlockedTile([BigInt(gameId), row, col, false], {
           account: owner.address,
         });
-        await maps.write.setScoringTile([BigInt(gameId), row, col, true], {
+        await maps.write.setScoringTile([BigInt(gameId), row, col, 1], {
           account: owner.address,
         });
 
         // Verify scoring but not blocked
         expect(await maps.read.isTileBlocked([BigInt(gameId), row, col])).to.be
           .false;
-        expect(await maps.read.isTileScoring([BigInt(gameId), row, col])).to.be
-          .true;
+        expect(
+          await maps.read.isTileScoring([BigInt(gameId), row, col])
+        ).to.equal(1);
       });
     });
 
@@ -1645,17 +1655,21 @@ describe("Line of Sight System", function () {
       it("Should handle out-of-bounds coordinates safely", async function () {
         const gameId = 1;
 
-        // These should not revert and should return false for out-of-bounds
+        // These should not revert and should return 0 for out-of-bounds
         // Note: We can't directly test _isTileScoringSafe as it's internal,
         // but we can test the behavior through public functions
-        expect(await maps.read.isTileScoringSafe([BigInt(gameId), -1, 0])).to.be
-          .false;
-        expect(await maps.read.isTileScoringSafe([BigInt(gameId), 0, -1])).to.be
-          .false;
-        expect(await maps.read.isTileScoringSafe([BigInt(gameId), 50, 0])).to.be
-          .false;
-        expect(await maps.read.isTileScoringSafe([BigInt(gameId), 0, 100])).to
-          .be.false;
+        expect(
+          await maps.read.isTileScoringSafe([BigInt(gameId), -1, 0])
+        ).to.equal(0);
+        expect(
+          await maps.read.isTileScoringSafe([BigInt(gameId), 0, -1])
+        ).to.equal(0);
+        expect(
+          await maps.read.isTileScoringSafe([BigInt(gameId), 50, 0])
+        ).to.equal(0);
+        expect(
+          await maps.read.isTileScoringSafe([BigInt(gameId), 0, 100])
+        ).to.equal(0);
       });
     });
   });

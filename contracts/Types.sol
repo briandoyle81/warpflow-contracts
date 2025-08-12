@@ -78,6 +78,13 @@ struct Position {
     int16 col;
 }
 
+// Scoring position structure with point value
+struct ScoringPosition {
+    int16 row;
+    int16 col;
+    uint8 points; // Number of points available on this tile
+}
+
 // Ship position on the grid
 struct ShipPosition {
     uint shipId;
@@ -117,6 +124,8 @@ struct GameData {
     GameTurnState turnState;
     GameGridDimensions gridDimensions;
     uint maxScore; // Maximum score needed to win the game
+    uint creatorScore; // Current score of the creator player
+    uint joinerScore; // Current score of the joiner player
     // Keep all mappings in GameData
     mapping(uint => Attributes) shipAttributes; // shipId => attributes
     // Grid state - grid[row][column] = shipId (0 if empty)
@@ -132,6 +141,8 @@ struct GameDataView {
     GameTurnState turnState;
     GameGridDimensions gridDimensions;
     uint maxScore; // Maximum score needed to win the game
+    uint creatorScore; // Current score of the creator player
+    uint joinerScore; // Current score of the joiner player
     // Ship data arrays
     Attributes[] shipAttributes; // Combined array of all ship attributes indexed by ship ID
     ShipPosition[] shipPositions; // All ship positions on the grid

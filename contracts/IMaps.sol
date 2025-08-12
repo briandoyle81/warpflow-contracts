@@ -70,4 +70,42 @@ interface IMaps {
     function mapExists(uint _mapId) external view returns (bool);
 
     function mapCount() external view returns (uint);
+
+    // Scoring tile functions
+    function setScoringTile(
+        uint _gameId,
+        int16 _row,
+        int16 _col,
+        uint8 _points
+    ) external;
+
+    function isTileScoring(
+        uint _gameId,
+        int16 _row,
+        int16 _col
+    ) external view returns (uint8);
+
+    function isTileScoringSafe(
+        uint _gameId,
+        int16 _row,
+        int16 _col
+    ) external view returns (uint8);
+
+    // Preset scoring map functions
+    function createPresetScoringMap(
+        ScoringPosition[] calldata _scoringPositions
+    ) external returns (uint);
+
+    function updatePresetScoringMap(
+        uint _mapId,
+        ScoringPosition[] calldata _scoringPositions
+    ) external;
+
+    function deletePresetScoringMap(uint _mapId) external;
+
+    function applyPresetScoringMapToGame(uint _gameId, uint _mapId) external;
+
+    function getPresetScoringMap(
+        uint _mapId
+    ) external view returns (ScoringPosition[] memory);
 }

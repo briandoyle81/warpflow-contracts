@@ -1631,8 +1631,9 @@ describe("Line of Sight System", function () {
         // Verify blocked but not scoring
         expect(await maps.read.isTileBlocked([BigInt(gameId), row, col])).to.be
           .true;
-        expect(await maps.read.isTileScoring([BigInt(gameId), row, col])).to.be
-          .false;
+        expect(
+          await maps.read.isTileScoring([BigInt(gameId), row, col])
+        ).to.equal(0);
 
         // Set tile as scoring only
         await maps.write.setBlockedTile([BigInt(gameId), row, col, false], {

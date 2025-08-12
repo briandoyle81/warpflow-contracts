@@ -616,6 +616,9 @@ contract Game is Ownable {
         } else if (actionType == ActionType.Special) {
             // Special: use special equipment
             _performSpecial(_gameId, _shipId, _newRow, _newCol, targetShipId);
+        } else if (actionType == ActionType.ClaimPoints) {
+            // ClaimPoints: get points from the tile the ship moved to
+            _performClaimPoints(_gameId, _shipId, _newRow, _newCol);
         } else {
             revert InvalidMove();
         }
@@ -1505,6 +1508,48 @@ contract Game is Ownable {
                 game.metadata.winner = game.metadata.creator;
             } else {
                 game.metadata.winner = game.metadata.joiner;
+            }
+        }
+    }
+
+    // Internal function to handle ClaimPoints action
+    function _performClaimPoints(
+        uint _gameId,
+        uint _shipId,
+        int16 _row,
+        int16 _col
+    ) internal {
+        GameData storage game = games[_gameId];
+
+        // Get the ship to determine the player
+        Ship memory ship = ships.getShip(_shipId);
+
+        // Get the points from the Maps contract for this tile
+        uint8 points = maps.isTileScoring(_gameId, _row, _col);
+
+        // If there are points on this tile, claim them
+        if (points > 0) {
+            // Update the player's score
+            if (ship.owner == game.metadata.creator) {
+                game.creatorScore += points;
+            } else if (ship.owner == game.metadata.joiner) {
+                game.joinerScore += points;
+            }
+
+            // Check if either player has reached the max score
+            if (
+                game.creatorScore >= game.maxScore ||
+                game.joinerScore >= game.maxScore
+            ) {
+                // Determine winner based on scores
+                if (game.creatorScore >= game.joinerScore) {
+                    game.metadata.winner = game.metadata.creator;
+                } else {
+                    game.metadata.winner = game.metadata.joiner;
+                }
+
+                // Remove all ships from fleets
+                _removeAllShipsFromFleets(_gameId);
             }
         }
     }

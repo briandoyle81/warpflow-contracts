@@ -290,5 +290,6 @@ enum ActionType {
     Shoot,
     Retreat,
     Assist,
-    Special
+    Special,
+    ClaimPoints
 }

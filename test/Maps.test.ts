@@ -1257,9 +1257,9 @@ describe("Line of Sight System", function () {
     describe("Preset Scoring Maps", function () {
       it("Should allow owner to create preset scoring maps", async function () {
         const scoringPositions = [
-          { row: 5, col: 5, points: 1 },
-          { row: 10, col: 10, points: 2 },
-          { row: 15, col: 15, points: 3 },
+          { row: 5, col: 5, points: 1, onlyOnce: false },
+          { row: 10, col: 10, points: 2, onlyOnce: true },
+          { row: 15, col: 15, points: 3, onlyOnce: false },
         ];
 
         const initialMapCount = await maps.read.mapCount();
@@ -1281,8 +1281,8 @@ describe("Line of Sight System", function () {
       });
 
       it("Should allow owner to create multiple preset scoring maps", async function () {
-        const positions1 = [{ row: 1, col: 1, points: 1 }];
-        const positions2 = [{ row: 2, col: 2, points: 1 }];
+        const positions1 = [{ row: 1, col: 1, points: 1, onlyOnce: false }];
+        const positions2 = [{ row: 2, col: 2, points: 1, onlyOnce: true }];
 
         await maps.write.createPresetScoringMap([positions1], {
           account: owner.address,
@@ -1296,14 +1296,18 @@ describe("Line of Sight System", function () {
       });
 
       it("Should revert when non-owner tries to create preset scoring maps", async function () {
-        const scoringPositions = [{ row: 5, col: 5, points: 1 }];
+        const scoringPositions = [
+          { row: 5, col: 5, points: 1, onlyOnce: false },
+        ];
 
         await expect(userMaps.write.createPresetScoringMap([scoringPositions]))
           .to.be.rejected;
       });
 
       it("Should revert when creating preset scoring map with invalid positions", async function () {
-        const invalidPositions = [{ row: 100, col: 50, points: 1 }];
+        const invalidPositions = [
+          { row: 100, col: 50, points: 1, onlyOnce: false },
+        ];
 
         await expect(
           maps.write.createPresetScoringMap([invalidPositions], {
@@ -1314,8 +1318,8 @@ describe("Line of Sight System", function () {
 
       it("Should retrieve preset scoring map correctly", async function () {
         const scoringPositions = [
-          { row: 5, col: 5, points: 1 },
-          { row: 10, col: 10, points: 2 },
+          { row: 5, col: 5, points: 1, onlyOnce: false },
+          { row: 10, col: 10, points: 2, onlyOnce: true },
         ];
 
         await maps.write.createPresetScoringMap([scoringPositions], {
@@ -1328,8 +1332,10 @@ describe("Line of Sight System", function () {
         expect(retrievedPositions).to.have.length(2);
         expect(retrievedPositions[0].row).to.equal(5);
         expect(retrievedPositions[0].col).to.equal(5);
+        expect(retrievedPositions[0].onlyOnce).to.equal(false);
         expect(retrievedPositions[1].row).to.equal(10);
         expect(retrievedPositions[1].col).to.equal(10);
+        expect(retrievedPositions[1].onlyOnce).to.equal(true);
       });
 
       it("Should handle empty preset scoring maps", async function () {
@@ -1350,13 +1356,17 @@ describe("Line of Sight System", function () {
       });
 
       it("Should allow owner to update existing preset scoring maps", async function () {
-        const initialPositions = [{ row: 5, col: 5, points: 1 }];
+        const initialPositions = [
+          { row: 5, col: 5, points: 1, onlyOnce: false },
+        ];
         await maps.write.createPresetScoringMap([initialPositions], {
           account: owner.address,
         });
 
         const mapId = await maps.read.mapCount();
-        const updatedPositions = [{ row: 10, col: 10, points: 2 }];
+        const updatedPositions = [
+          { row: 10, col: 10, points: 2, onlyOnce: true },
+        ];
 
         await maps.write.updatePresetScoringMap([mapId, updatedPositions], {
           account: owner.address,
@@ -1367,19 +1377,22 @@ describe("Line of Sight System", function () {
         expect(retrievedPositions[0].row).to.equal(10);
         expect(retrievedPositions[0].col).to.equal(10);
         expect(retrievedPositions[0].points).to.equal(2);
+        expect(retrievedPositions[0].onlyOnce).to.equal(true);
       });
 
       it("Should clear all positions when updating preset scoring map", async function () {
         const initialPositions = [
-          { row: 5, col: 5, points: 1 },
-          { row: 10, col: 10, points: 1 },
+          { row: 5, col: 5, points: 1, onlyOnce: false },
+          { row: 10, col: 10, points: 1, onlyOnce: true },
         ];
         await maps.write.createPresetScoringMap([initialPositions], {
           account: owner.address,
         });
 
         const mapId = await maps.read.mapCount();
-        const updatedPositions = [{ row: 15, col: 15, points: 2 }];
+        const updatedPositions = [
+          { row: 15, col: 15, points: 2, onlyOnce: false },
+        ];
 
         await maps.write.updatePresetScoringMap([mapId, updatedPositions], {
           account: owner.address,
@@ -1389,10 +1402,11 @@ describe("Line of Sight System", function () {
         expect(retrievedPositions).to.have.length(1);
         expect(retrievedPositions[0].row).to.equal(15);
         expect(retrievedPositions[0].col).to.equal(15);
+        expect(retrievedPositions[0].onlyOnce).to.equal(false);
       });
 
       it("Should revert when non-owner tries to update preset scoring maps", async function () {
-        const positions = [{ row: 5, col: 5, points: 1 }];
+        const positions = [{ row: 5, col: 5, points: 1, onlyOnce: false }];
         await maps.write.createPresetScoringMap([positions], {
           account: owner.address,
         });
@@ -1403,7 +1417,7 @@ describe("Line of Sight System", function () {
       });
 
       it("Should revert when updating non-existent preset scoring map", async function () {
-        const positions = [{ row: 5, col: 5, points: 1 }];
+        const positions = [{ row: 5, col: 5, points: 1, onlyOnce: false }];
 
         await expect(
           maps.write.updatePresetScoringMap([999, positions], {
@@ -1413,7 +1427,7 @@ describe("Line of Sight System", function () {
       });
 
       it("Should allow owner to delete preset scoring maps", async function () {
-        const positions = [{ row: 5, col: 5, points: 1 }];
+        const positions = [{ row: 5, col: 5, points: 1, onlyOnce: false }];
         await maps.write.createPresetScoringMap([positions], {
           account: owner.address,
         });
@@ -1427,8 +1441,8 @@ describe("Line of Sight System", function () {
       });
 
       it("Should handle map counter correctly when deleting preset scoring maps", async function () {
-        const positions1 = [{ row: 1, col: 1, points: 1 }];
-        const positions2 = [{ row: 2, col: 2, points: 1 }];
+        const positions1 = [{ row: 1, col: 1, points: 1, onlyOnce: false }];
+        const positions2 = [{ row: 2, col: 2, points: 1, onlyOnce: true }];
 
         await maps.write.createPresetScoringMap([positions1], {
           account: owner.address,
@@ -1453,7 +1467,7 @@ describe("Line of Sight System", function () {
       });
 
       it("Should revert when non-owner tries to delete preset scoring maps", async function () {
-        const positions = [{ row: 5, col: 5, points: 1 }];
+        const positions = [{ row: 5, col: 5, points: 1, onlyOnce: false }];
         await maps.write.createPresetScoringMap([positions], {
           account: owner.address,
         });
@@ -1473,8 +1487,8 @@ describe("Line of Sight System", function () {
 
       it("Should apply preset scoring map to game correctly", async function () {
         const scoringPositions = [
-          { row: 5, col: 5, points: 1 },
-          { row: 10, col: 10, points: 1 },
+          { row: 5, col: 5, points: 1, onlyOnce: false },
+          { row: 10, col: 10, points: 1, onlyOnce: true },
         ];
 
         await maps.write.createPresetScoringMap([scoringPositions], {
@@ -1501,7 +1515,9 @@ describe("Line of Sight System", function () {
       });
 
       it("Should apply preset scoring map to multiple games independently", async function () {
-        const scoringPositions = [{ row: 5, col: 5, points: 1 }];
+        const scoringPositions = [
+          { row: 5, col: 5, points: 1, onlyOnce: false },
+        ];
 
         await maps.write.createPresetScoringMap([scoringPositions], {
           account: owner.address,
@@ -1535,7 +1551,9 @@ describe("Line of Sight System", function () {
       });
 
       it("Should revert when non-owner tries to apply scoring map to game", async function () {
-        const scoringPositions = [{ row: 5, col: 5, points: 1 }];
+        const scoringPositions = [
+          { row: 5, col: 5, points: 1, onlyOnce: false },
+        ];
         await maps.write.createPresetScoringMap([scoringPositions], {
           account: owner.address,
         });
@@ -1581,7 +1599,9 @@ describe("Line of Sight System", function () {
 
       it("Should handle preset maps with both blocked and scoring tiles", async function () {
         const blockedPositions = [{ row: 5, col: 5, points: 1 }];
-        const scoringPositions = [{ row: 10, col: 10, points: 1 }];
+        const scoringPositions = [
+          { row: 10, col: 10, points: 1, onlyOnce: false },
+        ];
 
         // Create preset blocked map
         await maps.write.createPresetMap([blockedPositions], {

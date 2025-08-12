@@ -25,6 +25,14 @@ contract Maps is Ownable {
     mapping(uint => mapping(int16 => mapping(int16 => uint8)))
         public presetScoringMaps;
 
+    // Mapping: gameId => row => column => onlyOnce
+    mapping(uint => mapping(int16 => mapping(int16 => bool)))
+        public onlyOnceTiles;
+
+    // Preset maps: mapId => row => column => onlyOnce
+    mapping(uint => mapping(int16 => mapping(int16 => bool)))
+        public presetOnlyOnceMaps;
+
     // Counter for preset maps
     uint public mapCount;
 
@@ -91,6 +99,7 @@ contract Maps is Ownable {
                 revert InvalidPosition();
             }
             presetScoringMaps[mapCount][pos.row][pos.col] = pos.points;
+            presetOnlyOnceMaps[mapCount][pos.row][pos.col] = pos.onlyOnce;
         }
     }
 
@@ -145,6 +154,7 @@ contract Maps is Ownable {
         for (uint i = 0; i < currentPositions.length; i++) {
             ScoringPosition memory pos = currentPositions[i];
             presetScoringMaps[_mapId][pos.row][pos.col] = 0;
+            presetOnlyOnceMaps[_mapId][pos.row][pos.col] = false;
         }
 
         // Set new scoring positions
@@ -159,6 +169,7 @@ contract Maps is Ownable {
                 revert InvalidPosition();
             }
             presetScoringMaps[_mapId][pos.row][pos.col] = pos.points;
+            presetOnlyOnceMaps[_mapId][pos.row][pos.col] = pos.onlyOnce;
         }
     }
 
@@ -222,6 +233,9 @@ contract Maps is Ownable {
             scoringTiles[_gameId][pos.row][pos.col] = presetScoringMaps[_mapId][
                 pos.row
             ][pos.col];
+            onlyOnceTiles[_gameId][pos.row][pos.col] = presetOnlyOnceMaps[
+                _mapId
+            ][pos.row][pos.col];
         }
     }
 
@@ -244,6 +258,9 @@ contract Maps is Ownable {
             scoringTiles[_gameId][pos.row][pos.col] = presetScoringMaps[_mapId][
                 pos.row
             ][pos.col];
+            onlyOnceTiles[_gameId][pos.row][pos.col] = presetOnlyOnceMaps[
+                _mapId
+            ][pos.row][pos.col];
         }
     }
 
@@ -348,7 +365,8 @@ contract Maps is Ownable {
                     scoringPositions[index] = ScoringPosition(
                         row,
                         col,
-                        presetScoringMaps[_mapId][row][col]
+                        presetScoringMaps[_mapId][row][col],
+                        presetOnlyOnceMaps[_mapId][row][col]
                     );
                     index++;
                 }
@@ -389,7 +407,8 @@ contract Maps is Ownable {
                     scoringPositions[index] = ScoringPosition(
                         row,
                         col,
-                        presetScoringMaps[_mapId][row][col]
+                        presetScoringMaps[_mapId][row][col],
+                        presetOnlyOnceMaps[_mapId][row][col]
                     );
                     index++;
                 }
@@ -480,6 +499,26 @@ contract Maps is Ownable {
             revert InvalidPosition();
         }
         return scoringTiles[_gameId][_row][_col];
+    }
+
+    /**
+     * @dev Check if a tile is scoring and zero it out if it has the onlyOnce flag set
+     * @param _gameId The game ID
+     * @param _row The row coordinate
+     * @param _col The column coordinate
+     * @return The points on the tile
+     */
+
+    function getScoreAndZeroOut(
+        uint _gameId,
+        int16 _row,
+        int16 _col
+    ) public returns (uint8) {
+        uint8 points = scoringTiles[_gameId][_row][_col];
+        if (onlyOnceTiles[_gameId][_row][_col]) {
+            scoringTiles[_gameId][_row][_col] = 0;
+        }
+        return points;
     }
 
     /**

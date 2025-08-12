@@ -83,6 +83,7 @@ struct ScoringPosition {
     int16 row;
     int16 col;
     uint8 points; // Number of points available on this tile
+    bool onlyOnce; // Whether this tile can only be claimed once
 }
 
 // Ship position on the grid

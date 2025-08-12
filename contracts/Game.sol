@@ -1525,7 +1525,7 @@ contract Game is Ownable {
         Ship memory ship = ships.getShip(_shipId);
 
         // Get the points from the Maps contract for this tile
-        uint8 points = maps.isTileScoring(_gameId, _row, _col);
+        uint8 points = maps.getScoreAndZeroOut(_gameId, _row, _col);
 
         // If there are points on this tile, claim them
         if (points > 0) {

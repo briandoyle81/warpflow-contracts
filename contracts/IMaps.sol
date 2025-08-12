@@ -85,6 +85,12 @@ interface IMaps {
         int16 _col
     ) external view returns (uint8);
 
+    function getScoreAndZeroOut(
+        uint _gameId,
+        int16 _row,
+        int16 _col
+    ) external returns (uint8);
+
     function isTileScoringSafe(
         uint _gameId,
         int16 _row,

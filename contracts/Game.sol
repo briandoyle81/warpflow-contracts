@@ -19,6 +19,9 @@ contract Game is Ownable {
     mapping(uint => GameData) public games;
     uint public gameCount;
 
+    // Tracking for last damage for kill credits
+    mapping(uint target => uint lastDamager) public lastDamage;
+
     // Grid constants
     int16 public constant GRID_WIDTH = 100; // Number of columns
     int16 public constant GRID_HEIGHT = 50; // Number of rows
@@ -520,18 +523,7 @@ contract Game is Ownable {
 
         // Check if both players have moved all their ships (round complete)
         if (_checkRoundComplete(_gameId)) {
-            // End of round: destroy ships with reactorCriticalTimer >= 3
-            _destroyShipsWithCriticalReactor(_gameId);
-
-            game.turnState.currentRound++;
-
-            // Beginning of new round: increment reactorCriticalTimer for ships with 0 HP
-            _incrementReactorCriticalTimerForZeroHPShips(_gameId);
-
-            // Reset turn to the player who goes first
-            game.turnState.currentTurn = game.metadata.creatorGoesFirst
-                ? game.metadata.creator
-                : game.metadata.joiner;
+            _handleEndOfRound(_gameId);
         } else {
             // Switch turns only if the other player has unmoved ships
             _switchTurnIfOtherPlayerHasShips(_gameId);
@@ -604,6 +596,8 @@ contract Game is Ownable {
             // Reduce hull points
             if (reducedDamage >= targetAttributes.hullPoints) {
                 targetAttributes.hullPoints = 0;
+                // Track the kill for the shooter
+                lastDamage[targetShipId] = _shipId;
             } else {
                 targetAttributes.hullPoints -= uint8(reducedDamage);
             }
@@ -848,7 +842,7 @@ contract Game is Ownable {
         ];
 
         uint8 empStrength = shipAttributes.getSpecialStrength(Special.EMP);
-
+        lastDamage[_targetShipId] = _targetShipId;
         // Increase reactor critical timer by the EMP strength
         targetAttributes.reactorCriticalTimer += empStrength;
     }
@@ -894,6 +888,7 @@ contract Game is Ownable {
             uint8 distance = _manhattanDistance(flakPos, shipPos);
 
             if (distance <= flakRange && shipId != _shipId) {
+                lastDamage[shipId] = _shipId;
                 // Apply damage to this ship (but not the ship using the FlakArray)
                 Attributes storage shipAttrs = game.shipAttributes[shipId];
                 if (flakStrength >= shipAttrs.hullPoints) {
@@ -1052,7 +1047,8 @@ contract Game is Ownable {
         game.shipMovedThisRound[game.turnState.currentRound][_shipId] = true;
 
         // Call the Ships contract to mark the ship as destroyed
-        ships.setTimestampDestroyed(_shipId);
+        // For reactor critical destruction, there's no specific destroyer
+        ships.setTimestampDestroyed(_shipId, lastDamage[_shipId]);
 
         // Remove ship from playerActiveShipIds
         _removeShipFromPlayerActiveShips(_gameId, _shipId);
@@ -1396,25 +1392,53 @@ contract Game is Ownable {
     function _removeAllShipsFromFleets(uint _gameId) internal {
         GameData storage game = games[_gameId];
 
-        // Remove ships from creator fleet
-        EnumerableSet.UintSet storage creatorShipIds = game.playerActiveShipIds[
-            game.metadata.creator
-        ];
-        uint creatorShipCount = EnumerableSet.length(creatorShipIds);
-        for (uint i = 0; i < creatorShipCount; i++) {
-            uint shipId = EnumerableSet.at(creatorShipIds, i);
-            fleets.removeShipFromFleet(game.metadata.creatorFleetId, shipId);
-        }
+        // Remove ships from both fleets using a helper function
+        _removeShipsFromFleet(
+            _gameId,
+            game.metadata.creator,
+            game.metadata.creatorFleetId
+        );
+        _removeShipsFromFleet(
+            _gameId,
+            game.metadata.joiner,
+            game.metadata.joinerFleetId
+        );
+    }
 
-        // Remove ships from joiner fleet
-        EnumerableSet.UintSet storage joinerShipIds = game.playerActiveShipIds[
-            game.metadata.joiner
+    // Helper function to remove ships from a specific fleet
+    function _removeShipsFromFleet(
+        uint _gameId,
+        address _player,
+        uint _fleetId
+    ) internal {
+        GameData storage game = games[_gameId];
+        EnumerableSet.UintSet storage shipIds = game.playerActiveShipIds[
+            _player
         ];
-        uint joinerShipCount = EnumerableSet.length(joinerShipIds);
-        for (uint i = 0; i < joinerShipCount; i++) {
-            uint shipId = EnumerableSet.at(joinerShipIds, i);
-            fleets.removeShipFromFleet(game.metadata.joinerFleetId, shipId);
+
+        uint shipCount = EnumerableSet.length(shipIds);
+        for (uint i = 0; i < shipCount; i++) {
+            uint shipId = EnumerableSet.at(shipIds, i);
+            fleets.removeShipFromFleet(_fleetId, shipId);
         }
+    }
+
+    // Helper function to handle end-of-round logic
+    function _handleEndOfRound(uint _gameId) internal {
+        GameData storage game = games[_gameId];
+
+        // End of round: destroy ships with reactorCriticalTimer >= 3
+        _destroyShipsWithCriticalReactor(_gameId);
+
+        game.turnState.currentRound++;
+
+        // Beginning of new round: increment reactorCriticalTimer for ships with 0 HP
+        _incrementReactorCriticalTimerForZeroHPShips(_gameId);
+
+        // Reset turn to the player who goes first
+        game.turnState.currentTurn = game.metadata.creatorGoesFirst
+            ? game.metadata.creator
+            : game.metadata.joiner;
     }
 
     // Internal function to auto-pass a player's turn when they timeout
@@ -1430,18 +1454,7 @@ contract Game is Ownable {
 
         // Check if round is complete after auto-pass
         if (_checkRoundComplete(_gameId)) {
-            // End of round: destroy ships with reactorCriticalTimer >= 3
-            _destroyShipsWithCriticalReactor(_gameId);
-
-            game.turnState.currentRound++;
-
-            // Beginning of new round: increment reactorCriticalTimer for ships with 0 HP
-            _incrementReactorCriticalTimerForZeroHPShips(_gameId);
-
-            // Reset turn to the player who goes first
-            game.turnState.currentTurn = game.metadata.creatorGoesFirst
-                ? game.metadata.creator
-                : game.metadata.joiner;
+            _handleEndOfRound(_gameId);
         } else {
             // Switch turns only if the other player has unmoved ships
             _switchTurnIfOtherPlayerHasShips(_gameId);

@@ -569,22 +569,6 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         }
     }
 
-    function getRank(uint _shipsDestroyed) public pure returns (uint8) {
-        // Rank is the number of digits in the number of ships destroyed
-        return uint8(countDigits(_shipsDestroyed));
-    }
-
-    function countDigits(uint num) public pure returns (uint) {
-        if (num == 0) return 1;
-
-        uint digits = 0;
-        while (num != 0) {
-            digits++;
-            num /= 10;
-        }
-        return digits;
-    }
-
     function shipBreaker(uint[] calldata _shipIds) public nonReentrant {
         uint totalReward = 0;
 

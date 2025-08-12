@@ -18,12 +18,20 @@ contract Maps is Ownable {
         public presetBlockedMaps;
 
     // Mapping: gameId => row => column => scoring
-    mapping(uint => mapping(int16 => mapping(int16 => bool)))
+    mapping(uint => mapping(int16 => mapping(int16 => uint8)))
         public scoringTiles;
 
     // Preset maps: mapId => row => column => scoring
-    mapping(uint => mapping(int16 => mapping(int16 => bool)))
+    mapping(uint => mapping(int16 => mapping(int16 => uint8)))
         public presetScoringMaps;
+
+    // Mapping: gameId => row => column => onlyOnce
+    mapping(uint => mapping(int16 => mapping(int16 => bool)))
+        public onlyOnceTiles;
+
+    // Preset maps: mapId => row => column => onlyOnce
+    mapping(uint => mapping(int16 => mapping(int16 => bool)))
+        public presetOnlyOnceMaps;
 
     // Counter for preset maps
     uint public mapCount;
@@ -72,16 +80,16 @@ contract Maps is Ownable {
 
     /**
      * @dev Create a new preset scoring map
-     * @param _scoringPositions Array of scoring positions
+     * @param _scoringPositions Array of scoring positions with point values
      */
     function createPresetScoringMap(
-        Position[] calldata _scoringPositions
+        ScoringPosition[] calldata _scoringPositions
     ) external onlyOwner {
         mapCount++;
 
         // Validate all positions and set scoring positions
         for (uint i = 0; i < _scoringPositions.length; i++) {
-            Position memory pos = _scoringPositions[i];
+            ScoringPosition memory pos = _scoringPositions[i];
             if (
                 pos.row < 0 ||
                 pos.row >= GRID_HEIGHT ||
@@ -90,7 +98,8 @@ contract Maps is Ownable {
             ) {
                 revert InvalidPosition();
             }
-            presetScoringMaps[mapCount][pos.row][pos.col] = true;
+            presetScoringMaps[mapCount][pos.row][pos.col] = pos.points;
+            presetOnlyOnceMaps[mapCount][pos.row][pos.col] = pos.onlyOnce;
         }
     }
 
@@ -130,24 +139,27 @@ contract Maps is Ownable {
     /**
      * @dev Update an existing preset scoring map
      * @param _mapId The map ID to update
-     * @param _scoringPositions Array of scoring positions
+     * @param _scoringPositions Array of scoring positions with point values
      */
     function updatePresetScoringMap(
         uint _mapId,
-        Position[] calldata _scoringPositions
+        ScoringPosition[] calldata _scoringPositions
     ) external onlyOwner {
         if (_mapId == 0 || _mapId > mapCount) revert MapNotFound();
 
         // Get the current scoring positions and clear them
-        Position[] memory currentPositions = _getPresetScoringMap(_mapId);
+        ScoringPosition[] memory currentPositions = _getPresetScoringMap(
+            _mapId
+        );
         for (uint i = 0; i < currentPositions.length; i++) {
-            Position memory pos = currentPositions[i];
-            presetScoringMaps[_mapId][pos.row][pos.col] = false;
+            ScoringPosition memory pos = currentPositions[i];
+            presetScoringMaps[_mapId][pos.row][pos.col] = 0;
+            presetOnlyOnceMaps[_mapId][pos.row][pos.col] = false;
         }
 
         // Set new scoring positions
         for (uint i = 0; i < _scoringPositions.length; i++) {
-            Position memory pos = _scoringPositions[i];
+            ScoringPosition memory pos = _scoringPositions[i];
             if (
                 pos.row < 0 ||
                 pos.row >= GRID_HEIGHT ||
@@ -156,7 +168,8 @@ contract Maps is Ownable {
             ) {
                 revert InvalidPosition();
             }
-            presetScoringMaps[_mapId][pos.row][pos.col] = true;
+            presetScoringMaps[_mapId][pos.row][pos.col] = pos.points;
+            presetOnlyOnceMaps[_mapId][pos.row][pos.col] = pos.onlyOnce;
         }
     }
 
@@ -212,16 +225,23 @@ contract Maps is Ownable {
         }
 
         // Get the preset scoring positions and apply them to the game
-        Position[] memory scoringPositions = _getPresetScoringMap(_mapId);
+        ScoringPosition[] memory scoringPositions = _getPresetScoringMap(
+            _mapId
+        );
         for (uint i = 0; i < scoringPositions.length; i++) {
-            Position memory pos = scoringPositions[i];
-            scoringTiles[_gameId][pos.row][pos.col] = true;
+            ScoringPosition memory pos = scoringPositions[i];
+            scoringTiles[_gameId][pos.row][pos.col] = presetScoringMaps[_mapId][
+                pos.row
+            ][pos.col];
+            onlyOnceTiles[_gameId][pos.row][pos.col] = presetOnlyOnceMaps[
+                _mapId
+            ][pos.row][pos.col];
         }
     }
 
     /**
      * @dev Apply a preset scoring map to a specific game
-     * @param _gameId The game ID
+     * @param _gameId The game ID to apply the map to
      * @param _mapId The preset scoring map ID to apply
      */
     function applyPresetScoringMapToGame(uint _gameId, uint _mapId) external {
@@ -230,17 +250,17 @@ contract Maps is Ownable {
         if (_mapId == 0 || _mapId > mapCount) revert MapNotFound();
 
         // Get the preset scoring positions and apply them to the game
-        Position[] memory scoringPositions = _getPresetScoringMap(_mapId);
+        ScoringPosition[] memory scoringPositions = _getPresetScoringMap(
+            _mapId
+        );
         for (uint i = 0; i < scoringPositions.length; i++) {
-            Position memory pos = scoringPositions[i];
-            scoringTiles[_gameId][pos.row][pos.col] = true;
-        }
-
-        // Get the preset blocked positions and apply them to the game
-        Position[] memory blockedPositions = _getPresetMap(_mapId);
-        for (uint i = 0; i < blockedPositions.length; i++) {
-            Position memory pos = blockedPositions[i];
-            blockedTiles[_gameId][pos.row][pos.col] = true;
+            ScoringPosition memory pos = scoringPositions[i];
+            scoringTiles[_gameId][pos.row][pos.col] = presetScoringMaps[_mapId][
+                pos.row
+            ][pos.col];
+            onlyOnceTiles[_gameId][pos.row][pos.col] = presetOnlyOnceMaps[
+                _mapId
+            ][pos.row][pos.col];
         }
     }
 
@@ -321,26 +341,33 @@ contract Maps is Ownable {
      */
     function getPresetScoringMap(
         uint _mapId
-    ) external view returns (Position[] memory) {
+    ) external view returns (ScoringPosition[] memory) {
         if (_mapId == 0 || _mapId > mapCount) revert MapNotFound();
 
         // Count scoring positions first
         uint scoringCount = 0;
         for (int16 row = 0; row < GRID_HEIGHT; row++) {
             for (int16 col = 0; col < GRID_WIDTH; col++) {
-                if (presetScoringMaps[_mapId][row][col]) {
+                if (presetScoringMaps[_mapId][row][col] > 0) {
                     scoringCount++;
                 }
             }
         }
 
         // Create array and populate with scoring positions
-        Position[] memory scoringPositions = new Position[](scoringCount);
+        ScoringPosition[] memory scoringPositions = new ScoringPosition[](
+            scoringCount
+        );
         uint index = 0;
         for (int16 row = 0; row < GRID_HEIGHT; row++) {
             for (int16 col = 0; col < GRID_WIDTH; col++) {
-                if (presetScoringMaps[_mapId][row][col]) {
-                    scoringPositions[index] = Position(row, col);
+                if (presetScoringMaps[_mapId][row][col] > 0) {
+                    scoringPositions[index] = ScoringPosition(
+                        row,
+                        col,
+                        presetScoringMaps[_mapId][row][col],
+                        presetOnlyOnceMaps[_mapId][row][col]
+                    );
                     index++;
                 }
             }
@@ -356,26 +383,33 @@ contract Maps is Ownable {
      */
     function _getPresetScoringMap(
         uint _mapId
-    ) internal view returns (Position[] memory) {
+    ) internal view returns (ScoringPosition[] memory) {
         if (_mapId == 0 || _mapId > mapCount) revert MapNotFound();
 
         // Count scoring positions first
         uint scoringCount = 0;
         for (int16 row = 0; row < GRID_HEIGHT; row++) {
             for (int16 col = 0; col < GRID_WIDTH; col++) {
-                if (presetScoringMaps[_mapId][row][col]) {
+                if (presetScoringMaps[_mapId][row][col] > 0) {
                     scoringCount++;
                 }
             }
         }
 
         // Create array and populate with scoring positions
-        Position[] memory scoringPositions = new Position[](scoringCount);
+        ScoringPosition[] memory scoringPositions = new ScoringPosition[](
+            scoringCount
+        );
         uint index = 0;
         for (int16 row = 0; row < GRID_HEIGHT; row++) {
             for (int16 col = 0; col < GRID_WIDTH; col++) {
-                if (presetScoringMaps[_mapId][row][col]) {
-                    scoringPositions[index] = Position(row, col);
+                if (presetScoringMaps[_mapId][row][col] > 0) {
+                    scoringPositions[index] = ScoringPosition(
+                        row,
+                        col,
+                        presetScoringMaps[_mapId][row][col],
+                        presetOnlyOnceMaps[_mapId][row][col]
+                    );
                     index++;
                 }
             }
@@ -415,20 +449,20 @@ contract Maps is Ownable {
     /**
      * @dev Set a tile as scoring or non-scoring for a specific game
      * @param _gameId The game ID
-     * @param _row The row coordinate (0-49)
-     * @param _col The column coordinate (0-99)
-     * @param _scoring Whether the tile should be scoring
+     * @param _row The row coordinate
+     * @param _col The column coordinate
+     * @param _points The number of points available on this tile (0 for non-scoring)
      */
     function setScoringTile(
         uint _gameId,
         int16 _row,
         int16 _col,
-        bool _scoring
+        uint8 _points
     ) external onlyOwner {
         if (_row < 0 || _row >= GRID_HEIGHT || _col < 0 || _col >= GRID_WIDTH) {
             revert InvalidPosition();
         }
-        scoringTiles[_gameId][_row][_col] = _scoring;
+        scoringTiles[_gameId][_row][_col] = _points;
     }
 
     /**
@@ -460,11 +494,31 @@ contract Maps is Ownable {
         uint _gameId,
         int16 _row,
         int16 _col
-    ) public view returns (bool) {
+    ) public view returns (uint8) {
         if (_row < 0 || _row >= GRID_HEIGHT || _col < 0 || _col >= GRID_WIDTH) {
             revert InvalidPosition();
         }
         return scoringTiles[_gameId][_row][_col];
+    }
+
+    /**
+     * @dev Check if a tile is scoring and zero it out if it has the onlyOnce flag set
+     * @param _gameId The game ID
+     * @param _row The row coordinate
+     * @param _col The column coordinate
+     * @return The points on the tile
+     */
+
+    function getScoreAndZeroOut(
+        uint _gameId,
+        int16 _row,
+        int16 _col
+    ) public returns (uint8) {
+        uint8 points = scoringTiles[_gameId][_row][_col];
+        if (onlyOnceTiles[_gameId][_row][_col]) {
+            scoringTiles[_gameId][_row][_col] = 0;
+        }
+        return points;
     }
 
     /**
@@ -478,9 +532,9 @@ contract Maps is Ownable {
         uint _gameId,
         int16 _row,
         int16 _col
-    ) public view returns (bool) {
+    ) public view returns (uint8) {
         if (_row < 0 || _row >= GRID_HEIGHT || _col < 0 || _col >= GRID_WIDTH) {
-            return false; // Treat out of bounds as non-scoring
+            return 0; // Treat out of bounds as non-scoring
         }
         return scoringTiles[_gameId][_row][_col];
     }
@@ -514,9 +568,9 @@ contract Maps is Ownable {
         uint _gameId,
         int16 _row,
         int16 _col
-    ) internal view returns (bool) {
+    ) internal view returns (uint8) {
         if (_row < 0 || _row >= GRID_HEIGHT || _col < 0 || _col >= GRID_WIDTH) {
-            return false; // Treat out of bounds as non-scoring
+            return 0; // Treat out of bounds as non-scoring
         }
         return scoringTiles[_gameId][_row][_col];
     }

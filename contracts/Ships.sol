@@ -278,23 +278,23 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
                 costs.special[uint8(ship.equipment.special)]
         );
 
-        // TODO: Cap for rank to cost
-        // For now cost is reduced by  0% for rank 1, 10% for rank 2, 20% for rank 3, 30% for rank 4 and above
-        uint16 rank = getRank(ship.shipData.shipsDestroyed);
-        uint16 rankCost;
-        if (rank == 1) {
-            rankCost = (unadjustedCost * 0) / 100;
-        } else if (rank == 2) {
-            rankCost = (unadjustedCost * 10) / 100;
-        } else if (rank == 3) {
-            rankCost = (unadjustedCost * 20) / 100;
-        } else if (rank >= 4) {
-            rankCost = (unadjustedCost * 30) / 100;
-        }
+        // // TODO: Cap for rank to cost
+        // // For now cost is reduced by  0% for rank 1, 10% for rank 2, 20% for rank 3, 30% for rank 4 and above
+        // uint16 rank = getRank(ship.shipData.shipsDestroyed);
+        // uint16 rankCost;
+        // if (rank == 1) {
+        //     rankCost = (unadjustedCost * 0) / 100;
+        // } else if (rank == 2) {
+        //     rankCost = (unadjustedCost * 10) / 100;
+        // } else if (rank == 3) {
+        //     rankCost = (unadjustedCost * 20) / 100;
+        // } else if (rank >= 4) {
+        //     rankCost = (unadjustedCost * 30) / 100;
+        // }
 
-        uint16 finalCost = unadjustedCost - rankCost;
+        // uint16 finalCost = unadjustedCost - rankCost;
 
-        ship.shipData.cost = finalCost;
+        ship.shipData.cost = unadjustedCost;
     }
 
     /**
@@ -409,12 +409,13 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         isAllowedToCreateShips[_address] = _isAllowed;
     }
 
-    function setTimestampDestroyed(uint _id) public {
+    function setTimestampDestroyed(uint _id, uint _destroyerId) public {
         if (msg.sender != owner() && msg.sender != config.gameAddress) {
             revert NotAuthorized(msg.sender);
         }
-
         ships[_id].shipData.timestampDestroyed = block.timestamp;
+
+        ships[_destroyerId].shipData.shipsDestroyed++;
 
         emit MetadataUpdate(_id);
     }
@@ -566,22 +567,6 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         } else {
             return 2;
         }
-    }
-
-    function getRank(uint _shipsDestroyed) public pure returns (uint8) {
-        // Rank is the number of digits in the number of ships destroyed
-        return uint8(countDigits(_shipsDestroyed));
-    }
-
-    function countDigits(uint num) public pure returns (uint) {
-        if (num == 0) return 1;
-
-        uint digits = 0;
-        while (num != 0) {
-            digits++;
-            num /= 10;
-        }
-        return digits;
     }
 
     function shipBreaker(uint[] calldata _shipIds) public nonReentrant {

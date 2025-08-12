@@ -1097,7 +1097,9 @@ describe("Ships", function () {
       );
 
       // Destroy the ship (simulate by setting timestampDestroyed)
-      await ships.write.setTimestampDestroyed([1n], { account: owner.account });
+      await ships.write.setTimestampDestroyed([1n, 0n], {
+        account: owner.account,
+      });
 
       // Try to transfer destroyed ship
       await expect(

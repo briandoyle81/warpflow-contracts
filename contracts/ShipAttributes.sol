@@ -73,23 +73,72 @@ contract ShipAttributes is IShipAttributes, Ownable {
     ) public view returns (Attributes memory) {
         if (_ship.id == 0) revert ShipNotFound();
 
+        uint8 rank = getRank(_ship.shipData.shipsDestroyed);
+        uint8 rankMultiplier = 0;
+        if (rank == 1) {
+            rankMultiplier = 0;
+        } else if (rank == 2) {
+            rankMultiplier = 10;
+        } else if (rank == 3) {
+            rankMultiplier = 20;
+        } else if (rank == 4) {
+            rankMultiplier = 30;
+        } else if (rank == 5) {
+            rankMultiplier = 40;
+        } else if (rank >= 6) {
+            rankMultiplier = 50;
+        }
+
         Attributes memory attributes;
         // Calculate base attributes from ship traits and equipment
         attributes.version = currentAttributesVersion;
         attributes.range = attributesVersions[currentAttributesVersion]
             .guns[uint8(_ship.equipment.mainWeapon)]
             .range;
+        // Increase range by the rank multiplier as a percentage (avoid overflow)
+        uint calculatedBonus = (uint(attributes.range) * rankMultiplier) / 100;
+        attributes.range += uint8(calculatedBonus);
         attributes.gunDamage = attributesVersions[currentAttributesVersion]
             .guns[uint8(_ship.equipment.mainWeapon)]
             .damage;
+        // Increase damage by the rank multiplier as a percentage (avoid overflow)
+        calculatedBonus = (uint(attributes.gunDamage) * rankMultiplier) / 100;
+        attributes.gunDamage += uint8(calculatedBonus);
         attributes.hullPoints = _calculateHullPoints(_ship);
+        // Increase hull points by the rank multiplier as a percentage (avoid overflow)
+        calculatedBonus = (uint(attributes.hullPoints) * rankMultiplier) / 100;
+        attributes.hullPoints += uint8(calculatedBonus);
         attributes.maxHullPoints = attributes.hullPoints;
         attributes.movement = _calculateMovement(_ship);
+        // Increase movement by the rank multiplier as a percentage (avoid overflow)
+        calculatedBonus = (uint(attributes.movement) * rankMultiplier) / 100;
+        attributes.movement += uint8(calculatedBonus);
         attributes.damageReduction = _calculateDamageReduction(_ship);
+        // Increase damage reduction by the rank multiplier as a percentage (avoid overflow)
+        calculatedBonus =
+            (uint(attributes.damageReduction) * rankMultiplier) /
+            100;
+        attributes.damageReduction += uint8(calculatedBonus);
         // Initialize empty status effects array
         attributes.statusEffects = new uint8[](0);
 
         return attributes;
+    }
+
+    function getRank(uint _shipsDestroyed) public pure returns (uint8) {
+        // Rank is the number of digits in the number of ships destroyed
+        return uint8(countDigits(_shipsDestroyed));
+    }
+
+    function countDigits(uint num) public pure returns (uint) {
+        if (num == 0) return 1;
+
+        uint digits = 0;
+        while (num != 0) {
+            digits++;
+            num /= 10;
+        }
+        return digits;
     }
 
     // Calculate attributes for a ship by ID

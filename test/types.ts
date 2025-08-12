@@ -72,20 +72,38 @@ export enum LobbyStatus {
   InGame,
 }
 
-export interface Lobby {
+export interface LobbyBasic {
   id: bigint;
   creator: Address;
-  joiner: Address;
   costLimit: bigint;
-  status: LobbyStatus;
   createdAt: bigint;
-  gameStartedAt: bigint;
+}
+
+export interface LobbyPlayers {
+  joiner: Address;
   creatorFleetId: bigint;
   joinerFleetId: bigint;
-  creatorGoesFirst: boolean;
-  turnTime: bigint;
   joinedAt: bigint;
   joinerFleetSetAt: bigint;
+}
+
+export interface LobbyGameConfig {
+  creatorGoesFirst: boolean;
+  turnTime: bigint;
+  selectedMapId: bigint;
+  maxScore: bigint; // Maximum score needed to win the game
+}
+
+export interface LobbyState {
+  status: LobbyStatus;
+  gameStartedAt: bigint;
+}
+
+export interface Lobby {
+  basic: LobbyBasic;
+  players: LobbyPlayers;
+  gameConfig: LobbyGameConfig;
+  state: LobbyState;
 }
 
 export interface Fleet {
@@ -167,7 +185,9 @@ export type LobbyTuple = [
   boolean, // creatorGoesFirst
   bigint, // turnTime
   bigint, // joinedAt
-  bigint // joinerFleetSetAt
+  bigint, // joinerFleetSetAt
+  bigint, // selectedMapId
+  bigint // maxScore
 ];
 
 export type FleetTuple = [
@@ -202,19 +222,29 @@ export type GameDataTuple = [
 // Helper functions to convert tuples to objects
 export function tupleToLobby(tuple: LobbyTuple): Lobby {
   return {
-    id: tuple[0],
-    creator: tuple[1],
-    joiner: tuple[2],
-    costLimit: tuple[3],
-    status: tuple[4],
-    createdAt: tuple[5],
-    gameStartedAt: tuple[6],
-    creatorFleetId: tuple[7],
-    joinerFleetId: tuple[8],
-    creatorGoesFirst: tuple[9],
-    turnTime: tuple[10],
-    joinedAt: tuple[11],
-    joinerFleetSetAt: tuple[12],
+    basic: {
+      id: tuple[0],
+      creator: tuple[1],
+      costLimit: tuple[3],
+      createdAt: tuple[5],
+    },
+    players: {
+      joiner: tuple[2],
+      creatorFleetId: tuple[7],
+      joinerFleetId: tuple[8],
+      joinedAt: tuple[11],
+      joinerFleetSetAt: tuple[12],
+    },
+    gameConfig: {
+      creatorGoesFirst: tuple[9],
+      turnTime: tuple[10],
+      selectedMapId: tuple[13],
+      maxScore: tuple[14],
+    },
+    state: {
+      status: tuple[4],
+      gameStartedAt: tuple[6],
+    },
   };
 }
 
@@ -270,6 +300,9 @@ export interface GameDataView {
   metadata: GameMetadata;
   turnState: GameTurnState;
   gridDimensions: GameGridDimensions;
+  maxScore: bigint; // Maximum score needed to win the game
+  creatorScore: bigint; // Current score of the creator player
+  joinerScore: bigint; // Current score of the joiner player
   shipAttributes: readonly Attributes[]; // Combined array of all ship attributes indexed by ship ID
   shipPositions: readonly ShipPosition[]; // All ship positions on the grid
   creatorActiveShipIds: readonly bigint[];
@@ -282,4 +315,5 @@ export enum ActionType {
   Retreat,
   Assist,
   Special,
+  ClaimPoints,
 }

@@ -78,6 +78,14 @@ struct Position {
     int16 col;
 }
 
+// Scoring position structure with point value
+struct ScoringPosition {
+    int16 row;
+    int16 col;
+    uint8 points; // Number of points available on this tile
+    bool onlyOnce; // Whether this tile can only be claimed once
+}
+
 // Ship position on the grid
 struct ShipPosition {
     uint shipId;
@@ -116,6 +124,9 @@ struct GameData {
     GameMetadata metadata;
     GameTurnState turnState;
     GameGridDimensions gridDimensions;
+    uint maxScore; // Maximum score needed to win the game
+    uint creatorScore; // Current score of the creator player
+    uint joinerScore; // Current score of the joiner player
     // Keep all mappings in GameData
     mapping(uint => Attributes) shipAttributes; // shipId => attributes
     // Grid state - grid[row][column] = shipId (0 if empty)
@@ -130,6 +141,9 @@ struct GameDataView {
     GameMetadata metadata;
     GameTurnState turnState;
     GameGridDimensions gridDimensions;
+    uint maxScore; // Maximum score needed to win the game
+    uint creatorScore; // Current score of the creator player
+    uint joinerScore; // Current score of the joiner player
     // Ship data arrays
     Attributes[] shipAttributes; // Combined array of all ship attributes indexed by ship ID
     ShipPosition[] shipPositions; // All ship positions on the grid
@@ -216,21 +230,43 @@ enum LobbyStatus {
     InGame // Game has started
 }
 
-struct Lobby {
+// Basic lobby identification and ownership
+struct LobbyBasic {
     uint id;
     address creator;
-    address joiner;
     uint costLimit;
-    LobbyStatus status;
     uint createdAt;
-    uint gameStartedAt;
+}
+
+// Player and fleet information
+struct LobbyPlayers {
+    address joiner;
     uint creatorFleetId;
     uint joinerFleetId;
+    uint joinedAt;
+    uint joinerFleetSetAt;
+}
+
+// Game configuration settings
+struct LobbyGameConfig {
     bool creatorGoesFirst;
     uint turnTime; // Time in seconds for each turn
-    uint joinedAt; // When the joiner joined the lobby
-    uint joinerFleetSetAt; // When the joiner set their fleet
     uint selectedMapId; // ID of the preset map to use for this game
+    uint maxScore; // Maximum score needed to win the game
+}
+
+// Lobby state and status
+struct LobbyState {
+    LobbyStatus status;
+    uint gameStartedAt;
+}
+
+// Main lobby struct composed of smaller components
+struct Lobby {
+    LobbyBasic basic;
+    LobbyPlayers players;
+    LobbyGameConfig gameConfig;
+    LobbyState state;
 }
 
 struct Fleet {
@@ -255,5 +291,6 @@ enum ActionType {
     Shoot,
     Retreat,
     Assist,
-    Special
+    Special,
+    ClaimPoints
 }

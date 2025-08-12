@@ -77,27 +77,32 @@ contract Lobbies is Ownable, ReentrancyGuard {
 
     function isLobbyOpenForJoining(uint _id) public view returns (bool) {
         Lobby storage l = lobbies[_id];
-        return l.status == LobbyStatus.Open && l.joiner == address(0);
+        return
+            l.state.status == LobbyStatus.Open &&
+            l.players.joiner == address(0);
     }
 
     function leaveLobby(uint _lobbyId) public nonReentrant {
         Lobby storage lobby = lobbies[_lobbyId];
-        if (lobby.id == 0) revert LobbyNotFound();
-        if (msg.sender != lobby.creator && msg.sender != lobby.joiner)
-            revert NotInLobby();
-        if (lobby.status == LobbyStatus.InGame) revert CannotLeaveStartedGame();
+        if (lobby.basic.id == 0) revert LobbyNotFound();
+        if (
+            msg.sender != lobby.basic.creator &&
+            msg.sender != lobby.players.joiner
+        ) revert NotInLobby();
+        if (lobby.state.status == LobbyStatus.InGame)
+            revert CannotLeaveStartedGame();
 
         PlayerLobbyState storage state = playerStates[msg.sender];
         if (state.activeLobbyId != _lobbyId) revert NotInLobby();
 
         // If player is creator, delete the lobby
-        if (msg.sender == lobby.creator) {
+        if (msg.sender == lobby.basic.creator) {
             // If joiner exists, they become the new creator
-            if (lobby.joiner != address(0)) {
-                address newCreator = lobby.joiner;
-                lobby.creator = newCreator;
-                lobby.joiner = address(0);
-                lobby.status = LobbyStatus.Open;
+            if (lobby.players.joiner != address(0)) {
+                address newCreator = lobby.players.joiner;
+                lobby.basic.creator = newCreator;
+                lobby.players.joiner = address(0);
+                lobby.state.status = LobbyStatus.Open;
 
                 // Update joiner's state
                 PlayerLobbyState storage joinerState = playerStates[newCreator];
@@ -110,8 +115,8 @@ contract Lobbies is Ownable, ReentrancyGuard {
             }
         } else {
             // If player is joiner, just remove them
-            lobby.joiner = address(0);
-            lobby.status = LobbyStatus.Open;
+            lobby.players.joiner = address(0);
+            lobby.state.status = LobbyStatus.Open;
             emit LobbyAbandoned(_lobbyId, msg.sender);
         }
 
@@ -148,14 +153,14 @@ contract Lobbies is Ownable, ReentrancyGuard {
 
         lobbyCount++;
         Lobby storage newLobby = lobbies[lobbyCount];
-        newLobby.id = lobbyCount;
-        newLobby.creator = msg.sender;
-        newLobby.costLimit = _costLimit;
-        newLobby.status = LobbyStatus.Open;
-        newLobby.createdAt = block.timestamp;
-        newLobby.creatorGoesFirst = _creatorGoesFirst;
-        newLobby.turnTime = _turnTime;
-        newLobby.selectedMapId = _selectedMapId;
+        newLobby.basic.id = lobbyCount;
+        newLobby.basic.creator = msg.sender;
+        newLobby.basic.costLimit = _costLimit;
+        newLobby.state.status = LobbyStatus.Open;
+        newLobby.basic.createdAt = block.timestamp;
+        newLobby.gameConfig.creatorGoesFirst = _creatorGoesFirst;
+        newLobby.gameConfig.turnTime = _turnTime;
+        newLobby.gameConfig.selectedMapId = _selectedMapId;
 
         state.hasActiveLobby = true;
         state.activeLobbyId = lobbyCount;
@@ -173,10 +178,10 @@ contract Lobbies is Ownable, ReentrancyGuard {
 
     function joinLobby(uint _lobbyId) public nonReentrant {
         Lobby storage lobby = lobbies[_lobbyId];
-        if (lobby.id == 0) revert LobbyNotFound();
-        if (lobby.status != LobbyStatus.Open) revert LobbyNotOpen();
-        if (lobby.creator == msg.sender) revert PlayerAlreadyInLobby();
-        if (lobby.joiner != address(0)) revert LobbyFull();
+        if (lobby.basic.id == 0) revert LobbyNotFound();
+        if (lobby.state.status != LobbyStatus.Open) revert LobbyNotOpen();
+        if (lobby.basic.creator == msg.sender) revert PlayerAlreadyInLobby();
+        if (lobby.players.joiner != address(0)) revert LobbyFull();
 
         PlayerLobbyState storage state = playerStates[msg.sender];
         if (state.hasActiveLobby) revert PlayerAlreadyInLobby();
@@ -188,9 +193,9 @@ contract Lobbies is Ownable, ReentrancyGuard {
             if (block.timestamp < timeoutEnd) revert PlayerInTimeout();
         }
 
-        lobby.joiner = msg.sender;
-        lobby.status = LobbyStatus.FleetSelection;
-        lobby.joinedAt = block.timestamp;
+        lobby.players.joiner = msg.sender;
+        lobby.state.status = LobbyStatus.FleetSelection;
+        lobby.players.joinedAt = block.timestamp;
 
         state.hasActiveLobby = true;
         state.activeLobbyId = _lobbyId;
@@ -201,30 +206,34 @@ contract Lobbies is Ownable, ReentrancyGuard {
 
     function timeoutJoiner(uint _lobbyId) public nonReentrant {
         Lobby storage lobby = lobbies[_lobbyId];
-        if (lobby.id == 0) revert LobbyNotFound();
-        if (msg.sender != lobby.creator) revert NotLobbyCreator();
-        if (lobby.status != LobbyStatus.FleetSelection) revert LobbyNotOpen();
-        if (lobby.joiner == address(0)) revert LobbyNotFound();
-        if (lobby.joinerFleetId != 0) revert FleetAlreadyCreated();
+        if (lobby.basic.id == 0) revert LobbyNotFound();
+        if (msg.sender != lobby.basic.creator) revert NotLobbyCreator();
+        if (lobby.state.status != LobbyStatus.FleetSelection)
+            revert LobbyNotOpen();
+        if (lobby.players.joiner == address(0)) revert LobbyNotFound();
+        if (lobby.players.joinerFleetId != 0) revert FleetAlreadyCreated();
 
         // Check if timeout has been reached
-        if (block.timestamp < lobby.joinedAt + lobby.turnTime)
-            revert TimeoutNotReached();
+        if (
+            block.timestamp < lobby.players.joinedAt + lobby.gameConfig.turnTime
+        ) revert TimeoutNotReached();
 
         // Update joiner's kick state
-        PlayerLobbyState storage joinerState = playerStates[lobby.joiner];
+        PlayerLobbyState storage joinerState = playerStates[
+            lobby.players.joiner
+        ];
         joinerState.kickCount++;
         joinerState.lastKickTime = block.timestamp;
         joinerState.hasActiveLobby = false;
         joinerState.activeLobbyId = 0;
 
         // Reset lobby state
-        lobby.joiner = address(0);
-        lobby.status = LobbyStatus.Open;
-        lobby.creatorFleetId = 0;
-        lobby.joinerFleetId = 0;
+        lobby.players.joiner = address(0);
+        lobby.state.status = LobbyStatus.Open;
+        lobby.players.creatorFleetId = 0;
+        lobby.players.joinerFleetId = 0;
 
-        emit LobbyReset(_lobbyId, lobby.creator);
+        emit LobbyReset(_lobbyId, lobby.basic.creator);
     }
 
     function createFleet(
@@ -232,51 +241,65 @@ contract Lobbies is Ownable, ReentrancyGuard {
         uint[] calldata _shipIds
     ) public nonReentrant {
         Lobby storage lobby = lobbies[_lobbyId];
-        if (lobby.id == 0) revert LobbyNotFound();
-        if (lobby.status != LobbyStatus.FleetSelection) revert LobbyNotOpen();
-        if (msg.sender != lobby.creator && msg.sender != lobby.joiner)
-            revert NotInLobby();
+        if (lobby.basic.id == 0) revert LobbyNotFound();
+        if (lobby.state.status != LobbyStatus.FleetSelection)
+            revert LobbyNotOpen();
+        if (
+            msg.sender != lobby.basic.creator &&
+            msg.sender != lobby.players.joiner
+        ) revert NotInLobby();
 
         // Check if player already has a fleet in this lobby
-        if (msg.sender == lobby.creator && lobby.creatorFleetId != 0)
-            revert FleetAlreadyCreated();
-        if (msg.sender == lobby.joiner && lobby.joinerFleetId != 0)
-            revert FleetAlreadyCreated();
+        if (
+            msg.sender == lobby.basic.creator &&
+            lobby.players.creatorFleetId != 0
+        ) revert FleetAlreadyCreated();
+        if (
+            msg.sender == lobby.players.joiner &&
+            lobby.players.joinerFleetId != 0
+        ) revert FleetAlreadyCreated();
 
         // Create fleet through Fleets contract
         uint fleetId = fleets.createFleet(
             _lobbyId,
             msg.sender,
             _shipIds,
-            lobby.costLimit
+            lobby.basic.costLimit
         );
 
         // Assign fleet to the correct player and determine who goes first
-        if (msg.sender == lobby.creator) {
-            lobby.creatorFleetId = fleetId;
+        if (msg.sender == lobby.basic.creator) {
+            lobby.players.creatorFleetId = fleetId;
             // If creator is setting their fleet first, they go first
-            if (lobby.joinerFleetId == 0) {
-                lobby.creatorGoesFirst = true;
+            if (lobby.players.joinerFleetId == 0) {
+                lobby.gameConfig.creatorGoesFirst = true;
             }
         } else {
-            lobby.joinerFleetId = fleetId;
+            lobby.players.joinerFleetId = fleetId;
             // If joiner is setting their fleet first, creator doesn't go first
-            if (lobby.creatorFleetId == 0) {
-                lobby.creatorGoesFirst = false;
+            if (lobby.players.creatorFleetId == 0) {
+                lobby.gameConfig.creatorGoesFirst = false;
             }
             // Record when joiner set their fleet
-            lobby.joinerFleetSetAt = block.timestamp;
+            lobby.players.joinerFleetSetAt = block.timestamp;
         }
 
         // Check if both players have created fleets
-        if (lobby.creatorFleetId != 0 && lobby.joinerFleetId != 0) {
-            lobby.status = LobbyStatus.InGame;
-            lobby.gameStartedAt = block.timestamp;
+        if (
+            lobby.players.creatorFleetId != 0 &&
+            lobby.players.joinerFleetId != 0
+        ) {
+            lobby.state.status = LobbyStatus.InGame;
+            lobby.state.gameStartedAt = block.timestamp;
             emit GameStarted(_lobbyId);
 
             // Decrement active lobbies count for both players
-            PlayerLobbyState storage creatorState = playerStates[lobby.creator];
-            PlayerLobbyState storage joinerState = playerStates[lobby.joiner];
+            PlayerLobbyState storage creatorState = playerStates[
+                lobby.basic.creator
+            ];
+            PlayerLobbyState storage joinerState = playerStates[
+                lobby.players.joiner
+            ];
             if (creatorState.activeLobbiesCount > 0) {
                 creatorState.activeLobbiesCount--;
             }
@@ -293,49 +316,56 @@ contract Lobbies is Ownable, ReentrancyGuard {
             // Start the game
             game.startGame(
                 _lobbyId,
-                lobby.creator,
-                lobby.joiner,
-                lobby.creatorFleetId,
-                lobby.joinerFleetId,
-                lobby.creatorGoesFirst,
-                lobby.turnTime,
-                lobby.selectedMapId
+                lobby.basic.creator,
+                lobby.players.joiner,
+                lobby.players.creatorFleetId,
+                lobby.players.joinerFleetId,
+                lobby.gameConfig.creatorGoesFirst,
+                lobby.gameConfig.turnTime,
+                lobby.gameConfig.selectedMapId
             );
         }
     }
 
     function quitWithPenalty(uint _lobbyId) public nonReentrant {
         Lobby storage lobby = lobbies[_lobbyId];
-        if (lobby.id == 0) revert LobbyNotFound();
-        if (msg.sender != lobby.joiner) revert NotLobbyJoiner();
-        if (lobby.status != LobbyStatus.FleetSelection) revert LobbyNotOpen();
-        if (lobby.joinerFleetId == 0) revert NotInLobby();
-        if (lobby.creatorFleetId != 0) revert FleetAlreadyCreated();
+        if (lobby.basic.id == 0) revert LobbyNotFound();
+        if (msg.sender != lobby.players.joiner) revert NotLobbyJoiner();
+        if (lobby.state.status != LobbyStatus.FleetSelection)
+            revert LobbyNotOpen();
+        if (lobby.players.joinerFleetId == 0) revert NotInLobby();
+        if (lobby.players.creatorFleetId != 0) revert FleetAlreadyCreated();
 
         // Check if creator's timeout has been reached
-        if (block.timestamp < lobby.joinerFleetSetAt + lobby.turnTime)
-            revert CreatorTimeoutNotReached();
+        if (
+            block.timestamp <
+            lobby.players.joinerFleetSetAt + lobby.gameConfig.turnTime
+        ) revert CreatorTimeoutNotReached();
 
         // Clear joiner's fleet through Fleets contract
-        fleets.clearFleet(lobby.joinerFleetId);
+        fleets.clearFleet(lobby.players.joinerFleetId);
 
         // Apply penalty to creator
-        PlayerLobbyState storage creatorState = playerStates[lobby.creator];
+        PlayerLobbyState storage creatorState = playerStates[
+            lobby.basic.creator
+        ];
         creatorState.kickCount++;
         creatorState.lastKickTime = block.timestamp;
         creatorState.hasActiveLobby = false;
         creatorState.activeLobbyId = 0;
 
         // Clear joiner's state
-        PlayerLobbyState storage joinerState = playerStates[lobby.joiner];
+        PlayerLobbyState storage joinerState = playerStates[
+            lobby.players.joiner
+        ];
         joinerState.hasActiveLobby = false;
         joinerState.activeLobbyId = 0;
 
         // Reset lobby state
-        lobby.joiner = address(0);
-        lobby.status = LobbyStatus.Open;
-        lobby.creatorFleetId = 0;
-        lobby.joinerFleetId = 0;
+        lobby.players.joiner = address(0);
+        lobby.state.status = LobbyStatus.Open;
+        lobby.players.creatorFleetId = 0;
+        lobby.players.joinerFleetId = 0;
 
         emit LobbyTerminated(_lobbyId);
     }

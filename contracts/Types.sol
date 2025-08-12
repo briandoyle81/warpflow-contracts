@@ -216,21 +216,42 @@ enum LobbyStatus {
     InGame // Game has started
 }
 
-struct Lobby {
+// Basic lobby identification and ownership
+struct LobbyBasic {
     uint id;
     address creator;
-    address joiner;
     uint costLimit;
-    LobbyStatus status;
     uint createdAt;
-    uint gameStartedAt;
+}
+
+// Player and fleet information
+struct LobbyPlayers {
+    address joiner;
     uint creatorFleetId;
     uint joinerFleetId;
+    uint joinedAt;
+    uint joinerFleetSetAt;
+}
+
+// Game configuration settings
+struct LobbyGameConfig {
     bool creatorGoesFirst;
     uint turnTime; // Time in seconds for each turn
-    uint joinedAt; // When the joiner joined the lobby
-    uint joinerFleetSetAt; // When the joiner set their fleet
     uint selectedMapId; // ID of the preset map to use for this game
+}
+
+// Lobby state and status
+struct LobbyState {
+    LobbyStatus status;
+    uint gameStartedAt;
+}
+
+// Main lobby struct composed of smaller components
+struct Lobby {
+    LobbyBasic basic;
+    LobbyPlayers players;
+    LobbyGameConfig gameConfig;
+    LobbyState state;
 }
 
 struct Fleet {

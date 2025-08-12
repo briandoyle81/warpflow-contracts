@@ -171,17 +171,17 @@ describe("Lobbies", function () {
       expect(receipt.status).to.equal("success");
 
       const lobby = await creatorLobbies.read.getLobby([1n]);
-      expect(lobby.id).to.equal(1n);
-      expect(lobby.creator.toLowerCase()).to.equal(
+      expect(lobby.basic.id).to.equal(1n);
+      expect(lobby.basic.creator.toLowerCase()).to.equal(
         creator.account.address.toLowerCase()
       );
-      expect(lobby.joiner).to.equal(zeroAddress);
-      expect(lobby.costLimit).to.equal(costLimit);
-      expect(lobby.status).to.equal(LobbyStatus.Open);
-      expect(lobby.turnTime).to.equal(turnTime);
-      expect(lobby.creatorGoesFirst).to.equal(creatorGoesFirst);
-      expect(lobby.creatorFleetId).to.equal(0n);
-      expect(lobby.joinerFleetId).to.equal(0n);
+      expect(lobby.players.joiner).to.equal(zeroAddress);
+      expect(lobby.basic.costLimit).to.equal(costLimit);
+      expect(lobby.state.status).to.equal(LobbyStatus.Open);
+      expect(lobby.gameConfig.turnTime).to.equal(turnTime);
+      expect(lobby.gameConfig.creatorGoesFirst).to.equal(creatorGoesFirst);
+      expect(lobby.players.creatorFleetId).to.equal(0n);
+      expect(lobby.players.joinerFleetId).to.equal(0n);
 
       // Check player state
       const playerState = (await creatorLobbies.read.getPlayerState([
@@ -355,10 +355,10 @@ describe("Lobbies", function () {
       expect(receipt.status).to.equal("success");
 
       const lobby = await creatorLobbies.read.getLobby([1n]);
-      expect(lobby.joiner.toLowerCase()).to.equal(
+      expect(lobby.players.joiner.toLowerCase()).to.equal(
         joiner.account.address.toLowerCase()
       );
-      expect(lobby.status).to.equal(LobbyStatus.FleetSelection);
+      expect(lobby.state.status).to.equal(LobbyStatus.FleetSelection);
     });
 
     it("should revert when joining non-existent lobby", async function () {
@@ -542,11 +542,11 @@ describe("Lobbies", function () {
 
       // Verify lobby state
       const lobby = await creatorLobbies.read.getLobby([1n]);
-      expect(lobby.creator.toLowerCase()).to.equal(
+      expect(lobby.basic.creator.toLowerCase()).to.equal(
         joiner.account.address.toLowerCase()
       );
-      expect(lobby.joiner).to.equal(zeroAddress);
-      expect(lobby.status).to.equal(LobbyStatus.Open);
+      expect(lobby.players.joiner).to.equal(zeroAddress);
+      expect(lobby.state.status).to.equal(LobbyStatus.Open);
     });
 
     it("should emit correct events when creator leaves alone", async function () {
@@ -610,8 +610,8 @@ describe("Lobbies", function () {
 
       // Verify lobby state
       const lobby = await creatorLobbies.read.getLobby([1n]);
-      expect(lobby.joiner).to.equal(zeroAddress);
-      expect(lobby.status).to.equal(LobbyStatus.Open);
+      expect(lobby.players.joiner).to.equal(zeroAddress);
+      expect(lobby.state.status).to.equal(LobbyStatus.Open);
     });
 
     it("should emit correct events when joiner times out", async function () {
@@ -649,8 +649,8 @@ describe("Lobbies", function () {
 
       // Verify lobby state
       const lobby = await creatorLobbies.read.getLobby([1n]);
-      expect(lobby.joiner).to.equal(zeroAddress);
-      expect(lobby.status).to.equal(LobbyStatus.Open);
+      expect(lobby.players.joiner).to.equal(zeroAddress);
+      expect(lobby.state.status).to.equal(LobbyStatus.Open);
     });
 
     it("should emit correct events when joiner quits with penalty", async function () {
@@ -705,9 +705,9 @@ describe("Lobbies", function () {
 
       // Verify lobby is in FleetSelection state before quitting
       const lobbyBefore = await creatorLobbies.read.getLobby([1n]);
-      expect(lobbyBefore.status).to.equal(LobbyStatus.FleetSelection);
-      expect(lobbyBefore.joinerFleetId).to.not.equal(0n);
-      expect(lobbyBefore.creatorFleetId).to.equal(0n);
+      expect(lobbyBefore.state.status).to.equal(LobbyStatus.FleetSelection);
+      expect(lobbyBefore.players.joinerFleetId).to.not.equal(0n);
+      expect(lobbyBefore.players.creatorFleetId).to.equal(0n);
 
       // Wait for creator's timeout
       await hre.network.provider.send("evm_increaseTime", [301]); // Wait for timeout
@@ -715,7 +715,7 @@ describe("Lobbies", function () {
 
       // Get joiner's fleet before quitting
       const joinerFleetBefore = await creatorFleets.read.getFleet([
-        lobbyBefore.joinerFleetId,
+        lobbyBefore.players.joinerFleetId,
       ]);
 
       // Joiner quits with penalty
@@ -733,10 +733,10 @@ describe("Lobbies", function () {
 
       // Verify lobby state
       const lobby = await creatorLobbies.read.getLobby([1n]);
-      expect(lobby.joiner).to.equal(zeroAddress);
-      expect(lobby.status).to.equal(LobbyStatus.Open);
-      expect(lobby.joinerFleetId).to.equal(0n);
-      expect(lobby.creatorFleetId).to.equal(0n);
+      expect(lobby.players.joiner).to.equal(zeroAddress);
+      expect(lobby.state.status).to.equal(LobbyStatus.Open);
+      expect(lobby.players.joinerFleetId).to.equal(0n);
+      expect(lobby.players.creatorFleetId).to.equal(0n);
 
       // Verify joiner's fleet is cleared
       const joinerFleetAfter = await creatorFleets.read.getFleet([

@@ -294,3 +294,18 @@ enum ActionType {
     Special,
     ClaimPoints
 }
+
+// Player statistics for tracking wins and losses
+struct PlayerStats {
+    uint wins;
+    uint losses;
+    uint totalGames;
+}
+
+// Game result structure for tracking individual game outcomes
+struct GameResult {
+    uint gameId;
+    address winner;
+    address loser;
+    uint timestamp;
+}

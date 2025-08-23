@@ -58,28 +58,18 @@ contract Game is Ownable {
         shipAttributes = IShipAttributes(_shipAttributes);
     }
 
-    function setMapsAddress(address _mapsAddress) public onlyOwner {
+    function setAddresses(
+        address _mapsAddress,
+        address _lobbiesAddress,
+        address _fleetsAddress,
+        address _gameResultsAddress,
+        address _shipAttributesAddress
+    ) public onlyOwner {
         maps = IMaps(_mapsAddress);
-    }
-
-    function setLobbiesAddress(address _lobbiesAddress) public onlyOwner {
         lobbiesAddress = _lobbiesAddress;
-    }
-
-    function setFleetsAddress(address _fleetsAddress) public onlyOwner {
         fleets = IFleets(_fleetsAddress);
-    }
-
-    function setGameResultsAddress(
-        address _gameResultsAddress
-    ) public onlyOwner {
         gameResults = IGameResults(_gameResultsAddress);
-    }
-
-    function setShipAttributesAddress(
-        address _shipAttributes
-    ) public onlyOwner {
-        shipAttributes = IShipAttributes(_shipAttributes);
+        shipAttributes = IShipAttributes(_shipAttributesAddress);
     }
 
     function startGame(
@@ -430,16 +420,22 @@ contract Game is Ownable {
 
         // Check if creator has no active ships
         if (!_playerHasActiveShips(_gameId, game.metadata.creator)) {
-            game.metadata.winner = game.metadata.joiner;
-            _reportGameResult(_gameId);
+            _endGame(_gameId, game.metadata.joiner, game.metadata.creator);
             return;
         }
 
         // Check if joiner has no active ships
         if (!_playerHasActiveShips(_gameId, game.metadata.joiner)) {
-            game.metadata.winner = game.metadata.creator;
-            _reportGameResult(_gameId);
+            _endGame(_gameId, game.metadata.creator, game.metadata.joiner);
             return;
+        }
+    }
+
+    // Helper function to end the game and record results
+    function _endGame(uint _gameId, address _winner, address _loser) internal {
+        games[_gameId].metadata.winner = _winner;
+        if (address(gameResults) != address(0)) {
+            gameResults.recordGameResult(_gameId, _winner, _loser);
         }
     }
 
@@ -1389,13 +1385,11 @@ contract Game is Ownable {
             msg.sender != game.metadata.joiner
         ) revert NotInGame();
 
-        // Set the other player as the winner
-        game.metadata.winner = msg.sender == game.metadata.creator
+        // Set the other player as the winner and record the game result
+        address winner = msg.sender == game.metadata.creator
             ? game.metadata.joiner
             : game.metadata.creator;
-
-        // Report the game result
-        _reportGameResult(_gameId);
+        _endGame(_gameId, winner, msg.sender);
 
         // Remove all ships from fleets
         _removeAllShipsFromFleets(_gameId);
@@ -1454,33 +1448,6 @@ contract Game is Ownable {
             : game.metadata.joiner;
     }
 
-    // Helper function to report game results to the GameResults contract
-    function _reportGameResult(uint _gameId) internal {
-        GameData storage game = games[_gameId];
-
-        // Only report if we have a winner and the GameResults contract is set
-        if (
-            game.metadata.winner != address(0) &&
-            address(gameResults) != address(0)
-        ) {
-            address loser = game.metadata.winner == game.metadata.creator
-                ? game.metadata.joiner
-                : game.metadata.creator;
-
-            try
-                gameResults.recordGameResult(
-                    _gameId,
-                    game.metadata.winner,
-                    loser
-                )
-            {
-                // Successfully recorded
-            } catch {
-                // Silently fail if recording fails - don't block game completion
-            }
-        }
-    }
-
     // Internal function to auto-pass a player's turn when they timeout
     function _autoPassTurn(uint _gameId) internal {
         GameData storage game = games[_gameId];
@@ -1526,48 +1493,6 @@ contract Game is Ownable {
         }
     }
 
-    // Function to update player scores
-    function updatePlayerScore(
-        uint _gameId,
-        address _player,
-        uint _scoreIncrement
-    ) external {
-        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
-        if (games[_gameId].metadata.winner != address(0))
-            revert GameAlreadyEnded();
-
-        GameData storage game = games[_gameId];
-
-        // Only allow the game contract itself or authorized systems to update scores
-        if (msg.sender != address(this) && msg.sender != owner())
-            revert NotLobbiesContract();
-
-        // Update the appropriate player's score
-        if (_player == game.metadata.creator) {
-            game.creatorScore += _scoreIncrement;
-        } else if (_player == game.metadata.joiner) {
-            game.joinerScore += _scoreIncrement;
-        } else {
-            revert NotInGame();
-        }
-
-        // Check if either player has reached the max score
-        if (
-            game.creatorScore >= game.maxScore ||
-            game.joinerScore >= game.maxScore
-        ) {
-            // Determine winner based on scores
-            if (game.creatorScore >= game.joinerScore) {
-                game.metadata.winner = game.metadata.creator;
-            } else {
-                game.metadata.winner = game.metadata.joiner;
-            }
-
-            // Report the game result
-            _reportGameResult(_gameId);
-        }
-    }
-
     // Internal function to handle ClaimPoints action
     function _performClaimPoints(
         uint _gameId,
@@ -1597,15 +1522,14 @@ contract Game is Ownable {
                 game.creatorScore >= game.maxScore ||
                 game.joinerScore >= game.maxScore
             ) {
-                // Determine winner based on scores
-                if (game.creatorScore >= game.joinerScore) {
-                    game.metadata.winner = game.metadata.creator;
-                } else {
-                    game.metadata.winner = game.metadata.joiner;
-                }
-
-                // Report the game result
-                _reportGameResult(_gameId);
+                // Determine winner based on scores and end the game
+                address winner = game.creatorScore >= game.joinerScore
+                    ? game.metadata.creator
+                    : game.metadata.joiner;
+                address loser = winner == game.metadata.creator
+                    ? game.metadata.joiner
+                    : game.metadata.creator;
+                _endGame(_gameId, winner, loser);
 
                 // Remove all ships from fleets
                 _removeAllShipsFromFleets(_gameId);

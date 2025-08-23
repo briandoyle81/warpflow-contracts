@@ -14,6 +14,9 @@ contract GameResults is Ownable {
     // Total number of games tracked
     uint public totalGamesTracked;
 
+    // Address of the Game contract that can record results
+    address public gameContract;
+
     // Events
     event GameResultRecorded(
         uint indexed gameId,
@@ -29,12 +32,24 @@ contract GameResults is Ownable {
         uint totalGames
     );
 
+    event GameContractSet(address indexed gameContract);
+
     // Errors
     error GameAlreadyRecorded();
     error InvalidGameResult();
     error GameNotFound();
+    error NotGameContract();
 
     constructor() Ownable(msg.sender) {}
+
+    /**
+     * @dev Set the Game contract address
+     * @param _gameContract The address of the Game contract
+     */
+    function setGameContract(address _gameContract) external onlyOwner {
+        gameContract = _gameContract;
+        emit GameContractSet(_gameContract);
+    }
 
     /**
      * @dev Record the result of a completed game
@@ -46,7 +61,8 @@ contract GameResults is Ownable {
         uint _gameId,
         address _winner,
         address _loser
-    ) external onlyOwner {
+    ) external {
+        if (msg.sender != gameContract) revert NotGameContract();
         // Validate inputs
         if (_winner == address(0) || _loser == address(0))
             revert InvalidGameResult();

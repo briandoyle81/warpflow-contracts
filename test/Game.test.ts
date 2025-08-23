@@ -1558,6 +1558,85 @@ describe("Game", function () {
       ).to.be.rejectedWith("ShipDestroyed");
     });
 
+    it("should end game and record result when all ships of one player are destroyed", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+        owner,
+        gameResults,
+      } = await loadFixture(deployGameFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Get ships' serial numbers and fulfill random requests
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      // Construct all ships for both players
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a game
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map,
+        100n, // maxScore
+      ]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets with single ships each
+      await creatorLobbies.write.createFleet([1n, [1n]]);
+      await joinerLobbies.write.createFleet([1n, [6n]]);
+
+      const gameId = 1n;
+
+      // Check initial game status
+      const initialGame = await game.read.getGame([gameId, [1n], [6n]]);
+      expect(initialGame.metadata.winner).to.equal(
+        "0x0000000000000000000000000000000000000000"
+      ); // No winner yet
+
+      // Destroy creator's only ship (this should end the game)
+      await (game.write as any).debugDestroyShip([gameId, 1n], {
+        account: owner.account,
+      });
+
+      // Check that the game ended and joiner won
+      const finalGame = await game.read.getGame([gameId, [1n], [6n]]);
+      expect(finalGame.metadata.winner.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
+      ); // Joiner wins when creator has no ships
+
+      // Check that the game result was recorded in GameResults
+      expect(await gameResults.read.isGameResultRecorded([gameId])).to.be.true;
+      const result = await gameResults.read.getGameResult([gameId]);
+      expect(result.winner.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
+      );
+      expect(result.loser.toLowerCase()).to.equal(
+        creator.account.address.toLowerCase()
+      );
+    });
+
     it("should exclude destroyed ships from round completion", async function () {
       const {
         creatorLobbies,
@@ -3890,6 +3969,7 @@ describe("Game", function () {
         fleets,
         lobbies,
         randomManager,
+        gameResults,
       } = await loadFixture(deployGameFixture);
 
       // Purchase and construct ships for both players
@@ -3959,6 +4039,16 @@ describe("Game", function () {
       expect(gameAfterFlee.metadata.winner.toLowerCase()).to.equal(
         joiner.account.address.toLowerCase()
       ); // winner (joiner wins when creator flees)
+
+      // Check that the game result was recorded in GameResults
+      expect(await gameResults.read.isGameResultRecorded([gameId])).to.be.true;
+      const result = await gameResults.read.getGameResult([gameId]);
+      expect(result.winner.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
+      );
+      expect(result.loser.toLowerCase()).to.equal(
+        creator.account.address.toLowerCase()
+      );
 
       // Verify that moves are no longer allowed
       await expect(
@@ -4183,229 +4273,6 @@ describe("Game", function () {
 
       // Line of sight should be clear below the blocked tiles
       expect(hasLOSBelow).to.be.true;
-    });
-  });
-
-  describe("GameResults Integration", function () {
-    let gameResults: any;
-
-    beforeEach(async function () {
-      const fixture = await loadFixture(deployGameFixture);
-      gameResults = fixture.gameResults;
-    });
-
-    describe("Game Result Recording", function () {
-      it("Should record game results when games end due to no active ships", async function () {
-        const fixture = await loadFixture(deployGameFixture);
-
-        // Create a simple game scenario that will end
-        await fixture.creatorLobbies.write.createLobby([
-          1000n,
-          300n,
-          true,
-          0n,
-          100n,
-        ]);
-        const lobbyId = 1n;
-        await fixture.joinerLobbies.write.joinLobby([lobbyId]);
-
-        // Create fleets with single ships
-        await fixture.creatorLobbies.write.createFleet([lobbyId, [1n]]);
-        await fixture.joinerLobbies.write.createFleet([lobbyId, [6n]]);
-
-        const gameId = 1n;
-
-        // Destroy all creator ships to end the game
-        await fixture.game.write.debugSetHullPointsToZero([gameId, 1n], {
-          account: fixture.owner.account,
-        });
-
-        // Check that the game result was recorded
-        expect(await gameResults.read.isGameResultRecorded([gameId])).to.be
-          .true;
-
-        const result = await gameResults.read.getGameResult([gameId]);
-        expect(result.winner).to.equal(fixture.joiner.account.address);
-        expect(result.loser).to.equal(fixture.creator.account.address);
-      });
-
-      it("Should record game results when games end due to score limit", async function () {
-        const fixture = await loadFixture(deployGameFixture);
-
-        // Create a game with low max score
-        await fixture.creatorLobbies.write.createLobby([
-          1000n,
-          300n,
-          true,
-          0n,
-          5n,
-        ]);
-        const lobbyId = 1n;
-        await fixture.joinerLobbies.write.joinLobby([lobbyId]);
-
-        // Create fleets
-        await fixture.creatorLobbies.write.createFleet([lobbyId, [1n]]);
-        await fixture.joinerLobbies.write.createFleet([lobbyId, [6n]]);
-
-        const gameId = 1n;
-
-        // Update creator score to reach max score
-        await fixture.game.write.updatePlayerScore(
-          [gameId, fixture.creator.account.address, 5n],
-          {
-            account: fixture.owner.account,
-          }
-        );
-
-        // Check that the game result was recorded
-        expect(await gameResults.read.isGameResultRecorded([gameId])).to.be
-          .true;
-
-        const result = await gameResults.read.getGameResult([gameId]);
-        expect(result.winner).to.equal(fixture.creator.account.address);
-        expect(result.loser).to.equal(fixture.joiner.account.address);
-      });
-
-      it("Should record game results when players flee", async function () {
-        const fixture = await loadFixture(deployGameFixture);
-
-        // Create a game
-        await fixture.creatorLobbies.write.createLobby([
-          1000n,
-          300n,
-          true,
-          0n,
-          100n,
-        ]);
-        const lobbyId = 1n;
-        await fixture.joinerLobbies.write.joinLobby([lobbyId]);
-
-        // Create fleets
-        await fixture.creatorLobbies.write.createFleet([lobbyId, [1n]]);
-        await fixture.joinerLobbies.write.createFleet([lobbyId, [6n]]);
-
-        const gameId = 1n;
-
-        // Creator flees
-        await fixture.game.write.flee([gameId], {
-          account: fixture.creator.account,
-        });
-
-        // Check that the game result was recorded
-        expect(await gameResults.read.isGameResultRecorded([gameId])).to.be
-          .true;
-
-        const result = await gameResults.read.getGameResult([gameId]);
-        expect(result.winner).to.equal(fixture.joiner.account.address);
-        expect(result.loser).to.equal(fixture.creator.account.address);
-      });
-
-      it("Should not record game results when GameResults contract is not set", async function () {
-        const fixture = await loadFixture(deployGameFixture);
-
-        // Remove GameResults reference
-        await fixture.game.write.setGameResultsAddress([zeroAddress], {
-          account: fixture.owner.account,
-        });
-
-        // Create a game
-        await fixture.creatorLobbies.write.createLobby([
-          1000n,
-          300n,
-          true,
-          0n,
-          100n,
-        ]);
-        const lobbyId = 1n;
-        await fixture.joinerLobbies.write.joinLobby([lobbyId]);
-
-        // Create fleets
-        await fixture.creatorLobbies.write.createFleet([lobbyId, [1n]]);
-        await fixture.joinerLobbies.write.createFleet([lobbyId, [6n]]);
-
-        const gameId = 1n;
-
-        // Destroy all creator ships to end the game
-        await fixture.game.write.debugSetHullPointsToZero([gameId, 1n], {
-          account: fixture.owner.account,
-        });
-
-        // Check that no game result was recorded (since GameResults is not set)
-        expect(await gameResults.read.isGameResultRecorded([gameId])).to.be
-          .false;
-      });
-
-      it("Should track player statistics correctly", async function () {
-        const fixture = await loadFixture(deployGameFixture);
-
-        // Create and end first game
-        await fixture.creatorLobbies.write.createLobby([
-          1000n,
-          300n,
-          true,
-          0n,
-          5n,
-        ]);
-        let lobbyId = 1n;
-        await fixture.joinerLobbies.write.joinLobby([lobbyId]);
-        await fixture.creatorLobbies.write.createFleet([lobbyId, [1n]]);
-        await fixture.joinerLobbies.write.createFleet([lobbyId, [6n]]);
-        let gameId = 1n;
-        await fixture.game.write.updatePlayerScore(
-          [gameId, fixture.creator.account.address, 5n],
-          {
-            account: fixture.owner.account,
-          }
-        );
-
-        // Create and end second game
-        await fixture.creatorLobbies.write.createLobby([
-          1000n,
-          300n,
-          true,
-          0n,
-          5n,
-        ]);
-        lobbyId = 2n;
-        await fixture.joinerLobbies.write.joinLobby([lobbyId]);
-        await fixture.creatorLobbies.write.createFleet([lobbyId, [2n]]);
-        await fixture.joinerLobbies.write.createFleet([lobbyId, [7n]]);
-        gameId = 2n;
-        await fixture.game.write.updatePlayerScore(
-          [gameId, fixture.joiner.account.address, 5n],
-          {
-            account: fixture.owner.account,
-          }
-        );
-
-        // Check creator stats (1 win, 1 loss)
-        const creatorStats = await gameResults.read.getPlayerStats([
-          fixture.creator.account.address,
-        ]);
-        expect(creatorStats.wins).to.equal(1n);
-        expect(creatorStats.losses).to.equal(1n);
-        expect(creatorStats.totalGames).to.equal(2n);
-
-        // Check joiner stats (1 win, 1 loss)
-        const joinerStats = await gameResults.read.getPlayerStats([
-          fixture.joiner.account.address,
-        ]);
-        expect(joinerStats.wins).to.equal(1n);
-        expect(joinerStats.losses).to.equal(1n);
-        expect(joinerStats.totalGames).to.equal(2n);
-
-        // Check win rates
-        expect(
-          await gameResults.read.getPlayerWinRate([
-            fixture.creator.account.address,
-          ])
-        ).to.equal(50n);
-        expect(
-          await gameResults.read.getPlayerWinRate([
-            fixture.joiner.account.address,
-          ])
-        ).to.equal(50n);
-      });
     });
   });
 });

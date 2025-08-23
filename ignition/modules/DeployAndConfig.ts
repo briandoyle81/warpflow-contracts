@@ -123,17 +123,17 @@ const DeployModule = buildModule("DeployModule", (m) => {
     metadataRenderer,
   ]);
 
-  // Set Lobbies address in Game contract
-  m.call(game, "setLobbiesAddress", [lobbies]);
+  // Set all addresses in Game contract
+  m.call(game, "setAddresses", [
+    maps,
+    lobbies,
+    fleets,
+    gameResults,
+    shipAttributes,
+  ]);
 
-  // Set Fleets address in Game contract
-  m.call(game, "setFleetsAddress", [fleets]);
-
-  // Set Maps address in Game contract
-  m.call(game, "setMapsAddress", [maps]);
-
-  // Set GameResults address in Game contract
-  m.call(game, "setGameResultsAddress", [gameResults]);
+  // Set Game contract address in GameResults contract
+  m.call(gameResults, "setGameContract", [game]);
 
   // Set Game address in Maps contract
   m.call(maps, "setGameAddress", [game]);

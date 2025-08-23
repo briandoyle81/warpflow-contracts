@@ -101,6 +101,9 @@ const DeployModule = buildModule("DeployModule", (m) => {
   // Deploy Maps contract
   const maps = m.contract("Maps");
 
+  // Deploy GameResults contract
+  const gameResults = m.contract("GameResults");
+
   // Deploy Game contract with ShipAttributes
   const game = m.contract("Game", [ships, shipAttributes]);
 
@@ -128,6 +131,9 @@ const DeployModule = buildModule("DeployModule", (m) => {
 
   // Set Maps address in Game contract
   m.call(game, "setMapsAddress", [maps]);
+
+  // Set GameResults address in Game contract
+  m.call(game, "setGameResultsAddress", [gameResults]);
 
   // Set Game address in Maps contract
   m.call(maps, "setGameAddress", [game]);
@@ -212,6 +218,7 @@ const DeployModule = buildModule("DeployModule", (m) => {
     universalCredits,
     shipPurchaser,
     maps,
+    gameResults,
     game,
     fleets,
     lobbies,

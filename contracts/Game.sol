@@ -8,6 +8,7 @@ import "./IShips.sol";
 import "./IFleets.sol";
 import "./IShipAttributes.sol";
 import "./IMaps.sol";
+import "./IGameResults.sol";
 
 contract Game is Ownable {
     IShips public ships;
@@ -15,6 +16,7 @@ contract Game is Ownable {
     IShipAttributes public shipAttributes;
     IMaps public maps;
     address public lobbiesAddress;
+    IGameResults public gameResults;
 
     mapping(uint => GameData) public games;
     uint public gameCount;
@@ -66,6 +68,12 @@ contract Game is Ownable {
 
     function setFleetsAddress(address _fleetsAddress) public onlyOwner {
         fleets = IFleets(_fleetsAddress);
+    }
+
+    function setGameResultsAddress(
+        address _gameResultsAddress
+    ) public onlyOwner {
+        gameResults = IGameResults(_gameResultsAddress);
     }
 
     function setShipAttributesAddress(
@@ -423,12 +431,14 @@ contract Game is Ownable {
         // Check if creator has no active ships
         if (!_playerHasActiveShips(_gameId, game.metadata.creator)) {
             game.metadata.winner = game.metadata.joiner;
+            _reportGameResult(_gameId);
             return;
         }
 
         // Check if joiner has no active ships
         if (!_playerHasActiveShips(_gameId, game.metadata.joiner)) {
             game.metadata.winner = game.metadata.creator;
+            _reportGameResult(_gameId);
             return;
         }
     }
@@ -1384,6 +1394,9 @@ contract Game is Ownable {
             ? game.metadata.joiner
             : game.metadata.creator;
 
+        // Report the game result
+        _reportGameResult(_gameId);
+
         // Remove all ships from fleets
         _removeAllShipsFromFleets(_gameId);
     }
@@ -1439,6 +1452,33 @@ contract Game is Ownable {
         game.turnState.currentTurn = game.metadata.creatorGoesFirst
             ? game.metadata.creator
             : game.metadata.joiner;
+    }
+
+    // Helper function to report game results to the GameResults contract
+    function _reportGameResult(uint _gameId) internal {
+        GameData storage game = games[_gameId];
+
+        // Only report if we have a winner and the GameResults contract is set
+        if (
+            game.metadata.winner != address(0) &&
+            address(gameResults) != address(0)
+        ) {
+            address loser = game.metadata.winner == game.metadata.creator
+                ? game.metadata.joiner
+                : game.metadata.creator;
+
+            try
+                gameResults.recordGameResult(
+                    _gameId,
+                    game.metadata.winner,
+                    loser
+                )
+            {
+                // Successfully recorded
+            } catch {
+                // Silently fail if recording fails - don't block game completion
+            }
+        }
     }
 
     // Internal function to auto-pass a player's turn when they timeout
@@ -1522,6 +1562,9 @@ contract Game is Ownable {
             } else {
                 game.metadata.winner = game.metadata.joiner;
             }
+
+            // Report the game result
+            _reportGameResult(_gameId);
         }
     }
 
@@ -1560,6 +1603,9 @@ contract Game is Ownable {
                 } else {
                     game.metadata.winner = game.metadata.joiner;
                 }
+
+                // Report the game result
+                _reportGameResult(_gameId);
 
                 // Remove all ships from fleets
                 _removeAllShipsFromFleets(_gameId);

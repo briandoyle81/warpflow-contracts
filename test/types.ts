@@ -115,6 +115,19 @@ export interface Fleet {
   isComplete: boolean;
 }
 
+export interface PlayerStats {
+  wins: bigint;
+  losses: bigint;
+  totalGames: bigint;
+}
+
+export interface GameResult {
+  gameId: bigint;
+  winner: Address;
+  loser: Address;
+  timestamp: bigint;
+}
+
 export interface PlayerLobbyState {
   activeLobbyId: bigint;
   activeLobbiesCount: bigint;

@@ -7,3 +7,5 @@ You may not copy my contracts and use them in your own projects.
 Please see other repos for composable and forkable contracts, apps, etc.!
 
 Thanks!
+
+npx hardhat ignition deploy ignition/modules/DeployAndConfig.ts --network localhost

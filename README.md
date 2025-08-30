@@ -9,3 +9,8 @@ Please see other repos for composable and forkable contracts, apps, etc.!
 Thanks!
 
 npx hardhat ignition deploy ignition/modules/DeployAndConfig.ts --network localhost
+
+TODO:
+
+Pay UTC to winner of games
+Add property of unsellable to NFTs as a trait and add that to image.

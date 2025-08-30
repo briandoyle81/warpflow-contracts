@@ -23,7 +23,8 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     uint public shipCount;
 
     mapping(address => EnumerableSet.UintSet) private shipsOwned;
-    mapping(address => bool) public allowedToTransfer;
+    mapping(address => bool) public hasClaimedFreeShips;
+    mapping(address => uint) public amountPurchased;
 
     mapping(address => uint) public onboardingStep;
 
@@ -52,7 +53,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     error InvalidRenderer();
     error ShipConstructed(uint);
     error ShipInFleet(uint);
-    error NotAllowedToTransfer(address);
+    error InsufficientPurchases(address);
     error InvalidPurchase(uint _tier, uint _amount);
     error ArrayLengthMismatch();
     error ShipAlreadyDestroyed(uint);
@@ -140,7 +141,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
         // TODO: CRITICAL -> Evaluate side effects of this
 
-        allowedToTransfer[_to] = true;
+        amountPurchased[_to] += _amount;
     }
 
     function purchaseWithFlow(
@@ -164,7 +165,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
         _processReferral(_referral, totalShips, tierPrices[_tier]);
 
-        allowedToTransfer[_to] = true;
+        amountPurchased[_to] += totalShips;
     }
 
     function constructShips(uint[] memory _ids) public {
@@ -340,11 +341,11 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
         // Skip transfer check for minting (when oldOwner is address(0))
         if (oldOwner != address(0)) {
-            if (!allowedToTransfer[oldOwner]) {
-                revert NotAllowedToTransfer(oldOwner);
+            if (amountPurchased[oldOwner] < 10) {
+                revert InsufficientPurchases(oldOwner);
             }
-            if (to != address(0) && !allowedToTransfer[to]) {
-                revert NotAllowedToTransfer(to);
+            if (to != address(0) && amountPurchased[to] < 10) {
+                revert InsufficientPurchases(to);
             }
             // Handle ownership list
             shipsOwned[oldOwner].remove(tokenId);
@@ -490,6 +491,17 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
     function setRecycleReward(uint _newReward) public onlyOwner {
         recycleReward = _newReward;
+    }
+
+    function claimFreeShips() public {
+        require(!hasClaimedFreeShips[msg.sender], "Already claimed free ships");
+
+        // Grant 10 free ships
+        for (uint i = 0; i < 10; i++) {
+            _mintShip(msg.sender);
+        }
+
+        hasClaimedFreeShips[msg.sender] = true;
     }
 
     /**

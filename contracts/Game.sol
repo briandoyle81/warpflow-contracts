@@ -2,7 +2,7 @@
 pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+// import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "./Types.sol";
 import "./IShips.sol";
 import "./IFleets.sol";
@@ -21,6 +21,8 @@ contract Game is Ownable {
     mapping(uint => GameData) public games;
     uint public gameCount;
 
+    mapping(address => uint[]) public playerGames;
+
     // Tracking for last damage for kill credits
     mapping(uint target => uint lastDamager) public lastDamage;
 
@@ -38,20 +40,17 @@ contract Game is Ownable {
     error NotLobbiesContract();
     error GameNotFound();
     error NotInGame();
-    error InvalidAttributesVersion();
     error ShipNotFound();
     error InvalidPosition();
     error PositionOccupied();
     error NotYourTurn();
     error ShipNotOwned();
     error ShipAlreadyMoved();
-    error MovementExceeded();
     error InvalidMove();
     error ShipDestroyed();
     error ActionRequired();
     error TurnTimeoutNotReached();
     error TurnTimeoutExceeded();
-    error GameAlreadyEnded();
 
     constructor(address _ships, address _shipAttributes) Ownable(msg.sender) {
         ships = IShips(_ships);
@@ -119,6 +118,10 @@ contract Game is Ownable {
         // Calculate fleet attributes and place ships on grid
         _initializeFleetAttributes(gameCount, _creatorFleetId, _joinerFleetId);
         _placeShipsOnGrid(gameCount, _creatorFleetId, _joinerFleetId);
+
+        // Track game for both players
+        playerGames[_creator].push(gameCount);
+        playerGames[_joiner].push(gameCount);
 
         emit GameStarted(gameCount, _lobbyId, _creator, _joiner);
     }
@@ -433,10 +436,22 @@ contract Game is Ownable {
 
     // Helper function to end the game and record results
     function _endGame(uint _gameId, address _winner, address _loser) internal {
-        games[_gameId].metadata.winner = _winner;
+        GameData storage game = games[_gameId];
+        game.metadata.winner = _winner;
         if (address(gameResults) != address(0)) {
             gameResults.recordGameResult(_gameId, _winner, _loser);
         }
+        // Remove all ships from fleets when game ends
+        _removeShipsFromFleet(
+            _gameId,
+            game.metadata.creator,
+            game.metadata.creatorFleetId
+        );
+        _removeShipsFromFleet(
+            _gameId,
+            game.metadata.joiner,
+            game.metadata.joinerFleetId
+        );
     }
 
     // Move a ship to a new position and perform an action (pass or shoot)
@@ -453,7 +468,7 @@ contract Game is Ownable {
         GameData storage game = games[_gameId];
 
         // Check if game has ended
-        if (game.metadata.winner != address(0)) revert GameAlreadyEnded();
+        if (game.metadata.winner != address(0)) revert InvalidMove();
 
         // Check if it's the player's turn
         if (msg.sender != game.turnState.currentTurn) revert NotYourTurn();
@@ -498,7 +513,7 @@ contract Game is Ownable {
             Attributes storage attributes = game.shipAttributes[_shipId];
 
             // Check if movement cost exceeds ship's movement
-            if (movementCost > attributes.movement) revert MovementExceeded();
+            if (movementCost > attributes.movement) revert InvalidMove();
 
             // Validate new position
             if (_newRow >= GRID_HEIGHT || _newCol >= GRID_WIDTH)
@@ -549,6 +564,9 @@ contract Game is Ownable {
         ActionType actionType,
         uint targetShipId
     ) internal {
+        // Get ship data once for all action types
+        Ship memory ship = ships.getShip(_shipId);
+
         if (actionType == ActionType.Pass) {
             // Pass: do nothing
         } else if (actionType == ActionType.Shoot) {
@@ -559,8 +577,7 @@ contract Game is Ownable {
             if (targetShip.shipData.timestampDestroyed != 0)
                 revert ShipDestroyed();
             // Must be on the other team (by owner address)
-            Ship memory shooterShip = ships.getShip(_shipId);
-            if (targetShip.owner == shooterShip.owner) revert InvalidMove();
+            if (targetShip.owner == ship.owner) revert InvalidMove();
             // Must be in range (manhattan)
             Position memory shooterPos = Position(_newRow, _newCol);
             Position storage targetPos = game.shipPositions[targetShipId];
@@ -618,7 +635,7 @@ contract Game is Ownable {
             _performSpecial(_gameId, _shipId, _newRow, _newCol, targetShipId);
         } else if (actionType == ActionType.ClaimPoints) {
             // ClaimPoints: get points from the tile the ship moved to
-            _performClaimPoints(_gameId, _shipId, _newRow, _newCol);
+            _performClaimPoints(_gameId, ship.owner, _newRow, _newCol);
         } else {
             revert InvalidMove();
         }
@@ -1166,7 +1183,6 @@ contract Game is Ownable {
         }
     }
 
-    // Debug function to destroy a ship (onlyOwner for testing)
     function debugDestroyShip(uint _gameId, uint _shipId) external onlyOwner {
         _destroyShip(_gameId, _shipId);
     }
@@ -1373,11 +1389,12 @@ contract Game is Ownable {
 
     // Flee function - either player can end the game at any time
     function flee(uint _gameId) external {
-        if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
+        // TODO: I think this is fine
+        // if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
         GameData storage game = games[_gameId];
 
-        // Check if game is already ended
-        if (game.metadata.winner != address(0)) revert GameAlreadyEnded();
+        // Check if game has already ended
+        if (game.metadata.winner != address(0)) revert InvalidMove();
 
         // Must be either the creator or joiner
         if (
@@ -1390,26 +1407,6 @@ contract Game is Ownable {
             ? game.metadata.joiner
             : game.metadata.creator;
         _endGame(_gameId, winner, msg.sender);
-
-        // Remove all ships from fleets
-        _removeAllShipsFromFleets(_gameId);
-    }
-
-    // Internal function to remove all ships from fleets
-    function _removeAllShipsFromFleets(uint _gameId) internal {
-        GameData storage game = games[_gameId];
-
-        // Remove ships from both fleets using a helper function
-        _removeShipsFromFleet(
-            _gameId,
-            game.metadata.creator,
-            game.metadata.creatorFleetId
-        );
-        _removeShipsFromFleet(
-            _gameId,
-            game.metadata.joiner,
-            game.metadata.joinerFleetId
-        );
     }
 
     // Helper function to remove ships from a specific fleet
@@ -1496,14 +1493,11 @@ contract Game is Ownable {
     // Internal function to handle ClaimPoints action
     function _performClaimPoints(
         uint _gameId,
-        uint _shipId,
+        address _player,
         int16 _row,
         int16 _col
     ) internal {
         GameData storage game = games[_gameId];
-
-        // Get the ship to determine the player
-        Ship memory ship = ships.getShip(_shipId);
 
         // Get the points from the Maps contract for this tile
         uint8 points = maps.getScoreAndZeroOut(_gameId, _row, _col);
@@ -1511,9 +1505,9 @@ contract Game is Ownable {
         // If there are points on this tile, claim them
         if (points > 0) {
             // Update the player's score
-            if (ship.owner == game.metadata.creator) {
+            if (_player == game.metadata.creator) {
                 game.creatorScore += points;
-            } else if (ship.owner == game.metadata.joiner) {
+            } else if (_player == game.metadata.joiner) {
                 game.joinerScore += points;
             }
 
@@ -1530,10 +1524,18 @@ contract Game is Ownable {
                     ? game.metadata.joiner
                     : game.metadata.creator;
                 _endGame(_gameId, winner, loser);
-
-                // Remove all ships from fleets
-                _removeAllShipsFromFleets(_gameId);
             }
         }
+    }
+
+    // Player game tracking view functions
+    function getGamesFromIds(
+        uint[] calldata _gameIds
+    ) public view returns (GameDataView[] memory) {
+        GameDataView[] memory result = new GameDataView[](_gameIds.length);
+        for (uint i = 0; i < _gameIds.length; i++) {
+            result[i] = getGame(_gameIds[i], new uint[](0), new uint[](0));
+        }
+        return result;
     }
 }

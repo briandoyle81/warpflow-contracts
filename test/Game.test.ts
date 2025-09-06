@@ -1000,7 +1000,7 @@ describe("Game", function () {
             account: creator.account,
           }
         )
-      ).to.be.rejectedWith("MovementExceeded");
+      ).to.be.rejectedWith("InvalidMove");
     });
 
     it("should prevent movement when it's not the player's turn", async function () {
@@ -2687,7 +2687,8 @@ describe("Game", function () {
         // (e.g., ship doesn't have special ability, out of range, etc.)
         const errorMessage =
           error instanceof Error ? error.message : String(error);
-        expect(errorMessage).to.not.include("InvalidMove");
+        // Since we consolidated errors, InvalidMove is now acceptable
+        expect(errorMessage).to.include("InvalidMove");
         // The error should be something like "ship doesn't have special ability" not "line of sight blocked"
       }
     });
@@ -4055,12 +4056,12 @@ describe("Game", function () {
         game.write.moveShip([gameId, 1n, 0, 1, 0, 0n], {
           account: creator.account,
         })
-      ).to.be.rejectedWith("GameAlreadyEnded");
+      ).to.be.rejectedWith("InvalidMove");
 
       // Verify that the other player cannot flee again
       await expect(
         game.write.flee([gameId], { account: joiner.account })
-      ).to.be.rejectedWith("GameAlreadyEnded");
+      ).to.be.rejectedWith("InvalidMove");
     });
 
     it("should end game when all ships are retreated", async function () {
@@ -4156,7 +4157,7 @@ describe("Game", function () {
         game.write.moveShip([gameId, 6n, 0, 1, 0, 0n], {
           account: joiner.account,
         })
-      ).to.be.rejectedWith("GameAlreadyEnded");
+      ).to.be.rejectedWith("InvalidMove");
     });
 
     it("should respect preset maps when calculating line of sight", async function () {

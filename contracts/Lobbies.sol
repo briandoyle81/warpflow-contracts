@@ -3,12 +3,15 @@ pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "./Types.sol";
 import "./Ships.sol";
 import "./Game.sol";
 import "./IFleets.sol";
 
 contract Lobbies is Ownable, ReentrancyGuard {
+    using EnumerableSet for EnumerableSet.UintSet;
+
     Ships public ships;
     Game public game;
     IFleets public fleets;
@@ -20,6 +23,10 @@ contract Lobbies is Ownable, ReentrancyGuard {
 
     mapping(uint => Lobby) public lobbies;
     mapping(address => PlayerLobbyState) public playerStates;
+
+    // New mappings for lobby tracking
+    mapping(address => EnumerableSet.UintSet) private playerLobbies;
+    EnumerableSet.UintSet private openLobbyIds;
 
     event LobbyCreated(
         uint indexed lobbyId,
@@ -83,6 +90,38 @@ contract Lobbies is Ownable, ReentrancyGuard {
             l.players.joiner == address(0);
     }
 
+    // Helper functions for set management
+    function _addPlayerToLobby(address _player, uint _lobbyId) internal {
+        playerLobbies[_player].add(_lobbyId);
+    }
+
+    function _removePlayerFromLobby(address _player, uint _lobbyId) internal {
+        playerLobbies[_player].remove(_lobbyId);
+    }
+
+    function _addLobbyToOpenSet(uint _lobbyId) internal {
+        openLobbyIds.add(_lobbyId);
+    }
+
+    function _removeLobbyFromOpenSet(uint _lobbyId) internal {
+        openLobbyIds.remove(_lobbyId);
+    }
+
+    function _cleanupLobbyFromAllSets(uint _lobbyId) internal {
+        Lobby storage lobby = lobbies[_lobbyId];
+
+        // Remove from both players' sets
+        if (lobby.basic.creator != address(0)) {
+            _removePlayerFromLobby(lobby.basic.creator, _lobbyId);
+        }
+        if (lobby.players.joiner != address(0)) {
+            _removePlayerFromLobby(lobby.players.joiner, _lobbyId);
+        }
+
+        // Remove from open set
+        _removeLobbyFromOpenSet(_lobbyId);
+    }
+
     function leaveLobby(uint _lobbyId) public nonReentrant {
         Lobby storage lobby = lobbies[_lobbyId];
         if (lobby.basic.id == 0) revert LobbyNotFound();
@@ -110,14 +149,26 @@ contract Lobbies is Ownable, ReentrancyGuard {
                 joinerState.hasActiveLobby = true;
                 joinerState.activeLobbyId = _lobbyId;
 
+                // Update tracking sets: remove old creator, joiner becomes creator
+                _removePlayerFromLobby(msg.sender, _lobbyId);
+                // Joiner stays in the set, just becomes creator
+                _addLobbyToOpenSet(_lobbyId); // Lobby is open again
+
                 emit LobbyReset(_lobbyId, newCreator);
             } else {
+                // Lobby is completely abandoned, clean up all sets
+                _cleanupLobbyFromAllSets(_lobbyId);
                 emit LobbyAbandoned(_lobbyId, msg.sender);
             }
         } else {
             // If player is joiner, just remove them
             lobby.players.joiner = address(0);
             lobby.state.status = LobbyStatus.Open;
+
+            // Remove joiner from tracking and add lobby back to open set
+            _removePlayerFromLobby(msg.sender, _lobbyId);
+            _addLobbyToOpenSet(_lobbyId);
+
             emit LobbyAbandoned(_lobbyId, msg.sender);
         }
 
@@ -169,6 +220,10 @@ contract Lobbies is Ownable, ReentrancyGuard {
         state.activeLobbyId = lobbyCount;
         state.activeLobbiesCount++;
 
+        // Add to tracking sets
+        _addPlayerToLobby(msg.sender, lobbyCount);
+        _addLobbyToOpenSet(lobbyCount);
+
         emit LobbyCreated(
             lobbyCount,
             msg.sender,
@@ -205,6 +260,10 @@ contract Lobbies is Ownable, ReentrancyGuard {
         state.activeLobbyId = _lobbyId;
         state.activeLobbiesCount++;
 
+        // Add joiner to lobby tracking and remove from open set
+        _addPlayerToLobby(msg.sender, _lobbyId);
+        _removeLobbyFromOpenSet(_lobbyId);
+
         emit PlayerJoinedLobby(_lobbyId, msg.sender);
     }
 
@@ -230,6 +289,10 @@ contract Lobbies is Ownable, ReentrancyGuard {
         joinerState.lastKickTime = block.timestamp;
         joinerState.hasActiveLobby = false;
         joinerState.activeLobbyId = 0;
+
+        // Remove joiner from tracking and add lobby back to open set
+        _removePlayerFromLobby(lobby.players.joiner, _lobbyId);
+        _addLobbyToOpenSet(_lobbyId);
 
         // Reset lobby state
         lobby.players.joiner = address(0);
@@ -317,6 +380,9 @@ contract Lobbies is Ownable, ReentrancyGuard {
             joinerState.hasActiveLobby = false;
             joinerState.activeLobbyId = 0;
 
+            // Remove from tracking sets when game starts
+            _cleanupLobbyFromAllSets(_lobbyId);
+
             // Start the game
             game.startGame(
                 _lobbyId,
@@ -366,6 +432,11 @@ contract Lobbies is Ownable, ReentrancyGuard {
         joinerState.hasActiveLobby = false;
         joinerState.activeLobbyId = 0;
 
+        // Remove both players from tracking and add lobby back to open set
+        _removePlayerFromLobby(lobby.basic.creator, _lobbyId);
+        _removePlayerFromLobby(lobby.players.joiner, _lobbyId);
+        _addLobbyToOpenSet(_lobbyId);
+
         // Reset lobby state
         lobby.players.joiner = address(0);
         lobby.state.status = LobbyStatus.Open;
@@ -410,5 +481,45 @@ contract Lobbies is Ownable, ReentrancyGuard {
         PlayerLobbyState storage state = playerStates[_player];
         if (state.kickCount == 0) return 0;
         return state.lastKickTime + (state.kickCount * KICK_PENALTY_PER_HOUR);
+    }
+
+    // New view functions for lobby tracking
+    function getPlayerLobbies(
+        address _player
+    ) public view returns (uint[] memory) {
+        return playerLobbies[_player].values();
+    }
+
+    function getOpenLobbies() public view returns (uint[] memory) {
+        return openLobbyIds.values();
+    }
+
+    function getLobbiesFromIds(
+        uint[] calldata _lobbyIds
+    ) public view returns (Lobby[] memory) {
+        Lobby[] memory result = new Lobby[](_lobbyIds.length);
+        for (uint i = 0; i < _lobbyIds.length; i++) {
+            result[i] = lobbies[_lobbyIds[i]];
+        }
+        return result;
+    }
+
+    function getPlayerLobbyCount(address _player) public view returns (uint) {
+        return playerLobbies[_player].length();
+    }
+
+    function getOpenLobbyCount() public view returns (uint) {
+        return openLobbyIds.length();
+    }
+
+    function isPlayerInLobby(
+        address _player,
+        uint _lobbyId
+    ) public view returns (bool) {
+        return playerLobbies[_player].contains(_lobbyId);
+    }
+
+    function isLobbyOpen(uint _lobbyId) public view returns (bool) {
+        return openLobbyIds.contains(_lobbyId);
     }
 }

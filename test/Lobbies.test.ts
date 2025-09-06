@@ -826,4 +826,409 @@ describe("Lobbies", function () {
         .rejected;
     });
   });
+
+  describe("Lobby Tracking Functions", function () {
+    it("should track player lobbies correctly", async function () {
+      const { creatorLobbies, joinerLobbies, creator, joiner } =
+        await loadFixture(deployLobbiesFixture);
+
+      // Initially no lobbies
+      let creatorLobbyIds = await creatorLobbies.read.getPlayerLobbies([
+        creator.account.address,
+      ]);
+      let joinerLobbyIds = await joinerLobbies.read.getPlayerLobbies([
+        joiner.account.address,
+      ]);
+      expect(creatorLobbyIds.length).to.equal(0);
+      expect(joinerLobbyIds.length).to.equal(0);
+
+      // Creator creates a lobby
+      await creatorLobbies.write.createLobby([1000n, 300n, true, 0n, 100n]);
+
+      // Check creator has the lobby
+      creatorLobbyIds = await creatorLobbies.read.getPlayerLobbies([
+        creator.account.address,
+      ]);
+      expect(creatorLobbyIds.length).to.equal(1);
+      expect(creatorLobbyIds[0]).to.equal(1n);
+
+      // Check joiner still has no lobbies
+      joinerLobbyIds = await joinerLobbies.read.getPlayerLobbies([
+        joiner.account.address,
+      ]);
+      expect(joinerLobbyIds.length).to.equal(0);
+
+      // Joiner joins the lobby
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Check both players now have the lobby
+      creatorLobbyIds = await creatorLobbies.read.getPlayerLobbies([
+        creator.account.address,
+      ]);
+      joinerLobbyIds = await joinerLobbies.read.getPlayerLobbies([
+        joiner.account.address,
+      ]);
+      expect(creatorLobbyIds.length).to.equal(1);
+      expect(joinerLobbyIds.length).to.equal(1);
+      expect(creatorLobbyIds[0]).to.equal(1n);
+      expect(joinerLobbyIds[0]).to.equal(1n);
+    });
+
+    it("should track open lobbies correctly", async function () {
+      const { creatorLobbies, joinerLobbies, otherLobbies } = await loadFixture(
+        deployLobbiesFixture
+      );
+
+      // Initially no open lobbies
+      let openLobbyIds = await creatorLobbies.read.getOpenLobbies();
+      expect(openLobbyIds.length).to.equal(0);
+
+      // Creator creates a lobby
+      await creatorLobbies.write.createLobby([1000n, 300n, true, 0n, 100n]);
+
+      // Check lobby is open
+      openLobbyIds = await creatorLobbies.read.getOpenLobbies();
+      expect(openLobbyIds.length).to.equal(1);
+      expect(openLobbyIds[0]).to.equal(1n);
+
+      // Joiner joins the lobby
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Check lobby is no longer open
+      openLobbyIds = await creatorLobbies.read.getOpenLobbies();
+      expect(openLobbyIds.length).to.equal(0);
+
+      // Create another lobby
+      await otherLobbies.write.createLobby([2000n, 300n, true, 0n, 100n]);
+
+      // Check new lobby is open
+      openLobbyIds = await creatorLobbies.read.getOpenLobbies();
+      expect(openLobbyIds.length).to.equal(1);
+      expect(openLobbyIds[0]).to.equal(2n);
+    });
+
+    it("should handle creator leaving lobby with joiner", async function () {
+      const { creatorLobbies, joinerLobbies, creator, joiner } =
+        await loadFixture(deployLobbiesFixture);
+
+      // Create and join lobby
+      await creatorLobbies.write.createLobby([1000n, 300n, true, 0n, 100n]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Creator leaves lobby
+      await creatorLobbies.write.leaveLobby([1n]);
+
+      // Check joiner becomes creator and lobby is open again
+      const lobby = await creatorLobbies.read.getLobby([1n]);
+      expect(lobby.basic.creator.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
+      );
+      expect(lobby.players.joiner).to.equal(zeroAddress);
+      expect(lobby.state.status).to.equal(LobbyStatus.Open);
+
+      // Check tracking sets
+      const creatorLobbyIds = await creatorLobbies.read.getPlayerLobbies([
+        creator.account.address,
+      ]);
+      const joinerLobbyIds = await joinerLobbies.read.getPlayerLobbies([
+        joiner.account.address,
+      ]);
+      const openLobbyIds = await creatorLobbies.read.getOpenLobbies();
+
+      expect(creatorLobbyIds.length).to.equal(0);
+      expect(joinerLobbyIds.length).to.equal(1);
+      expect(openLobbyIds.length).to.equal(1);
+      expect(openLobbyIds[0]).to.equal(1n);
+    });
+
+    it("should handle creator leaving lobby alone", async function () {
+      const { creatorLobbies, creator } = await loadFixture(
+        deployLobbiesFixture
+      );
+
+      // Create lobby
+      await creatorLobbies.write.createLobby([1000n, 300n, true, 0n, 100n]);
+
+      // Creator leaves lobby
+      await creatorLobbies.write.leaveLobby([1n]);
+
+      // Check lobby is cleaned up
+      const creatorLobbyIds = await creatorLobbies.read.getPlayerLobbies([
+        creator.account.address,
+      ]);
+      const openLobbyIds = await creatorLobbies.read.getOpenLobbies();
+
+      expect(creatorLobbyIds.length).to.equal(0);
+      expect(openLobbyIds.length).to.equal(0);
+    });
+
+    it("should handle joiner leaving lobby", async function () {
+      const { creatorLobbies, joinerLobbies, creator, joiner } =
+        await loadFixture(deployLobbiesFixture);
+
+      // Create and join lobby
+      await creatorLobbies.write.createLobby([1000n, 300n, true, 0n, 100n]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Joiner leaves lobby
+      await joinerLobbies.write.leaveLobby([1n]);
+
+      // Check lobby is open again
+      const lobby = await creatorLobbies.read.getLobby([1n]);
+      expect(lobby.players.joiner).to.equal(zeroAddress);
+      expect(lobby.state.status).to.equal(LobbyStatus.Open);
+
+      // Check tracking sets
+      const creatorLobbyIds = await creatorLobbies.read.getPlayerLobbies([
+        creator.account.address,
+      ]);
+      const joinerLobbyIds = await joinerLobbies.read.getPlayerLobbies([
+        joiner.account.address,
+      ]);
+      const openLobbyIds = await creatorLobbies.read.getOpenLobbies();
+
+      expect(creatorLobbyIds.length).to.equal(1);
+      expect(joinerLobbyIds.length).to.equal(0);
+      expect(openLobbyIds.length).to.equal(1);
+      expect(openLobbyIds[0]).to.equal(1n);
+    });
+
+    it("should handle joiner timeout", async function () {
+      const { creatorLobbies, joinerLobbies, creator, joiner } =
+        await loadFixture(deployLobbiesFixture);
+
+      // Create and join lobby
+      await creatorLobbies.write.createLobby([1000n, 300n, true, 0n, 100n]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Wait for timeout and timeout joiner
+      await hre.network.provider.send("evm_increaseTime", [400]); // 400 seconds later
+      await hre.network.provider.send("evm_mine");
+      await creatorLobbies.write.timeoutJoiner([1n]);
+
+      // Check lobby is open again
+      const lobby = await creatorLobbies.read.getLobby([1n]);
+      expect(lobby.players.joiner).to.equal(zeroAddress);
+      expect(lobby.state.status).to.equal(LobbyStatus.Open);
+
+      // Check tracking sets
+      const creatorLobbyIds = await creatorLobbies.read.getPlayerLobbies([
+        creator.account.address,
+      ]);
+      const joinerLobbyIds = await joinerLobbies.read.getPlayerLobbies([
+        joiner.account.address,
+      ]);
+      const openLobbyIds = await creatorLobbies.read.getOpenLobbies();
+
+      expect(creatorLobbyIds.length).to.equal(1);
+      expect(joinerLobbyIds.length).to.equal(0);
+      expect(openLobbyIds.length).to.equal(1);
+      expect(openLobbyIds[0]).to.equal(1n);
+    });
+
+    it("should handle quit with penalty", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        randomManager,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Fulfill random requests and construct ships
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create and join lobby
+      await creatorLobbies.write.createLobby([1000n, 300n, true, 0n, 100n]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleet for joiner
+      await joinerLobbies.write.createFleet([1n, [6n]]);
+
+      // Wait for timeout and quit with penalty
+      await hre.network.provider.send("evm_increaseTime", [400]); // 400 seconds later
+      await hre.network.provider.send("evm_mine");
+      await joinerLobbies.write.quitWithPenalty([1n]);
+
+      // Check lobby is open again
+      const lobby = await creatorLobbies.read.getLobby([1n]);
+      expect(lobby.players.joiner).to.equal(zeroAddress);
+      expect(lobby.state.status).to.equal(LobbyStatus.Open);
+
+      // Check tracking sets
+      const creatorLobbyIds = await creatorLobbies.read.getPlayerLobbies([
+        creator.account.address,
+      ]);
+      const joinerLobbyIds = await joinerLobbies.read.getPlayerLobbies([
+        joiner.account.address,
+      ]);
+      const openLobbyIds = await creatorLobbies.read.getOpenLobbies();
+
+      expect(creatorLobbyIds.length).to.equal(0);
+      expect(joinerLobbyIds.length).to.equal(0);
+      expect(openLobbyIds.length).to.equal(1);
+      expect(openLobbyIds[0]).to.equal(1n);
+    });
+
+    it("should clean up when game starts", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        randomManager,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Fulfill random requests and construct ships
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create and join lobby
+      await creatorLobbies.write.createLobby([1000n, 300n, true, 0n, 100n]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets to start game
+      await creatorLobbies.write.createFleet([1n, [1n]]);
+      await joinerLobbies.write.createFleet([1n, [6n]]);
+
+      // Check tracking sets are cleaned up
+      const creatorLobbyIds = await creatorLobbies.read.getPlayerLobbies([
+        creator.account.address,
+      ]);
+      const joinerLobbyIds = await joinerLobbies.read.getPlayerLobbies([
+        joiner.account.address,
+      ]);
+      const openLobbyIds = await creatorLobbies.read.getOpenLobbies();
+
+      expect(creatorLobbyIds.length).to.equal(0);
+      expect(joinerLobbyIds.length).to.equal(0);
+      expect(openLobbyIds.length).to.equal(0);
+    });
+
+    it("should provide correct lobby counts", async function () {
+      const { creatorLobbies, joinerLobbies, otherLobbies, creator, joiner } =
+        await loadFixture(deployLobbiesFixture);
+
+      // Initially no lobbies
+      expect(
+        await creatorLobbies.read.getPlayerLobbyCount([creator.account.address])
+      ).to.equal(0n);
+      expect(await creatorLobbies.read.getOpenLobbyCount()).to.equal(0n);
+
+      // Create first lobby
+      await creatorLobbies.write.createLobby([1000n, 300n, true, 0n, 100n]);
+
+      expect(
+        await creatorLobbies.read.getPlayerLobbyCount([creator.account.address])
+      ).to.equal(1n);
+      expect(await creatorLobbies.read.getOpenLobbyCount()).to.equal(1n);
+
+      // Join lobby
+      await joinerLobbies.write.joinLobby([1n]);
+
+      expect(
+        await creatorLobbies.read.getPlayerLobbyCount([creator.account.address])
+      ).to.equal(1n);
+      expect(
+        await joinerLobbies.read.getPlayerLobbyCount([joiner.account.address])
+      ).to.equal(1n);
+      expect(await creatorLobbies.read.getOpenLobbyCount()).to.equal(0n);
+
+      // Create second lobby
+      await otherLobbies.write.createLobby([2000n, 300n, true, 0n, 100n]);
+
+      expect(await creatorLobbies.read.getOpenLobbyCount()).to.equal(1n);
+    });
+
+    it("should check lobby membership correctly", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        otherLobbies,
+        creator,
+        joiner,
+        other,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Create and join lobby
+      await creatorLobbies.write.createLobby([1000n, 300n, true, 0n, 100n]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Check membership
+      expect(
+        await creatorLobbies.read.isPlayerInLobby([creator.account.address, 1n])
+      ).to.be.true;
+      expect(
+        await joinerLobbies.read.isPlayerInLobby([joiner.account.address, 1n])
+      ).to.be.true;
+      expect(
+        await otherLobbies.read.isPlayerInLobby([other.account.address, 1n])
+      ).to.be.false;
+
+      // Check lobby openness
+      expect(await creatorLobbies.read.isLobbyOpen([1n])).to.be.false;
+
+      // Create another lobby
+      await otherLobbies.write.createLobby([2000n, 300n, true, 0n, 100n]);
+
+      expect(await creatorLobbies.read.isLobbyOpen([2n])).to.be.true;
+    });
+
+    it("should get lobbies from IDs correctly", async function () {
+      const { creatorLobbies, joinerLobbies, otherLobbies } = await loadFixture(
+        deployLobbiesFixture
+      );
+
+      // Create multiple lobbies
+      await creatorLobbies.write.createLobby([1000n, 300n, true, 0n, 100n]);
+      await otherLobbies.write.createLobby([2000n, 300n, true, 0n, 100n]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Get lobbies by IDs
+      const lobbies = await creatorLobbies.read.getLobbiesFromIds([[1n, 2n]]);
+
+      expect(lobbies.length).to.equal(2);
+      expect(lobbies[0].basic.id).to.equal(1n);
+      expect(lobbies[0].basic.costLimit).to.equal(1000n);
+      expect(lobbies[1].basic.id).to.equal(2n);
+      expect(lobbies[1].basic.costLimit).to.equal(2000n);
+    });
+  });
 });

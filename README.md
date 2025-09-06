@@ -14,3 +14,6 @@ TODO:
 
 Pay UTC to winner of games
 Add property of unsellable to NFTs as a trait and add that to image.
+Ships that are destroyed should be recycled for 1/2 or 1/4 utc
+Winner of a game should get 1/2 or 1/4 UTC of recycle amount for enemy ships destroyed in game
+Limit fleet max cost

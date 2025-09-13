@@ -137,6 +137,12 @@ contract Lobbies is Ownable, ReentrancyGuard {
 
         // If player is creator, delete the lobby
         if (msg.sender == lobby.basic.creator) {
+            // Clear creator's fleet if they have one
+            if (lobby.players.creatorFleetId != 0) {
+                fleets.clearFleet(lobby.players.creatorFleetId);
+                lobby.players.creatorFleetId = 0;
+            }
+
             // If joiner exists, they become the new creator
             if (lobby.players.joiner != address(0)) {
                 address newCreator = lobby.players.joiner;
@@ -162,6 +168,12 @@ contract Lobbies is Ownable, ReentrancyGuard {
             }
         } else {
             // If player is joiner, just remove them
+            // Clear joiner's fleet if they have one
+            if (lobby.players.joinerFleetId != 0) {
+                fleets.clearFleet(lobby.players.joinerFleetId);
+                lobby.players.joinerFleetId = 0;
+            }
+
             lobby.players.joiner = address(0);
             lobby.state.status = LobbyStatus.Open;
 

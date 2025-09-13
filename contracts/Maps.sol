@@ -55,15 +55,49 @@ contract Maps is Ownable {
     }
 
     /**
-     * @dev Create a new preset map
+     * @dev Create a new preset map with both blocked and scoring tiles
+     * @param _blockedPositions Array of blocked positions
+     * @param _scoringPositions Array of scoring positions with point values
+     */
+    function createPresetMap(
+        Position[] memory _blockedPositions,
+        ScoringPosition[] memory _scoringPositions
+    ) external onlyOwner {
+        _createPresetMapInternal(_blockedPositions, _scoringPositions);
+    }
+
+    /**
+     * @dev Create a new preset map with only blocked positions
      * @param _blockedPositions Array of blocked positions
      */
     function createPresetMap(
-        Position[] calldata _blockedPositions
+        Position[] memory _blockedPositions
     ) external onlyOwner {
+        _createPresetMapInternal(_blockedPositions, new ScoringPosition[](0));
+    }
+
+    /**
+     * @dev Create a new preset map with only scoring positions
+     * @param _scoringPositions Array of scoring positions with point values
+     */
+    function createPresetScoringMap(
+        ScoringPosition[] memory _scoringPositions
+    ) external onlyOwner {
+        _createPresetMapInternal(new Position[](0), _scoringPositions);
+    }
+
+    /**
+     * @dev Internal function to create a preset map with both blocked and scoring tiles
+     * @param _blockedPositions Array of blocked positions
+     * @param _scoringPositions Array of scoring positions with point values
+     */
+    function _createPresetMapInternal(
+        Position[] memory _blockedPositions,
+        ScoringPosition[] memory _scoringPositions
+    ) internal {
         mapCount++;
 
-        // Validate all positions and set blocked positions
+        // Set blocked positions
         for (uint i = 0; i < _blockedPositions.length; i++) {
             Position memory pos = _blockedPositions[i];
             if (
@@ -76,18 +110,8 @@ contract Maps is Ownable {
             }
             presetBlockedMaps[mapCount][pos.row][pos.col] = true;
         }
-    }
 
-    /**
-     * @dev Create a new preset scoring map
-     * @param _scoringPositions Array of scoring positions with point values
-     */
-    function createPresetScoringMap(
-        ScoringPosition[] calldata _scoringPositions
-    ) external onlyOwner {
-        mapCount++;
-
-        // Validate all positions and set scoring positions
+        // Set scoring positions
         for (uint i = 0; i < _scoringPositions.length; i++) {
             ScoringPosition memory pos = _scoringPositions[i];
             if (
@@ -170,40 +194,6 @@ contract Maps is Ownable {
             }
             presetScoringMaps[_mapId][pos.row][pos.col] = pos.points;
             presetOnlyOnceMaps[_mapId][pos.row][pos.col] = pos.onlyOnce;
-        }
-    }
-
-    /**
-     * @dev Delete a preset map
-     * @param _mapId The map ID to delete
-     */
-    function deletePresetMap(uint _mapId) external onlyOwner {
-        if (_mapId == 0 || _mapId > mapCount) revert MapNotFound();
-
-        // Note: We don't need to clear the maps explicitly since mappings default to false
-        // The map will effectively be "deleted" as all positions default to false
-        // This is more gas-efficient than clearing the entire grid
-
-        // If this was the last map, decrement the counter
-        if (_mapId == mapCount) {
-            mapCount--;
-        }
-    }
-
-    /**
-     * @dev Delete a preset scoring map
-     * @param _mapId The map ID to delete
-     */
-    function deletePresetScoringMap(uint _mapId) external onlyOwner {
-        if (_mapId == 0 || _mapId > mapCount) revert MapNotFound();
-
-        // Note: We don't need to clear the maps explicitly since mappings default to false
-        // The map will effectively be "deleted" as all positions default to false
-        // This is more gas-efficient than clearing the entire grid
-
-        // If this was the last map, decrement the counter
-        if (_mapId == mapCount) {
-            mapCount--;
         }
     }
 

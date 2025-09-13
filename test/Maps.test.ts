@@ -98,8 +98,8 @@ describe("Line of Sight System", function () {
       const gridWidth = await maps.read.GRID_WIDTH();
       const gridHeight = await maps.read.GRID_HEIGHT();
 
-      expect(gridWidth).to.equal(100);
-      expect(gridHeight).to.equal(50);
+      expect(gridWidth).to.equal(60);
+      expect(gridHeight).to.equal(40);
     });
 
     it("Should allow owner to set blocked tiles", async function () {
@@ -678,7 +678,7 @@ describe("Line of Sight System", function () {
     it("Should handle long horizontal line", async function () {
       const gameId = 1;
       const startPos: [number, number] = [25, 0];
-      const endPos: [number, number] = [25, 99]; // Full width of grid
+      const endPos: [number, number] = [25, 59]; // Full width of grid
 
       const hasLOS = await maps.read.hasMaps([
         BigInt(gameId),
@@ -688,14 +688,14 @@ describe("Line of Sight System", function () {
         endPos[1],
       ]);
 
-      console.log(createGridDiagram(100, 50, startPos, endPos, [], hasLOS));
+      console.log(createGridDiagram(60, 40, startPos, endPos, [], hasLOS));
       expect(hasLOS).to.be.true;
     });
 
     it("Should handle long vertical line", async function () {
       const gameId = 1;
-      const startPos: [number, number] = [0, 50];
-      const endPos: [number, number] = [49, 50]; // Full height of grid
+      const startPos: [number, number] = [0, 30];
+      const endPos: [number, number] = [39, 30]; // Full height of grid
 
       const hasLOS = await maps.read.hasMaps([
         BigInt(gameId),
@@ -705,14 +705,14 @@ describe("Line of Sight System", function () {
         endPos[1],
       ]);
 
-      console.log(createGridDiagram(100, 50, startPos, endPos, [], hasLOS));
+      console.log(createGridDiagram(60, 40, startPos, endPos, [], hasLOS));
       expect(hasLOS).to.be.true;
     });
 
     it("Should handle long diagonal line", async function () {
       const gameId = 1;
       const startPos: [number, number] = [0, 0];
-      const endPos: [number, number] = [49, 49]; // Full diagonal
+      const endPos: [number, number] = [39, 39]; // Full diagonal
 
       const hasLOS = await maps.read.hasMaps([
         BigInt(gameId),
@@ -722,7 +722,7 @@ describe("Line of Sight System", function () {
         endPos[1],
       ]);
 
-      console.log(createGridDiagram(100, 50, startPos, endPos, [], hasLOS));
+      console.log(createGridDiagram(60, 40, startPos, endPos, [], hasLOS));
       expect(hasLOS).to.be.true;
     });
 
@@ -1404,7 +1404,7 @@ describe("Line of Sight System", function () {
 
       it("Should revert when creating preset scoring map with invalid positions", async function () {
         const invalidPositions = [
-          { row: 100, col: 50, points: 1, onlyOnce: false },
+          { row: 60, col: 40, points: 1, onlyOnce: false },
         ];
 
         await expect(

@@ -27,8 +27,8 @@ contract Game is Ownable {
     mapping(uint target => uint lastDamager) public lastDamage;
 
     // Grid constants
-    int16 public constant GRID_WIDTH = 100; // Number of columns
-    int16 public constant GRID_HEIGHT = 50; // Number of rows
+    int16 public constant GRID_WIDTH = 60; // Number of columns
+    int16 public constant GRID_HEIGHT = 40; // Number of rows
 
     event GameStarted(
         uint indexed gameId,
@@ -183,7 +183,7 @@ contract Game is Ownable {
         uint joinerShipCount = EnumerableSet.length(joinerShipIds);
         for (uint i = 0; i < joinerShipCount; i++) {
             uint shipId = EnumerableSet.at(joinerShipIds, i);
-            int16 row = int16(uint16(GRID_HEIGHT - 1 - int16(uint16(i * 2)))); // Skip a row between each ship (rows 49, 47, 45, ...)
+            int16 row = int16(uint16(GRID_HEIGHT - 1 - int16(uint16(i * 2)))); // Skip a row between each ship (rows 39, 37, 35, ...)
             _placeShipOnGrid(_gameId, shipId, row, GRID_WIDTH - 1);
         }
     }

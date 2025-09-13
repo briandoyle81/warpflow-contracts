@@ -360,6 +360,13 @@ contract Lobbies is Ownable, ReentrancyGuard {
             lobby.state.gameStartedAt = block.timestamp;
             emit GameStarted(_lobbyId);
 
+            // Remove lobby from both players' tracking sets
+            _removePlayerFromLobby(lobby.basic.creator, _lobbyId);
+            _removePlayerFromLobby(lobby.players.joiner, _lobbyId);
+
+            // Remove from open lobbies set
+            _removeLobbyFromOpenSet(_lobbyId);
+
             // Decrement active lobbies count for both players
             PlayerLobbyState storage creatorState = playerStates[
                 lobby.basic.creator
@@ -521,5 +528,25 @@ contract Lobbies is Ownable, ReentrancyGuard {
 
     function isLobbyOpen(uint _lobbyId) public view returns (bool) {
         return openLobbyIds.contains(_lobbyId);
+    }
+
+    // This function will have dupes that must be
+    // filtered on the client sided
+    function getAllLobbiesForPlayerWithDupes(
+        address _player
+    ) public view returns (Lobby[] memory) {
+        EnumerableSet.UintSet storage playerLobbyIds = playerLobbies[_player];
+        EnumerableSet.UintSet storage openLobbies = openLobbyIds;
+
+        Lobby[] memory result = new Lobby[](
+            playerLobbyIds.length() + openLobbies.length()
+        );
+        for (uint i = 0; i < playerLobbyIds.length(); i++) {
+            result[i] = lobbies[playerLobbyIds.at(i)];
+        }
+        for (uint i = 0; i < openLobbies.length(); i++) {
+            result[playerLobbyIds.length() + i] = lobbies[openLobbies.at(i)];
+        }
+        return result;
     }
 }

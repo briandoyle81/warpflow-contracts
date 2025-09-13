@@ -948,6 +948,111 @@ describe("Line of Sight System", function () {
           })
         ).to.be.rejected;
       });
+
+      it("Should allow owner to update map with both blocked and scoring tiles", async function () {
+        // Create initial map with some tiles
+        const initialBlocked = [{ row: 5, col: 5 }];
+        const initialScoring = [
+          { row: 10, col: 10, points: 5, onlyOnce: false },
+        ];
+        await maps.write.createPresetMap([initialBlocked, initialScoring], {
+          account: owner.address,
+        });
+
+        const mapId = await maps.read.mapCount();
+
+        // Update with new blocked and scoring tiles
+        const newBlocked = [
+          { row: 15, col: 15 },
+          { row: 20, col: 20 },
+        ];
+        const newScoring = [
+          { row: 25, col: 25, points: 10, onlyOnce: true },
+          { row: 30, col: 30, points: 15, onlyOnce: false },
+        ];
+
+        await maps.write.updatePresetMap([mapId, newBlocked, newScoring], {
+          account: owner.address,
+        });
+
+        // Verify old tiles are cleared
+        const retrievedBlocked = await maps.read.getPresetMap([mapId]);
+        const retrievedScoring = await maps.read.getPresetScoringMap([mapId]);
+
+        expect(retrievedBlocked).to.have.length(2);
+        expect(retrievedBlocked[0]).to.deep.equal({ row: 15, col: 15 });
+        expect(retrievedBlocked[1]).to.deep.equal({ row: 20, col: 20 });
+
+        expect(retrievedScoring).to.have.length(2);
+        expect(retrievedScoring[0]).to.deep.equal({
+          row: 25,
+          col: 25,
+          points: 10,
+          onlyOnce: true,
+        });
+        expect(retrievedScoring[1]).to.deep.equal({
+          row: 30,
+          col: 30,
+          points: 15,
+          onlyOnce: false,
+        });
+      });
+
+      it("Should allow owner to update map with only blocked tiles", async function () {
+        // Create initial map
+        const initialBlocked = [{ row: 5, col: 5 }];
+        await maps.write.createPresetMap([initialBlocked], {
+          account: owner.address,
+        });
+
+        const mapId = await maps.read.mapCount();
+
+        // Update with new blocked tiles only
+        const newBlocked = [
+          { row: 15, col: 15 },
+          { row: 20, col: 20 },
+        ];
+
+        await maps.write.updatePresetMap([mapId, newBlocked, []], {
+          account: owner.address,
+        });
+
+        // Verify update
+        const retrievedBlocked = await maps.read.getPresetMap([mapId]);
+        const retrievedScoring = await maps.read.getPresetScoringMap([mapId]);
+
+        expect(retrievedBlocked).to.have.length(2);
+        expect(retrievedScoring).to.have.length(0);
+      });
+
+      it("Should allow owner to update map with only scoring tiles", async function () {
+        // Create initial map
+        const initialScoring = [
+          { row: 10, col: 10, points: 5, onlyOnce: false },
+        ];
+        await maps.write.createPresetScoringMap([initialScoring], {
+          account: owner.address,
+        });
+
+        const mapId = await maps.read.mapCount();
+
+        // Update with new scoring tiles only
+        const newScoring = [
+          { row: 25, col: 25, points: 10, onlyOnce: true },
+          { row: 30, col: 30, points: 15, onlyOnce: false },
+        ];
+
+        await maps.write.updatePresetMap([mapId, [], newScoring], {
+          account: owner.address,
+        });
+
+        // Verify update
+        const retrievedBlocked = await maps.read.getPresetMap([mapId]);
+        const retrievedScoring = await maps.read.getPresetScoringMap([mapId]);
+
+        expect(retrievedBlocked).to.have.length(0);
+        expect(retrievedScoring).to.have.length(2);
+      });
     });
 
     describe("Map Application to Games", function () {
@@ -1040,6 +1145,72 @@ describe("Line of Sight System", function () {
         // No maps created yet
         expect(await maps.read.mapExists([1])).to.be.false;
         expect(await maps.read.mapExists([0])).to.be.false;
+      });
+    });
+
+    describe("Get All Preset Maps", function () {
+      it("Should return all preset map IDs", async function () {
+        // Create first map with both blocked and scoring tiles
+        const blockedPositions1 = [
+          { row: 5, col: 5 },
+          { row: 6, col: 6 },
+        ];
+        const scoringPositions1 = [
+          { row: 10, col: 10, points: 5, onlyOnce: false },
+        ];
+        await maps.write.createPresetMap(
+          [blockedPositions1, scoringPositions1],
+          {
+            account: owner.address,
+          }
+        );
+
+        // Create second map with only blocked tiles
+        const blockedPositions2 = [{ row: 15, col: 15 }];
+        await maps.write.createPresetMap([blockedPositions2], {
+          account: owner.address,
+        });
+
+        // Create third map with only scoring tiles
+        const scoringPositions3 = [
+          { row: 20, col: 20, points: 10, onlyOnce: true },
+          { row: 21, col: 21, points: 15, onlyOnce: false },
+        ];
+        await maps.write.createPresetScoringMap([scoringPositions3], {
+          account: owner.address,
+        });
+
+        // Get all map IDs
+        const mapIds = await maps.read.getAllPresetMapIds();
+
+        // Verify we have 3 maps
+        expect(mapIds).to.have.length(3);
+
+        // Verify map IDs
+        expect(mapIds[0]).to.equal(1n);
+        expect(mapIds[1]).to.equal(2n);
+        expect(mapIds[2]).to.equal(3n);
+
+        // Verify individual maps can be retrieved
+        const map1Blocked = await maps.read.getPresetMap([1n]);
+        const map1Scoring = await maps.read.getPresetScoringMap([1n]);
+        expect(map1Blocked).to.have.length(2);
+        expect(map1Scoring).to.have.length(1);
+
+        const map2Blocked = await maps.read.getPresetMap([2n]);
+        const map2Scoring = await maps.read.getPresetScoringMap([2n]);
+        expect(map2Blocked).to.have.length(1);
+        expect(map2Scoring).to.have.length(0);
+
+        const map3Blocked = await maps.read.getPresetMap([3n]);
+        const map3Scoring = await maps.read.getPresetScoringMap([3n]);
+        expect(map3Blocked).to.have.length(0);
+        expect(map3Scoring).to.have.length(2);
+      });
+
+      it("Should return empty array when no maps exist", async function () {
+        const mapIds = await maps.read.getAllPresetMapIds();
+        expect(mapIds).to.have.length(0);
       });
     });
 

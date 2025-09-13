@@ -12,7 +12,6 @@ npx hardhat ignition deploy ignition/modules/DeployAndConfig.ts --network flow-t
 
 TODO:
 
-CRITICAL: Creating preset maps need to create scoring and blocking at the same time
 Allow third party map creation for 50+ flow and allow payments to map creators (probably as voluntary tips). DONT GENERATE UTC HERE - EXPLOITABLE
 Pay UTC to winner of games
 Add property of unsellable to NFTs as a trait and add that to image.

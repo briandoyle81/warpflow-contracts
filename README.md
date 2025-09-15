@@ -10,8 +10,13 @@ Thanks!
 
 npx hardhat ignition deploy ignition/modules/DeployAndConfig.ts --network flow-testnet --verify
 
+DON'T FORGET TO SET SHIPNAMES APPROPRIATELY!
+
 TODO:
 
+CRITICAL: Make sure repair drones reactivate ships
+CRITICAL: Put rank in json metadata and on image
+CRITICAL: Find a way to show hull trait
 Allow third party map creation for 50+ flow and allow payments to map creators (probably as voluntary tips). DONT GENERATE UTC HERE - EXPLOITABLE
 Pay UTC to winner of games
 Add property of unsellable to NFTs as a trait and add that to image.
@@ -20,3 +25,4 @@ Winner of a game should get 1/2 or 1/4 UTC of recycle amount for enemy ships des
 Limit fleet max cost
 Enforce minimum fleet size
 Decide if players should be able to cancel fleet before other submits
+The creator should probably be allowed to set their fleet without a joiner

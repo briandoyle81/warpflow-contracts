@@ -885,63 +885,61 @@ contract Game is Ownable {
             Special.FlakArray
         );
 
-        // Get both fleet ship IDs to check all ships
-        EnumerableSet.UintSet storage creatorShipIds = game.playerActiveShipIds[
-            game.metadata.creator
-        ];
-        EnumerableSet.UintSet storage joinerShipIds = game.playerActiveShipIds[
-            game.metadata.joiner
-        ];
+        // Process both fleets using the same logic
+        _processFlakArrayForFleet(
+            _gameId,
+            _shipId,
+            _newRow,
+            _newCol,
+            flakRange,
+            flakStrength,
+            game.playerActiveShipIds[game.metadata.creator]
+        );
+        _processFlakArrayForFleet(
+            _gameId,
+            _shipId,
+            _newRow,
+            _newCol,
+            flakRange,
+            flakStrength,
+            game.playerActiveShipIds[game.metadata.joiner]
+        );
+    }
 
-        // Check all creator ships
-        uint creatorShipCount = EnumerableSet.length(creatorShipIds);
-        for (uint i = 0; i < creatorShipCount; i++) {
-            uint shipId = EnumerableSet.at(creatorShipIds, i);
-            Ship memory ship = ships.getShip(shipId);
+    // Helper function to process flak array damage for a single fleet
+    function _processFlakArrayForFleet(
+        uint _gameId,
+        uint _shipId,
+        int16 _newRow,
+        int16 _newCol,
+        uint8 flakRange,
+        uint8 flakStrength,
+        EnumerableSet.UintSet storage shipIds
+    ) internal {
+        GameData storage game = games[_gameId];
+        uint shipCount = EnumerableSet.length(shipIds);
+        Position memory flakPos = Position(_newRow, _newCol);
 
-            // Skip destroyed ships
-            if (ship.shipData.timestampDestroyed != 0) continue;
-
-            // Skip ships with 0 hull points (treat same as destroyed)
-            if (game.shipAttributes[shipId].hullPoints == 0) continue;
-
-            // Check if ship is within range
-            Position storage shipPos = game.shipPositions[shipId];
-            Position memory flakPos = Position(_newRow, _newCol);
-            uint8 distance = _manhattanDistance(flakPos, shipPos);
-
-            if (distance <= flakRange && shipId != _shipId) {
-                lastDamage[shipId] = _shipId;
-                // Apply damage to this ship (but not the ship using the FlakArray)
-                Attributes storage shipAttrs = game.shipAttributes[shipId];
-                if (flakStrength >= shipAttrs.hullPoints) {
-                    shipAttrs.hullPoints = 0;
-                } else {
-                    shipAttrs.hullPoints -= flakStrength;
-                }
-            }
-        }
-
-        // Check all joiner ships
-        uint joinerShipCount = EnumerableSet.length(joinerShipIds);
-        for (uint i = 0; i < joinerShipCount; i++) {
-            uint shipId = EnumerableSet.at(joinerShipIds, i);
-            Ship memory ship = ships.getShip(shipId);
+        for (uint i = 0; i < shipCount; i++) {
+            uint targetShipId = EnumerableSet.at(shipIds, i);
+            Ship memory ship = ships.getShip(targetShipId);
 
             // Skip destroyed ships
             if (ship.shipData.timestampDestroyed != 0) continue;
 
             // Skip ships with 0 hull points (treat same as destroyed)
-            if (game.shipAttributes[shipId].hullPoints == 0) continue;
+            if (game.shipAttributes[targetShipId].hullPoints == 0) continue;
 
-            // Check if ship is within range
-            Position storage shipPos = game.shipPositions[shipId];
-            Position memory flakPos = Position(_newRow, _newCol);
+            // Check if ship is within range and not the ship using flak
+            Position storage shipPos = game.shipPositions[targetShipId];
             uint8 distance = _manhattanDistance(flakPos, shipPos);
 
-            if (distance <= flakRange && shipId != _shipId) {
-                // Apply damage to this ship (but not the ship using the FlakArray)
-                Attributes storage shipAttrs = game.shipAttributes[shipId];
+            if (distance <= flakRange && targetShipId != _shipId) {
+                lastDamage[targetShipId] = _shipId;
+                // Apply damage to this ship
+                Attributes storage shipAttrs = game.shipAttributes[
+                    targetShipId
+                ];
                 if (flakStrength >= shipAttrs.hullPoints) {
                     shipAttrs.hullPoints = 0;
                 } else {
@@ -1530,12 +1528,25 @@ contract Game is Ownable {
 
     // Player game tracking view functions
     function getGamesFromIds(
-        uint[] calldata _gameIds
+        uint[] memory _gameIds
     ) public view returns (GameDataView[] memory) {
         GameDataView[] memory result = new GameDataView[](_gameIds.length);
         for (uint i = 0; i < _gameIds.length; i++) {
             result[i] = getGame(_gameIds[i], new uint[](0), new uint[](0));
         }
         return result;
+    }
+
+    function getPlayerGameIds(
+        address _player
+    ) public view returns (uint[] memory) {
+        return playerGames[_player];
+    }
+
+    function getGamesForPlayer(
+        address _player
+    ) public view returns (GameDataView[] memory) {
+        uint[] memory gameIds = getPlayerGameIds(_player);
+        return getGamesFromIds(gameIds);
     }
 }

@@ -34,15 +34,15 @@ contract ShipAttributes is IShipAttributes, Ownable {
         v1.foreAccuracy.push(150);
 
         // Engine speed in raw movement modifier
-        v1.engineSpeeds.push(0);
+        v1.engineSpeeds.push(1);
         v1.engineSpeeds.push(2);
-        v1.engineSpeeds.push(5);
+        v1.engineSpeeds.push(4);
 
         // Initialize gun data
         v1.guns.push(GunData(10, 15, 0)); // Laser
-        v1.guns.push(GunData(50, 10, 0)); // Railgun
-        v1.guns.push(GunData(40, 15, -1)); // MissileLauncher
-        v1.guns.push(GunData(4, 25, 0)); // PlasmaCannon
+        v1.guns.push(GunData(20, 10, 0)); // Railgun
+        v1.guns.push(GunData(16, 15, -1)); // MissileLauncher
+        v1.guns.push(GunData(5, 25, 0)); // PlasmaCannon
 
         // Initialize armor data
         v1.armors.push(ArmorData(0, 0)); // None
@@ -59,8 +59,8 @@ contract ShipAttributes is IShipAttributes, Ownable {
         // Initialize special data
         v1.specials.push(SpecialData(0, 0, 0)); // None
         v1.specials.push(SpecialData(1, 1, 0)); // EMP
-        v1.specials.push(SpecialData(3, 25, 0)); // RepairDrones
-        v1.specials.push(SpecialData(5, 5, 0)); // FlakArray
+        v1.specials.push(SpecialData(5, 25, 0)); // RepairDrones
+        v1.specials.push(SpecialData(5, 7, 0)); // FlakArray
     }
 
     function setShipsAddress(address _ships) public onlyOwner {

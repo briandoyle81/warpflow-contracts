@@ -98,8 +98,8 @@ describe("Line of Sight System", function () {
       const gridWidth = await maps.read.GRID_WIDTH();
       const gridHeight = await maps.read.GRID_HEIGHT();
 
-      expect(gridWidth).to.equal(60);
-      expect(gridHeight).to.equal(40);
+      expect(gridWidth).to.equal(40);
+      expect(gridHeight).to.equal(20);
     });
 
     it("Should allow owner to set blocked tiles", async function () {
@@ -677,8 +677,8 @@ describe("Line of Sight System", function () {
   describe("Stress Tests", function () {
     it("Should handle long horizontal line", async function () {
       const gameId = 1;
-      const startPos: [number, number] = [25, 0];
-      const endPos: [number, number] = [25, 59]; // Full width of grid
+      const startPos: [number, number] = [10, 0];
+      const endPos: [number, number] = [10, 39]; // Full width of grid
 
       const hasLOS = await maps.read.hasMaps([
         BigInt(gameId),
@@ -688,14 +688,14 @@ describe("Line of Sight System", function () {
         endPos[1],
       ]);
 
-      console.log(createGridDiagram(60, 40, startPos, endPos, [], hasLOS));
+      console.log(createGridDiagram(40, 20, startPos, endPos, [], hasLOS));
       expect(hasLOS).to.be.true;
     });
 
     it("Should handle long vertical line", async function () {
       const gameId = 1;
       const startPos: [number, number] = [0, 30];
-      const endPos: [number, number] = [39, 30]; // Full height of grid
+      const endPos: [number, number] = [19, 20]; // Full height of grid
 
       const hasLOS = await maps.read.hasMaps([
         BigInt(gameId),
@@ -705,14 +705,14 @@ describe("Line of Sight System", function () {
         endPos[1],
       ]);
 
-      console.log(createGridDiagram(60, 40, startPos, endPos, [], hasLOS));
+      console.log(createGridDiagram(40, 20, startPos, endPos, [], hasLOS));
       expect(hasLOS).to.be.true;
     });
 
     it("Should handle long diagonal line", async function () {
       const gameId = 1;
       const startPos: [number, number] = [0, 0];
-      const endPos: [number, number] = [39, 39]; // Full diagonal
+      const endPos: [number, number] = [19, 19]; // Full diagonal
 
       const hasLOS = await maps.read.hasMaps([
         BigInt(gameId),
@@ -722,7 +722,7 @@ describe("Line of Sight System", function () {
         endPos[1],
       ]);
 
-      console.log(createGridDiagram(60, 40, startPos, endPos, [], hasLOS));
+      console.log(createGridDiagram(40, 20, startPos, endPos, [], hasLOS));
       expect(hasLOS).to.be.true;
     });
 
@@ -963,12 +963,12 @@ describe("Line of Sight System", function () {
 
         // Update with new blocked and scoring tiles
         const newBlocked = [
+          { row: 10, col: 10 },
           { row: 15, col: 15 },
-          { row: 20, col: 20 },
         ];
         const newScoring = [
-          { row: 25, col: 25, points: 10, onlyOnce: true },
-          { row: 30, col: 30, points: 15, onlyOnce: false },
+          { row: 5, col: 5, points: 10, onlyOnce: true },
+          { row: 12, col: 12, points: 15, onlyOnce: false },
         ];
 
         await maps.write.updatePresetMap([mapId, newBlocked, newScoring], {
@@ -980,19 +980,19 @@ describe("Line of Sight System", function () {
         const retrievedScoring = await maps.read.getPresetScoringMap([mapId]);
 
         expect(retrievedBlocked).to.have.length(2);
-        expect(retrievedBlocked[0]).to.deep.equal({ row: 15, col: 15 });
-        expect(retrievedBlocked[1]).to.deep.equal({ row: 20, col: 20 });
+        expect(retrievedBlocked[0]).to.deep.equal({ row: 10, col: 10 });
+        expect(retrievedBlocked[1]).to.deep.equal({ row: 15, col: 15 });
 
         expect(retrievedScoring).to.have.length(2);
         expect(retrievedScoring[0]).to.deep.equal({
-          row: 25,
-          col: 25,
+          row: 5,
+          col: 5,
           points: 10,
           onlyOnce: true,
         });
         expect(retrievedScoring[1]).to.deep.equal({
-          row: 30,
-          col: 30,
+          row: 12,
+          col: 12,
           points: 15,
           onlyOnce: false,
         });
@@ -1009,8 +1009,8 @@ describe("Line of Sight System", function () {
 
         // Update with new blocked tiles only
         const newBlocked = [
+          { row: 10, col: 10 },
           { row: 15, col: 15 },
-          { row: 20, col: 20 },
         ];
 
         await maps.write.updatePresetMap([mapId, newBlocked, []], {
@@ -1038,8 +1038,8 @@ describe("Line of Sight System", function () {
 
         // Update with new scoring tiles only
         const newScoring = [
-          { row: 25, col: 25, points: 10, onlyOnce: true },
-          { row: 30, col: 30, points: 15, onlyOnce: false },
+          { row: 5, col: 5, points: 10, onlyOnce: true },
+          { row: 12, col: 12, points: 15, onlyOnce: false },
         ];
 
         await maps.write.updatePresetMap([mapId, [], newScoring], {
@@ -1173,8 +1173,8 @@ describe("Line of Sight System", function () {
 
         // Create third map with only scoring tiles
         const scoringPositions3 = [
-          { row: 20, col: 20, points: 10, onlyOnce: true },
-          { row: 21, col: 21, points: 15, onlyOnce: false },
+          { row: 10, col: 10, points: 10, onlyOnce: true },
+          { row: 11, col: 11, points: 15, onlyOnce: false },
         ];
         await maps.write.createPresetScoringMap([scoringPositions3], {
           account: owner.address,
@@ -1404,7 +1404,7 @@ describe("Line of Sight System", function () {
 
       it("Should revert when creating preset scoring map with invalid positions", async function () {
         const invalidPositions = [
-          { row: 60, col: 40, points: 1, onlyOnce: false },
+          { row: 20, col: 40, points: 1, onlyOnce: false },
         ];
 
         await expect(

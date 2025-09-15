@@ -27,8 +27,8 @@ contract Game is Ownable {
     mapping(uint target => uint lastDamager) public lastDamage;
 
     // Grid constants
-    int16 public constant GRID_WIDTH = 60; // Number of columns
-    int16 public constant GRID_HEIGHT = 40; // Number of rows
+    int16 public constant GRID_WIDTH = 40; // Number of columns
+    int16 public constant GRID_HEIGHT = 20; // Number of rows
 
     event GameStarted(
         uint indexed gameId,

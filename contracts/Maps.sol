@@ -6,8 +6,8 @@ import "./Types.sol";
 
 contract Maps is Ownable {
     // Grid dimensions
-    int16 public constant GRID_WIDTH = 60; // Number of columns
-    int16 public constant GRID_HEIGHT = 40; // Number of rows
+    int16 public constant GRID_WIDTH = 40; // Number of columns
+    int16 public constant GRID_HEIGHT = 20; // Number of rows
 
     // Mapping: gameId => row => column => blocked
     mapping(uint => mapping(int16 => mapping(int16 => bool)))
@@ -520,8 +520,8 @@ contract Maps is Ownable {
     /**
      * @dev Set a tile as blocked or unblocked for a specific game
      * @param _gameId The game ID
-     * @param _row The row coordinate (0-49)
-     * @param _col The column coordinate (0-99)
+     * @param _row The row coordinate (0-19)
+     * @param _col The column coordinate (0-39)
      * @param _blocked Whether the tile should be blocked
      */
     function setBlockedTile(
@@ -558,8 +558,8 @@ contract Maps is Ownable {
     /**
      * @dev Check if a tile is blocked for a specific game
      * @param _gameId The game ID
-     * @param _row The row coordinate (0-49)
-     * @param _col The column coordinate (0-99)
+     * @param _row The row coordinate (0-19)
+     * @param _col The column coordinate (0-39)
      * @return Whether the tile is blocked
      */
     function isTileBlocked(
@@ -576,8 +576,8 @@ contract Maps is Ownable {
     /**
      * @dev Check if a tile is scoring for a specific game
      * @param _gameId The game ID
-     * @param _row The row coordinate (0-49)
-     * @param _col The column coordinate (0-99)
+     * @param _row The row coordinate (0-19)
+     * @param _col The column coordinate (0-39)
      * @return Whether the tile is scoring
      */
     function isTileScoring(
@@ -668,10 +668,10 @@ contract Maps is Ownable {
     /**
      * @dev Check if there's a clear line of sight between two points
      * @param _gameId The game ID
-     * @param _row0 Starting row coordinate (0-49)
-     * @param _col0 Starting column coordinate (0-99)
-     * @param _row1 Ending row coordinate (0-49)
-     * @param _col1 Ending column coordinate (0-99)
+     * @param _row0 Starting row coordinate (0-19)
+     * @param _col0 Starting column coordinate (0-39)
+     * @param _row1 Ending row coordinate (0-19)
+     * @param _col1 Ending column coordinate (0-39)
      * @return Whether there's a clear line of sight
      */
     function hasMaps(

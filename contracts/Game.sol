@@ -399,13 +399,10 @@ contract Game is Ownable {
         address _player
     ) internal view returns (bool) {
         GameData storage game = games[_gameId];
-
-        // Get all ships in the player's fleet
         EnumerableSet.UintSet storage shipIds = game.playerActiveShipIds[
             _player
         ];
 
-        // Check if any ship is active
         uint shipCount = EnumerableSet.length(shipIds);
         for (uint i = 0; i < shipCount; i++) {
             uint shipId = EnumerableSet.at(shipIds, i);
@@ -413,7 +410,6 @@ contract Game is Ownable {
                 return true;
             }
         }
-
         return false;
     }
 
@@ -474,12 +470,8 @@ contract Game is Ownable {
         if (msg.sender != game.turnState.currentTurn) revert NotYourTurn();
 
         // Check if ship exists and is owned by the current player
-        Ship memory ship = ships.getShip(_shipId);
-        if (ship.id == 0) revert ShipNotFound();
+        Ship memory ship = _validateShipExistsAndNotDestroyed(_shipId);
         if (ship.owner != msg.sender) revert ShipNotOwned();
-
-        // Check if ship is destroyed
-        if (ship.shipData.timestampDestroyed != 0) revert ShipDestroyed();
 
         // Check if ship has 0 hull points (treat same as destroyed)
         Attributes storage shipAttrs = game.shipAttributes[_shipId];
@@ -570,60 +562,15 @@ contract Game is Ownable {
         if (actionType == ActionType.Pass) {
             // Pass: do nothing
         } else if (actionType == ActionType.Shoot) {
-            // Shoot
-            // Validate target
-            Ship memory targetShip = ships.getShip(targetShipId);
-            if (targetShip.id == 0) revert ShipNotFound();
-            if (targetShip.shipData.timestampDestroyed != 0)
-                revert ShipDestroyed();
-            // Must be on the other team (by owner address)
-            if (targetShip.owner == ship.owner) revert InvalidMove();
-            // Must be in range (manhattan)
-            Position memory shooterPos = Position(_newRow, _newCol);
-            Position storage targetPos = game.shipPositions[targetShipId];
-            uint8 manhattan = _manhattanDistance(shooterPos, targetPos);
-            Attributes storage shooterAttributes = game.shipAttributes[_shipId];
-            if (manhattan > shooterAttributes.range) revert InvalidMove();
-
-            // Must have line of sight to target if manhattan > 1, can always see adjacent to shoot
-            if (
-                manhattan > 1 &&
-                !maps.hasMaps(
-                    _gameId,
-                    _newRow,
-                    _newCol,
-                    targetPos.row,
-                    targetPos.col
-                )
-            ) {
-                revert InvalidMove();
-            }
-
-            // Get target attributes
-            Attributes storage targetAttributes = game.shipAttributes[
-                targetShipId
-            ];
-
-            // Handle ships with 0 hull points - increment reactor critical timer
-            if (targetAttributes.hullPoints == 0) {
-                targetAttributes.reactorCriticalTimer++;
-                return; // No damage calculation needed for 0 HP ships
-            }
-
-            // Calculate damage for ships with > 0 hull points
-            uint8 baseDamage = shooterAttributes.gunDamage;
-            uint8 reduction = targetAttributes.damageReduction;
-            uint16 reducedDamage = baseDamage -
-                ((uint16(baseDamage) * reduction) / 100);
-            // Truncate division result
-            // Reduce hull points
-            if (reducedDamage >= targetAttributes.hullPoints) {
-                targetAttributes.hullPoints = 0;
-                // Track the kill for the shooter
-                lastDamage[targetShipId] = _shipId;
-            } else {
-                targetAttributes.hullPoints -= uint8(reducedDamage);
-            }
+            _performShoot(
+                game,
+                _gameId,
+                _shipId,
+                _newRow,
+                _newCol,
+                targetShipId,
+                ship
+            );
         } else if (actionType == ActionType.Retreat) {
             // Retreat: remove ship from the game
             _retreatShip(_gameId, _shipId);
@@ -641,6 +588,68 @@ contract Game is Ownable {
         }
     }
 
+    // Internal function to perform shoot action
+    function _performShoot(
+        GameData storage game,
+        uint _gameId,
+        uint _shipId,
+        int16 _newRow,
+        int16 _newCol,
+        uint targetShipId,
+        Ship memory ship
+    ) internal {
+        // Validate target
+        Ship memory targetShip = _validateShipExistsAndNotDestroyed(
+            targetShipId
+        );
+        // Must be on the other team (by owner address)
+        if (targetShip.owner == ship.owner) revert InvalidMove();
+        // Must be in range (manhattan)
+        Position memory shooterPos = Position(_newRow, _newCol);
+        Position storage targetPos = game.shipPositions[targetShipId];
+        uint8 manhattan = _manhattanDistance(shooterPos, targetPos);
+        Attributes storage shooterAttributes = game.shipAttributes[_shipId];
+        if (manhattan > shooterAttributes.range) revert InvalidMove();
+
+        // Must have line of sight to target if manhattan > 1, can always see adjacent to shoot
+        if (
+            manhattan > 1 &&
+            !maps.hasMaps(
+                _gameId,
+                _newRow,
+                _newCol,
+                targetPos.row,
+                targetPos.col
+            )
+        ) {
+            revert InvalidMove();
+        }
+
+        // Get target attributes
+        Attributes storage targetAttributes = game.shipAttributes[targetShipId];
+
+        // Handle ships with 0 hull points - increment reactor critical timer
+        if (targetAttributes.hullPoints == 0) {
+            targetAttributes.reactorCriticalTimer++;
+            return; // No damage calculation needed for 0 HP ships
+        }
+
+        // Calculate damage for ships with > 0 hull points
+        uint8 baseDamage = shooterAttributes.gunDamage;
+        uint8 reduction = targetAttributes.damageReduction;
+        uint16 reducedDamage = baseDamage -
+            ((uint16(baseDamage) * reduction) / 100);
+        // Truncate division result
+        // Reduce hull points
+        if (reducedDamage >= targetAttributes.hullPoints) {
+            targetAttributes.hullPoints = 0;
+            // Track the kill for the shooter
+            lastDamage[targetShipId] = _shipId;
+        } else {
+            targetAttributes.hullPoints -= uint8(reducedDamage);
+        }
+    }
+
     // Internal pure function to calculate manhattan distance between two positions
     function _manhattanDistance(
         Position memory a,
@@ -653,6 +662,28 @@ contract Game is Ownable {
             ? uint8(uint16(a.col - b.col))
             : uint8(uint16(b.col - a.col));
         return rowDiff + colDiff;
+    }
+
+    // Helper function to copy EnumerableSet to array
+    function _copySetToArray(
+        EnumerableSet.UintSet storage set
+    ) internal view returns (uint[] memory) {
+        uint count = EnumerableSet.length(set);
+        uint[] memory result = new uint[](count);
+        for (uint i = 0; i < count; i++) {
+            result[i] = EnumerableSet.at(set, i);
+        }
+        return result;
+    }
+
+    // Helper function to validate ship exists and is not destroyed
+    function _validateShipExistsAndNotDestroyed(
+        uint _shipId
+    ) internal view returns (Ship memory) {
+        Ship memory ship = ships.getShip(_shipId);
+        if (ship.id == 0) revert ShipNotFound();
+        if (ship.shipData.timestampDestroyed != 0) revert ShipDestroyed();
+        return ship;
     }
 
     // Check if both players have moved all their ships (round complete)
@@ -733,9 +764,9 @@ contract Game is Ownable {
         uint _targetShipId
     ) internal {
         // Validate target ship exists
-        Ship memory targetShip = ships.getShip(_targetShipId);
-        if (targetShip.id == 0) revert ShipNotFound();
-        if (targetShip.shipData.timestampDestroyed != 0) revert ShipDestroyed();
+        Ship memory targetShip = _validateShipExistsAndNotDestroyed(
+            _targetShipId
+        );
 
         // Check if using ship has a special
         Ship memory usingShip = ships.getShip(_shipId);
@@ -771,31 +802,30 @@ contract Game is Ownable {
         Ship memory _usingShip,
         Ship memory _targetShip
     ) internal view {
-        if (_usingShip.equipment.special == Special.RepairDrones) {
+        Special special = _usingShip.equipment.special;
+
+        if (special == Special.RepairDrones) {
             // RepairDrones can only target friendly ships
             if (_targetShip.owner != _usingShip.owner) revert InvalidMove();
-            _validateSpecialRange(
-                _gameId,
-                _newRow,
-                _newCol,
-                _targetShipId,
-                _usingShip.equipment.special
-            );
-        } else if (_usingShip.equipment.special == Special.EMP) {
+        } else if (special == Special.EMP) {
             // EMP can only target enemy ships
             if (_targetShip.owner == _usingShip.owner) revert InvalidMove();
+        } else if (special == Special.FlakArray) {
+            // FlakArray doesn't need a target - it affects all ships in range
+            return; // No additional validation needed
+        } else {
+            revert InvalidMove(); // Other specials not implemented yet
+        }
+
+        // Validate range for specials that need targets
+        if (special != Special.FlakArray) {
             _validateSpecialRange(
                 _gameId,
                 _newRow,
                 _newCol,
                 _targetShipId,
-                _usingShip.equipment.special
+                special
             );
-        } else if (_usingShip.equipment.special == Special.FlakArray) {
-            // FlakArray doesn't need a target - it affects all ships in range
-            // No additional validation needed here
-        } else {
-            revert InvalidMove(); // Other specials not implemented yet
         }
     }
 
@@ -961,9 +991,9 @@ contract Game is Ownable {
         GameData storage game = games[_gameId];
 
         // Validate target ship exists
-        Ship memory targetShip = ships.getShip(_targetShipId);
-        if (targetShip.id == 0) revert ShipNotFound();
-        if (targetShip.shipData.timestampDestroyed != 0) revert ShipDestroyed();
+        Ship memory targetShip = _validateShipExistsAndNotDestroyed(
+            _targetShipId
+        );
 
         // Must be on the same team (by owner address)
         Ship memory assistingShip = ships.getShip(_shipId);
@@ -995,8 +1025,7 @@ contract Game is Ownable {
         GameData storage game = games[_gameId];
 
         // Check if ship exists and is in the game
-        Ship memory ship = ships.getShip(_shipId);
-        if (ship.id == 0) revert ShipNotFound();
+        Ship memory ship = _validateShipExistsAndNotDestroyed(_shipId);
 
         // Check if ship is in the game (either creator or joiner fleet)
         bool isCreatorShip = fleets.isShipInFleet(
@@ -1043,8 +1072,7 @@ contract Game is Ownable {
         GameData storage game = games[_gameId];
 
         // Check if ship exists and is in the game
-        Ship memory ship = ships.getShip(_shipId);
-        if (ship.id == 0) revert ShipNotFound();
+        Ship memory ship = _validateShipExistsAndNotDestroyed(_shipId);
 
         // Check if ship is in the game (either creator or joiner fleet)
         bool isCreatorShip = fleets.isShipInFleet(
@@ -1297,12 +1325,18 @@ contract Game is Ownable {
         // Calculate total number of ships
         uint totalShips = _creatorShipIds.length + _joinerShipIds.length;
 
+        uint[] memory shipIds = new uint[](totalShips);
+
+        uint indexCursor = 0;
+
         // Get all ship attributes in a single array
         Attributes[] memory shipAttrs = new Attributes[](totalShips);
 
         // Add creator ship attributes first
         for (uint i = 0; i < _creatorShipIds.length; i++) {
             shipAttrs[i] = game.shipAttributes[_creatorShipIds[i]];
+            shipIds[indexCursor] = _creatorShipIds[i];
+            indexCursor++;
         }
 
         // Add joiner ship attributes after creator ships
@@ -1310,6 +1344,8 @@ contract Game is Ownable {
             shipAttrs[_creatorShipIds.length + i] = game.shipAttributes[
                 _joinerShipIds[i]
             ];
+            shipIds[indexCursor] = _joinerShipIds[i];
+            indexCursor++;
         }
 
         // Get all ship positions
@@ -1323,24 +1359,9 @@ contract Game is Ownable {
             game.metadata.joiner
         ];
 
-        uint[] memory creatorActiveShipIds = new uint[](
-            EnumerableSet.length(creatorShipIds)
-        );
-        uint[] memory joinerActiveShipIds = new uint[](
-            EnumerableSet.length(joinerShipIds)
-        );
-
-        // Copy creator ship IDs
-        uint creatorShipCount = EnumerableSet.length(creatorShipIds);
-        for (uint i = 0; i < creatorShipCount; i++) {
-            creatorActiveShipIds[i] = EnumerableSet.at(creatorShipIds, i);
-        }
-
-        // Copy joiner ship IDs
-        uint joinerShipCount = EnumerableSet.length(joinerShipIds);
-        for (uint i = 0; i < joinerShipCount; i++) {
-            joinerActiveShipIds[i] = EnumerableSet.at(joinerShipIds, i);
-        }
+        // Copy active ship IDs using helper function
+        uint[] memory creatorActiveShipIds = _copySetToArray(creatorShipIds);
+        uint[] memory joinerActiveShipIds = _copySetToArray(joinerShipIds);
 
         return
             GameDataView({
@@ -1352,6 +1373,7 @@ contract Game is Ownable {
                 joinerScore: game.joinerScore,
                 shipAttributes: shipAttrs,
                 shipPositions: shipPositions,
+                shipIds: shipIds,
                 creatorActiveShipIds: creatorActiveShipIds,
                 joinerActiveShipIds: joinerActiveShipIds
             });

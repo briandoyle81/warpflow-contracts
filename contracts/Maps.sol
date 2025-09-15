@@ -791,4 +791,69 @@ contract Maps is Ownable {
             }
         }
     }
+
+    /**
+     * @dev Get all blocked and scoring tiles for a specific game
+     * @param _gameId The game ID
+     * @return blockedPositions Array of blocked tile positions
+     * @return scoringPositions Array of scoring tile positions
+     */
+    function getGameMapState(
+        uint _gameId
+    )
+        external
+        view
+        returns (
+            Position[] memory blockedPositions,
+            ScoringPosition[] memory scoringPositions
+        )
+    {
+        // Count blocked positions first
+        uint blockedCount = 0;
+        for (int16 row = 0; row < GRID_HEIGHT; row++) {
+            for (int16 col = 0; col < GRID_WIDTH; col++) {
+                if (blockedTiles[_gameId][row][col]) {
+                    blockedCount++;
+                }
+            }
+        }
+
+        // Count scoring positions
+        uint scoringCount = 0;
+        for (int16 row = 0; row < GRID_HEIGHT; row++) {
+            for (int16 col = 0; col < GRID_WIDTH; col++) {
+                if (scoringTiles[_gameId][row][col] > 0) {
+                    scoringCount++;
+                }
+            }
+        }
+
+        // Create arrays and populate with positions
+        blockedPositions = new Position[](blockedCount);
+        scoringPositions = new ScoringPosition[](scoringCount);
+
+        uint blockedIndex = 0;
+        uint scoringIndex = 0;
+
+        for (int16 row = 0; row < GRID_HEIGHT; row++) {
+            for (int16 col = 0; col < GRID_WIDTH; col++) {
+                // Add blocked positions
+                if (blockedTiles[_gameId][row][col]) {
+                    blockedPositions[blockedIndex] = Position(row, col);
+                    blockedIndex++;
+                }
+
+                // Add scoring positions
+                if (scoringTiles[_gameId][row][col] > 0) {
+                    scoringPositions[scoringIndex] = ScoringPosition(
+                        row,
+                        col,
+                        scoringTiles[_gameId][row][col],
+                        onlyOnceTiles[_gameId][row][col]
+                    );
+                    scoringIndex++;
+                }
+            }
+        }
+    }
 }

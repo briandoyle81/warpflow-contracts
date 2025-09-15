@@ -145,6 +145,7 @@ struct GameDataView {
     uint creatorScore; // Current score of the creator player
     uint joinerScore; // Current score of the joiner player
     // Ship data arrays
+    uint[] shipIds;
     Attributes[] shipAttributes; // Combined array of all ship attributes indexed by ship ID
     ShipPosition[] shipPositions; // All ship positions on the grid
     // Active ship IDs for each player

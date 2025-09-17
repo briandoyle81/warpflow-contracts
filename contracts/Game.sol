@@ -676,6 +676,40 @@ contract Game is Ownable {
         return result;
     }
 
+    // Helper function to get ships that have moved this round for a specific player
+    function _getMovedShipIds(
+        uint _gameId,
+        address _player
+    ) internal view returns (uint[] memory) {
+        GameData storage game = games[_gameId];
+        EnumerableSet.UintSet storage playerShipIds = game.playerActiveShipIds[
+            _player
+        ];
+
+        // First pass: count how many ships have moved
+        uint movedCount = 0;
+        uint shipCount = EnumerableSet.length(playerShipIds);
+        for (uint i = 0; i < shipCount; i++) {
+            uint shipId = EnumerableSet.at(playerShipIds, i);
+            if (game.shipMovedThisRound[game.turnState.currentRound][shipId]) {
+                movedCount++;
+            }
+        }
+
+        // Second pass: collect the moved ship IDs
+        uint[] memory movedShipIds = new uint[](movedCount);
+        uint index = 0;
+        for (uint i = 0; i < shipCount; i++) {
+            uint shipId = EnumerableSet.at(playerShipIds, i);
+            if (game.shipMovedThisRound[game.turnState.currentRound][shipId]) {
+                movedShipIds[index] = shipId;
+                index++;
+            }
+        }
+
+        return movedShipIds;
+    }
+
     // Helper function to validate ship exists and is not destroyed
     function _validateShipExistsAndNotDestroyed(
         uint _shipId
@@ -1313,43 +1347,10 @@ contract Game is Ownable {
     }
 
     // View functions
-    function getGame(
-        uint _gameId,
-        uint[] memory _creatorShipIds,
-        uint[] memory _joinerShipIds
-    ) public view returns (GameDataView memory) {
+    function getGame(uint _gameId) public view returns (GameDataView memory) {
         if (games[_gameId].metadata.gameId == 0) revert GameNotFound();
 
         GameData storage game = games[_gameId];
-
-        // Calculate total number of ships
-        uint totalShips = _creatorShipIds.length + _joinerShipIds.length;
-
-        uint[] memory shipIds = new uint[](totalShips);
-
-        uint indexCursor = 0;
-
-        // Get all ship attributes in a single array
-        Attributes[] memory shipAttrs = new Attributes[](totalShips);
-
-        // Add creator ship attributes first
-        for (uint i = 0; i < _creatorShipIds.length; i++) {
-            shipAttrs[i] = game.shipAttributes[_creatorShipIds[i]];
-            shipIds[indexCursor] = _creatorShipIds[i];
-            indexCursor++;
-        }
-
-        // Add joiner ship attributes after creator ships
-        for (uint i = 0; i < _joinerShipIds.length; i++) {
-            shipAttrs[_creatorShipIds.length + i] = game.shipAttributes[
-                _joinerShipIds[i]
-            ];
-            shipIds[indexCursor] = _joinerShipIds[i];
-            indexCursor++;
-        }
-
-        // Get all ship positions
-        ShipPosition[] memory shipPositions = getAllShipPositions(_gameId);
 
         // Get active ship IDs for each player
         EnumerableSet.UintSet storage creatorShipIds = game.playerActiveShipIds[
@@ -1363,6 +1364,41 @@ contract Game is Ownable {
         uint[] memory creatorActiveShipIds = _copySetToArray(creatorShipIds);
         uint[] memory joinerActiveShipIds = _copySetToArray(joinerShipIds);
 
+        // Calculate total number of active ships
+        uint totalShips = creatorActiveShipIds.length +
+            joinerActiveShipIds.length;
+
+        // Get all ship attributes in a single array
+        Attributes[] memory shipAttrs = new Attributes[](totalShips);
+        uint[] memory shipIds = new uint[](totalShips);
+
+        // Add creator ship attributes first
+        for (uint i = 0; i < creatorActiveShipIds.length; i++) {
+            shipAttrs[i] = game.shipAttributes[creatorActiveShipIds[i]];
+            shipIds[i] = creatorActiveShipIds[i];
+        }
+
+        // Add joiner ship attributes after creator ships
+        for (uint i = 0; i < joinerActiveShipIds.length; i++) {
+            shipAttrs[creatorActiveShipIds.length + i] = game.shipAttributes[
+                joinerActiveShipIds[i]
+            ];
+            shipIds[creatorActiveShipIds.length + i] = joinerActiveShipIds[i];
+        }
+
+        // Get all ship positions
+        ShipPosition[] memory shipPositions = getAllShipPositions(_gameId);
+
+        // Get ships that have moved this round
+        uint[] memory creatorMovedShipIds = _getMovedShipIds(
+            _gameId,
+            game.metadata.creator
+        );
+        uint[] memory joinerMovedShipIds = _getMovedShipIds(
+            _gameId,
+            game.metadata.joiner
+        );
+
         return
             GameDataView({
                 metadata: game.metadata,
@@ -1375,7 +1411,9 @@ contract Game is Ownable {
                 shipPositions: shipPositions,
                 shipIds: shipIds,
                 creatorActiveShipIds: creatorActiveShipIds,
-                joinerActiveShipIds: joinerActiveShipIds
+                joinerActiveShipIds: joinerActiveShipIds,
+                creatorMovedShipIds: creatorMovedShipIds,
+                joinerMovedShipIds: joinerMovedShipIds
             });
     }
 
@@ -1554,7 +1592,7 @@ contract Game is Ownable {
     ) public view returns (GameDataView[] memory) {
         GameDataView[] memory result = new GameDataView[](_gameIds.length);
         for (uint i = 0; i < _gameIds.length; i++) {
-            result[i] = getGame(_gameIds[i], new uint[](0), new uint[](0));
+            result[i] = getGame(_gameIds[i]);
         }
         return result;
     }

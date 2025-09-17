@@ -151,6 +151,9 @@ struct GameDataView {
     // Active ship IDs for each player
     uint[] creatorActiveShipIds;
     uint[] joinerActiveShipIds;
+    // Ships that have moved this round
+    uint[] creatorMovedShipIds; // Creator ships that have moved this round
+    uint[] joinerMovedShipIds; // Joiner ships that have moved this round
 }
 
 struct Ship {

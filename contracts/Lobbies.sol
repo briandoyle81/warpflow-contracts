@@ -39,10 +39,14 @@ contract Lobbies is Ownable, ReentrancyGuard {
     );
     event PlayerJoinedLobby(uint indexed lobbyId, address indexed joiner);
     event GameStarted(uint indexed lobbyId);
-    event AdditionalLobbyFeePaid(address indexed player, uint amount);
     event LobbyReset(uint indexed lobbyId, address indexed newCreator);
     event LobbyAbandoned(uint indexed lobbyId, address indexed player);
     event LobbyTerminated(uint indexed lobbyId);
+    event FleetCreated(
+        uint indexed lobbyId,
+        address indexed player,
+        uint fleetId
+    );
 
     error LobbyNotFound();
     error LobbyFull();
@@ -362,6 +366,8 @@ contract Lobbies is Ownable, ReentrancyGuard {
             // Record when joiner set their fleet
             lobby.players.joinerFleetSetAt = block.timestamp;
         }
+
+        emit FleetCreated(_lobbyId, msg.sender, fleetId);
 
         // Check if both players have created fleets
         if (

@@ -38,6 +38,14 @@ contract Game is Ownable {
     );
 
     event GameUpdate(uint indexed gameId);
+    event Move(
+        uint indexed gameId,
+        uint shipId,
+        int16 newRow,
+        int16 newCol,
+        ActionType actionType,
+        uint targetShipId
+    );
 
     error NotLobbiesContract();
     error GameNotFound();
@@ -548,6 +556,7 @@ contract Game is Ownable {
         game.turnState.turnStartTime = block.timestamp;
 
         // Emit event to notify clients of game state change
+        emit Move(_gameId, _shipId, _newRow, _newCol, actionType, targetShipId);
         emit GameUpdate(_gameId);
     }
 

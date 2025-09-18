@@ -665,16 +665,16 @@ describe("Game", function () {
       expect(creatorShips.length).to.equal(3);
       expect(joinerShips.length).to.equal(3);
 
-      // Verify creator ships are on the left side (column 0) and placed from top to bottom
+      // Verify creator ships are 5 columns from the left edge (column 5) and placed from top to bottom
       for (let i = 0; i < creatorShips.length; i++) {
-        expect(creatorShips[i].position.col).to.equal(0); // Left side
+        expect(creatorShips[i].position.col).to.equal(5); // 5 columns from left edge
         expect(creatorShips[i].position.row).to.equal(i * 2); // Top to bottom with spacing (rows 0, 2, 4)
         expect(creatorShips[i].position.row).to.be.lessThan(20); // Within grid height
       }
 
-      // Verify joiner ships are on the right side (column 99) and placed from bottom to top
+      // Verify joiner ships are 5 columns from the right edge (column 34) and placed from bottom to top
       for (let i = 0; i < joinerShips.length; i++) {
-        expect(joinerShips[i].position.col).to.equal(39); // Right side
+        expect(joinerShips[i].position.col).to.equal(34); // 5 columns from right edge
         expect(joinerShips[i].position.row).to.equal(19 - i * 2); // Bottom to top with spacing (rows 19, 17, 15)
         expect(joinerShips[i].position.row).to.be.lessThan(20); // Within grid height
       }
@@ -691,27 +691,27 @@ describe("Game", function () {
       const shipAt4599 = allShipPositions.find((pos) => pos.shipId === 8n);
 
       expect(shipAt00?.position.row).to.equal(0);
-      expect(shipAt00?.position.col).to.equal(0);
+      expect(shipAt00?.position.col).to.equal(5);
       expect(shipAt20?.position.row).to.equal(2);
-      expect(shipAt20?.position.col).to.equal(0);
+      expect(shipAt20?.position.col).to.equal(5);
       expect(shipAt40?.position.row).to.equal(4);
-      expect(shipAt40?.position.col).to.equal(0);
+      expect(shipAt40?.position.col).to.equal(5);
       expect(shipAt4999?.position.row).to.equal(19);
-      expect(shipAt4999?.position.col).to.equal(39);
+      expect(shipAt4999?.position.col).to.equal(34);
       expect(shipAt4799?.position.row).to.equal(17);
-      expect(shipAt4799?.position.col).to.equal(39);
+      expect(shipAt4799?.position.col).to.equal(34);
       expect(shipAt4599?.position.row).to.equal(15);
-      expect(shipAt4599?.position.col).to.equal(39);
+      expect(shipAt4599?.position.col).to.equal(34);
 
       // Verify individual ship position queries
       const gameData = (await game.read.getGame([1n])) as GameDataView;
       const creatorShip1Position = findShipPosition(gameData, 1n);
       expect(creatorShip1Position.row).to.equal(0);
-      expect(creatorShip1Position.col).to.equal(0);
+      expect(creatorShip1Position.col).to.equal(5);
 
       const joinerShip1Position = findShipPosition(gameData, 6n);
       expect(joinerShip1Position.row).to.equal(19);
-      expect(joinerShip1Position.col).to.equal(39);
+      expect(joinerShip1Position.col).to.equal(34);
     });
 
     it("should allow querying ship at specific grid position", async function () {
@@ -767,9 +767,9 @@ describe("Game", function () {
       const shipAtEnd = allShipPositions.find((pos) => pos.shipId === 6n);
 
       expect(shipAtOrigin?.position.row).to.equal(0);
-      expect(shipAtOrigin?.position.col).to.equal(0);
+      expect(shipAtOrigin?.position.col).to.equal(5);
       expect(shipAtEnd?.position.row).to.equal(19);
-      expect(shipAtEnd?.position.col).to.equal(39);
+      expect(shipAtEnd?.position.col).to.equal(34);
     });
 
     it("should allow querying individual ship positions", async function () {
@@ -825,11 +825,11 @@ describe("Game", function () {
       ])) as unknown as GameDataView;
       const creatorShipPosition = findShipPosition(gameData, 1n);
       expect(creatorShipPosition.row).to.equal(0);
-      expect(creatorShipPosition.col).to.equal(0);
+      expect(creatorShipPosition.col).to.equal(5);
 
       const joinerShipPosition = findShipPosition(gameData, 6n);
       expect(joinerShipPosition.row).to.equal(19);
-      expect(joinerShipPosition.col).to.equal(39);
+      expect(joinerShipPosition.col).to.equal(34);
     });
   });
 
@@ -889,11 +889,11 @@ describe("Game", function () {
       let gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
       const initialPosition = findShipPosition(gameData, 1n);
       expect(initialPosition.row).to.equal(0);
-      expect(initialPosition.col).to.equal(0);
+      expect(initialPosition.col).to.equal(5);
 
       // Move ship within its movement range (e.g., 2 spaces to the right)
       if (movementRange >= 2) {
-        await game.write.moveShip([1n, 1n, 0, 2, ActionType.Pass, 0n], {
+        await game.write.moveShip([1n, 1n, 0, 7, ActionType.Pass, 0n], {
           account: creator.account,
         });
 
@@ -903,19 +903,19 @@ describe("Game", function () {
         ])) as unknown as GameDataView;
         const newPosition = findShipPosition(gameData, 1n);
         expect(newPosition.row).to.equal(0);
-        expect(newPosition.col).to.equal(2);
+        expect(newPosition.col).to.equal(7);
 
         // Verify grid is updated using getAllShipPositions
         const allShipPositions = await game.read.getAllShipPositions([1n]);
-        const shipAt00 = allShipPositions.find(
-          (pos) => pos.position.row === 0 && pos.position.col === 0
+        const shipAt05 = allShipPositions.find(
+          (pos) => pos.position.row === 0 && pos.position.col === 5
         );
-        const shipAt02 = allShipPositions.find(
-          (pos) => pos.position.row === 0 && pos.position.col === 2
+        const shipAt07 = allShipPositions.find(
+          (pos) => pos.position.row === 0 && pos.position.col === 7
         );
 
-        expect(shipAt00).to.be.undefined; // Should be empty
-        expect(shipAt02?.shipId).to.equal(1n); // Ship 1 should be at (0,2)
+        expect(shipAt05).to.be.undefined; // Should be empty
+        expect(shipAt07?.shipId).to.equal(1n); // Ship 1 should be at (0,7)
 
         // Verify turn switched to joiner
         gameData = (await game.read.getGame([1n])) as any;
@@ -979,7 +979,7 @@ describe("Game", function () {
       // Try to move beyond movement range
       await expect(
         game.write.moveShip(
-          [1n, 1n, 0, movementRange + 1, ActionType.Pass, 0n],
+          [1n, 1n, 0, 5 + movementRange + 1, ActionType.Pass, 0n],
           {
             account: creator.account,
           }
@@ -1309,7 +1309,7 @@ describe("Game", function () {
 
       // Try to move ship to position occupied by another ship
       await expect(
-        game.write.moveShip([1n, 1n, 2, 0, ActionType.Pass, 0n], {
+        game.write.moveShip([1n, 1n, 2, 5, ActionType.Pass, 0n], {
           account: creator.account,
         })
       ).to.be.rejectedWith("PositionOccupied");
@@ -1363,7 +1363,7 @@ describe("Game", function () {
       await joinerLobbies.write.createFleet([1n, [6n]]);
 
       // Try diagonal movement (both row and column change) - should work now
-      await game.write.moveShip([1n, 1n, 1, 1, ActionType.Pass, 0n], {
+      await game.write.moveShip([1n, 1n, 1, 6, ActionType.Pass, 0n], {
         account: creator.account,
       });
 
@@ -1373,7 +1373,7 @@ describe("Game", function () {
       ])) as unknown as GameDataView;
       const shipPosition = findShipPosition(gameData, 1n);
       expect(shipPosition.row).to.equal(1);
-      expect(shipPosition.col).to.equal(1);
+      expect(shipPosition.col).to.equal(6);
     });
 
     it("should handle different fleet sizes correctly", async function () {
@@ -1449,17 +1449,17 @@ describe("Game", function () {
       });
 
       // Round 1: Joiner moves third ship
-      await game.write.moveShip([1n, 8n, 15, 38, ActionType.Pass, 0n], {
+      await game.write.moveShip([1n, 8n, 15, 34, ActionType.Pass, 0n], {
         account: joiner.account,
       });
 
       // Round 1: Joiner moves fourth ship (creator has no more ships, so joiner continues)
-      await game.write.moveShip([1n, 9n, 13, 38, ActionType.Pass, 0n], {
+      await game.write.moveShip([1n, 9n, 13, 34, ActionType.Pass, 0n], {
         account: joiner.account,
       });
 
       // Round 1: Joiner moves fifth ship (completing the round)
-      await game.write.moveShip([1n, 10n, 11, 38, ActionType.Pass, 0n], {
+      await game.write.moveShip([1n, 10n, 11, 34, ActionType.Pass, 0n], {
         account: joiner.account,
       });
 
@@ -1744,7 +1744,7 @@ describe("Game", function () {
       // Verify ship is initially on the grid
       let allShipPositions = await game.read.getAllShipPositions([1n]);
       let shipAt00 = allShipPositions.find(
-        (pos) => pos.position.row === 0 && pos.position.col === 0
+        (pos) => pos.position.row === 0 && pos.position.col === 5
       );
       expect(shipAt00?.shipId).to.equal(1n);
 
@@ -1756,7 +1756,7 @@ describe("Game", function () {
       // Verify ship is removed from grid
       allShipPositions = await game.read.getAllShipPositions([1n]);
       shipAt00 = allShipPositions.find(
-        (pos) => pos.position.row === 0 && pos.position.col === 0
+        (pos) => pos.position.row === 0 && pos.position.col === 5
       );
       expect(shipAt00).to.be.undefined;
     });
@@ -2775,8 +2775,8 @@ describe("Game", function () {
       let gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
 
       // Place ships very close together for this test
-      // Move creator ship to (4, 0) - valid move within movement range of 4
-      await game.write.moveShip([1n, 1n, 4, 0, ActionType.Pass, 0n], {
+      // Move creator ship to (4, 5) - valid move within movement range of 4
+      await game.write.moveShip([1n, 1n, 4, 5, ActionType.Pass, 0n], {
         account: creator.account,
       });
       // Move joiner ship to (19, 34) - valid move within movement range of 5
@@ -3231,16 +3231,16 @@ describe("Game", function () {
       expect(ship1Attrs.hullPoints).to.equal(0);
 
       // Move ship 2 adjacent to ship 1 and assist it
-      // Ship 1 is at (0, 0), ship 2 is at (2, 0)
-      // Move ship 2 to (1, 0) to be adjacent to ship 1
-      await game.write.moveShip([1n, 2n, 1, 0, ActionType.Assist, 1n], {
+      // Ship 1 is at (0, 5), ship 2 is at (2, 5)
+      // Move ship 2 to (1, 5) to be adjacent to ship 1
+      await game.write.moveShip([1n, 2n, 1, 5, ActionType.Assist, 1n], {
         account: creator.account,
       });
 
       // Verify ship 1 was retreated (no longer on the grid)
       const allShipPositions = await game.read.getAllShipPositions([1n]);
       const shipAtPosition = allShipPositions.find(
-        (pos) => pos.position.row === 0 && pos.position.col === 0
+        (pos) => pos.position.row === 0 && pos.position.col === 5
       );
       expect(shipAtPosition).to.be.undefined;
 
@@ -3373,8 +3373,8 @@ describe("Game", function () {
       const ship2Pos = findShipPosition(gameData, 2n);
 
       // Move ship 1 to be within range 3 of ship 2 and use RepairDrones special
-      // Since RepairDrones has range 3, we can move ship 1 to position (3, 0) which is 3 squares away from ship 2 at (0, 0)
-      await game.write.moveShip([1n, 1n, 3, 0, ActionType.Special, 2n], {
+      // Since RepairDrones has range 3, we can move ship 1 to position (3, 5) which is 3 squares away from ship 2 at (0, 5)
+      await game.write.moveShip([1n, 1n, 3, 5, ActionType.Special, 2n], {
         account: creator.account,
       });
 
@@ -3910,16 +3910,16 @@ describe("Game", function () {
       ); // No winner yet
 
       // Creator retreats all their ships
-      await game.write.moveShip([gameId, 1n, 0, 0, 2, 0n], {
+      await game.write.moveShip([gameId, 1n, 0, 5, 2, 0n], {
         account: creator.account,
       }); // Retreat ship 1
 
       // Complete the round so joiner can move (move to a valid position)
-      await game.write.moveShip([gameId, 6n, 19, 38, 0, 0n], {
+      await game.write.moveShip([gameId, 6n, 19, 34, 0, 0n], {
         account: joiner.account,
       }); // Joiner moves to complete round
 
-      await game.write.moveShip([gameId, 2n, 0, 0, 2, 0n], {
+      await game.write.moveShip([gameId, 2n, 2, 5, 2, 0n], {
         account: creator.account,
       }); // Retreat ship 2
 
@@ -4010,7 +4010,7 @@ describe("Game", function () {
         gameId,
       ])) as unknown as GameDataView;
 
-      // Creator ships start at column 0, joiner ships start at column 39
+      // Creator ships start at column 5, joiner ships start at column 34
       // With the blocked tiles at row 10, columns 20-22, line of sight should be blocked
       // when trying to shoot from one side to the other through the middle
 
@@ -4018,9 +4018,9 @@ describe("Game", function () {
       const hasLOS = await maps.read.hasMaps([
         BigInt(gameId),
         5, // Start at row 5
-        0, // Start at column 0 (creator side)
+        5, // Start at column 5 (creator side)
         15, // End at row 15
-        39, // End at column 39 (joiner side)
+        34, // End at column 34 (joiner side)
       ]);
 
       // Line of sight should be blocked because it passes through the blocked tiles
@@ -4030,7 +4030,7 @@ describe("Game", function () {
       const hasLOSAbove = await maps.read.hasMaps([
         BigInt(gameId),
         5, // Start at row 5 (above blocked tiles)
-        0, // Start at column 0
+        5, // Start at column 5
         15, // End at row 15
         15, // End at column 15 (avoid blocked tiles at columns 20-22)
       ]);
@@ -4042,7 +4042,7 @@ describe("Game", function () {
       const hasLOSBelow = await maps.read.hasMaps([
         BigInt(gameId),
         15, // Start at row 15 (below blocked tiles)
-        0, // Start at column 0
+        5, // Start at column 5
         5, // End at row 5
         15, // End at column 15 (avoid blocked tiles at columns 20-22)
       ]);

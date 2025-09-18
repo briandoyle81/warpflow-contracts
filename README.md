@@ -14,12 +14,13 @@ DON'T FORGET TO SET SHIPNAMES APPROPRIATELY!
 
 TODO:
 
-Add battle scaring to ships each time they get disabled
+Add battle scarring to ships each time they get disabled
 CRITICAL: Don't allow lobbies to be created for map ids that don't exist
 CRITICAL: Handle fleets that have more than 10 ships running out of space for deployment
 CRITICAL: Put rank in json metadata and on image
 CRITICAL: Find a way to show hull trait
-Allow third party map creation for 50+ flow and allow payments to map creators (probably as voluntary tips). DONT GENERATE UTC HERE - EXPLOITABLE
+CRITICAL: Deployment zones and position selection
+Allow third party map creation for 50+ flow and allow payments to map creators (probably as voluntary tips). DON'T GENERATE UTC HERE - EXPLOITABLE
 Pay UTC to winner of games
 Add property of unsellable to NFTs as a trait and add that to image.
 Ships that are destroyed should be recycled for 1/2 or 1/4 utc

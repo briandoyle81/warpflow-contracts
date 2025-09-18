@@ -37,6 +37,8 @@ contract Game is Ownable {
         address joiner
     );
 
+    event GameUpdate(uint indexed gameId);
+
     error NotLobbiesContract();
     error GameNotFound();
     error NotInGame();
@@ -165,7 +167,7 @@ contract Game is Ownable {
     ) internal {
         GameData storage game = games[_gameId];
 
-        // Place creator ships on the left side (column 0)
+        // Place creator ships 5 columns from the left edge (column 5)
         EnumerableSet.UintSet storage creatorShipIds = game.playerActiveShipIds[
             game.metadata.creator
         ];
@@ -173,18 +175,18 @@ contract Game is Ownable {
         for (uint i = 0; i < creatorShipCount; i++) {
             uint shipId = EnumerableSet.at(creatorShipIds, i);
             int16 row = int16(uint16(i * 2)); // Skip a row between each ship (rows 0, 2, 4, ...)
-            _placeShipOnGrid(_gameId, shipId, row, 0);
+            _placeShipOnGrid(_gameId, shipId, row, 5);
         }
 
-        // Place joiner ships on the right side (column GRID_WIDTH - 1)
+        // Place joiner ships 5 columns from the right edge (column 34)
         EnumerableSet.UintSet storage joinerShipIds = game.playerActiveShipIds[
             game.metadata.joiner
         ];
         uint joinerShipCount = EnumerableSet.length(joinerShipIds);
         for (uint i = 0; i < joinerShipCount; i++) {
             uint shipId = EnumerableSet.at(joinerShipIds, i);
-            int16 row = int16(uint16(GRID_HEIGHT - 1 - int16(uint16(i * 2)))); // Skip a row between each ship (rows 39, 37, 35, ...)
-            _placeShipOnGrid(_gameId, shipId, row, GRID_WIDTH - 1);
+            int16 row = int16(uint16(GRID_HEIGHT - 1 - int16(uint16(i * 2)))); // Skip a row between each ship (rows 19, 17, 15, ...)
+            _placeShipOnGrid(_gameId, shipId, row, 34);
         }
     }
 
@@ -544,6 +546,9 @@ contract Game is Ownable {
 
         // Update turn start time for the new turn
         game.turnState.turnStartTime = block.timestamp;
+
+        // Emit event to notify clients of game state change
+        emit GameUpdate(_gameId);
     }
 
     // Internal function to perform an action (pass or shoot)
@@ -1443,6 +1448,9 @@ contract Game is Ownable {
 
         // Auto-pass the current player's turn
         _autoPassTurn(_gameId);
+
+        // Emit event to notify clients of game state change
+        emit GameUpdate(_gameId);
     }
 
     // Flee function - either player can end the game at any time
@@ -1465,6 +1473,9 @@ contract Game is Ownable {
             ? game.metadata.joiner
             : game.metadata.creator;
         _endGame(_gameId, winner, msg.sender);
+
+        // Emit event to notify clients of game state change
+        emit GameUpdate(_gameId);
     }
 
     // Helper function to remove ships from a specific fleet

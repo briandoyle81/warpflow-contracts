@@ -27,7 +27,7 @@ contract Game is Ownable {
     mapping(uint target => uint lastDamager) public lastDamage;
 
     // Grid constants
-    int16 public constant GRID_WIDTH = 40; // Number of columns
+    int16 public constant GRID_WIDTH = 30; // Number of columns
     int16 public constant GRID_HEIGHT = 20; // Number of rows
 
     event GameStarted(
@@ -175,26 +175,32 @@ contract Game is Ownable {
     ) internal {
         GameData storage game = games[_gameId];
 
-        // Place creator ships 5 columns from the left edge (column 5)
+        // Place creator ships starting at the far left edge (column 0)
+        // If there are more than 10 ships, place them in additional columns towards the center
         EnumerableSet.UintSet storage creatorShipIds = game.playerActiveShipIds[
             game.metadata.creator
         ];
         uint creatorShipCount = EnumerableSet.length(creatorShipIds);
         for (uint i = 0; i < creatorShipCount; i++) {
             uint shipId = EnumerableSet.at(creatorShipIds, i);
-            int16 row = int16(uint16(i * 2)); // Skip a row between each ship (rows 0, 2, 4, ...)
-            _placeShipOnGrid(_gameId, shipId, row, 5);
+            int16 row = int16(uint16((i % 10) * 2)); // Use modulo 10 for row cycling (rows 0, 2, 4, 6, 8, 10, 12, 14, 16, 18)
+            int16 col = int16(uint16(i / 10)); // Move to next column every 10 ships
+            _placeShipOnGrid(_gameId, shipId, row, col);
         }
 
-        // Place joiner ships 5 columns from the right edge (column 34)
+        // Place joiner ships starting at the far right edge (column 29)
+        // If there are more than 10 ships, place them in additional columns towards the center
         EnumerableSet.UintSet storage joinerShipIds = game.playerActiveShipIds[
             game.metadata.joiner
         ];
         uint joinerShipCount = EnumerableSet.length(joinerShipIds);
         for (uint i = 0; i < joinerShipCount; i++) {
             uint shipId = EnumerableSet.at(joinerShipIds, i);
-            int16 row = int16(uint16(GRID_HEIGHT - 1 - int16(uint16(i * 2)))); // Skip a row between each ship (rows 19, 17, 15, ...)
-            _placeShipOnGrid(_gameId, shipId, row, 34);
+            int16 row = int16(
+                uint16((GRID_HEIGHT - 1) - int16(uint16((i % 10) * 2)))
+            ); // Use modulo 10 for row cycling (rows 19, 17, 15, 13, 11, 9, 7, 5, 3, 1)
+            int16 col = int16(uint16(29 - (i / 10))); // Move to previous column every 10 ships (towards center)
+            _placeShipOnGrid(_gameId, shipId, row, col);
         }
     }
 

@@ -98,7 +98,7 @@ describe("Line of Sight System", function () {
       const gridWidth = await maps.read.GRID_WIDTH();
       const gridHeight = await maps.read.GRID_HEIGHT();
 
-      expect(gridWidth).to.equal(40);
+      expect(gridWidth).to.equal(30);
       expect(gridHeight).to.equal(20);
     });
 
@@ -678,7 +678,7 @@ describe("Line of Sight System", function () {
     it("Should handle long horizontal line", async function () {
       const gameId = 1;
       const startPos: [number, number] = [10, 0];
-      const endPos: [number, number] = [10, 39]; // Full width of grid
+      const endPos: [number, number] = [10, 29]; // Full width of grid
 
       const hasLOS = await maps.read.hasMaps([
         BigInt(gameId),
@@ -694,7 +694,7 @@ describe("Line of Sight System", function () {
 
     it("Should handle long vertical line", async function () {
       const gameId = 1;
-      const startPos: [number, number] = [0, 30];
+      const startPos: [number, number] = [0, 29];
       const endPos: [number, number] = [19, 20]; // Full height of grid
 
       const hasLOS = await maps.read.hasMaps([

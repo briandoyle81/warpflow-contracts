@@ -39,28 +39,28 @@ contract ShipAttributes is IShipAttributes, Ownable {
         v1.engineSpeeds.push(4);
 
         // Initialize gun data
-        v1.guns.push(GunData(10, 15, 0)); // Laser
-        v1.guns.push(GunData(20, 10, 0)); // Railgun
-        v1.guns.push(GunData(16, 15, -1)); // MissileLauncher
-        v1.guns.push(GunData(5, 25, 0)); // PlasmaCannon
+        v1.guns.push(GunData(8, 20, 0)); // Laser
+        v1.guns.push(GunData(15, 15, 0)); // Railgun
+        v1.guns.push(GunData(12, 25, -1)); // MissileLauncher
+        v1.guns.push(GunData(4, 40, 0)); // PlasmaCannon
 
         // Initialize armor data
         v1.armors.push(ArmorData(0, 0)); // None
-        v1.armors.push(ArmorData(10, -1)); // Light
-        v1.armors.push(ArmorData(20, -2)); // Medium
-        v1.armors.push(ArmorData(30, -3)); // Heavy
+        v1.armors.push(ArmorData(15, -1)); // Light
+        v1.armors.push(ArmorData(30, -2)); // Medium
+        v1.armors.push(ArmorData(45, -3)); // Heavy
 
         // Initialize shield data
         v1.shields.push(ShieldData(0, 0)); // None
-        v1.shields.push(ShieldData(10, 0)); // Light
-        v1.shields.push(ShieldData(20, -1)); // Medium
-        v1.shields.push(ShieldData(30, -2)); // Heavy
+        v1.shields.push(ShieldData(15, 0)); // Light
+        v1.shields.push(ShieldData(30, -1)); // Medium
+        v1.shields.push(ShieldData(45, -2)); // Heavy
 
         // Initialize special data
         v1.specials.push(SpecialData(0, 0, 0)); // None
         v1.specials.push(SpecialData(1, 1, 0)); // EMP
         v1.specials.push(SpecialData(10, 10, 0)); // RepairDrones
-        v1.specials.push(SpecialData(5, 7, 0)); // FlakArray
+        v1.specials.push(SpecialData(5, 15, 0)); // FlakArray
     }
 
     function setShipsAddress(address _ships) public onlyOwner {

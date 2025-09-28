@@ -59,7 +59,7 @@ contract ShipAttributes is IShipAttributes, Ownable {
         // Initialize special data
         v1.specials.push(SpecialData(0, 0, 0)); // None
         v1.specials.push(SpecialData(1, 1, 0)); // EMP
-        v1.specials.push(SpecialData(5, 25, 0)); // RepairDrones
+        v1.specials.push(SpecialData(10, 10, 0)); // RepairDrones
         v1.specials.push(SpecialData(5, 7, 0)); // FlakArray
     }
 
@@ -148,6 +148,21 @@ contract ShipAttributes is IShipAttributes, Ownable {
         Ship memory ship = ships.getShip(_shipId);
         if (ship.id == 0) revert ShipNotFound();
         return calculateShipAttributes(ship);
+    }
+
+    // Calculate attributes for multiple ships by their IDs
+    function calculateShipAttributesByIds(
+        uint[] memory _shipIds
+    ) public view returns (Attributes[] memory) {
+        Attributes[] memory results = new Attributes[](_shipIds.length);
+
+        for (uint i = 0; i < _shipIds.length; i++) {
+            Ship memory ship = ships.getShip(_shipIds[i]);
+            if (ship.id == 0) revert ShipNotFound();
+            results[i] = calculateShipAttributes(ship);
+        }
+
+        return results;
     }
 
     // Internal calculation functions

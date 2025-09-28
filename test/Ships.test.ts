@@ -50,6 +50,7 @@ describe("Ships", function () {
       renderFore2,
       universalCredits,
       shipPurchaser,
+      shipAttributes,
     } = await hre.ignition.deploy(DeployModule);
 
     // Create a separate contract instance for user1
@@ -177,6 +178,7 @@ describe("Ships", function () {
       publicClient,
       universalCredits,
       shipPurchaser,
+      shipAttributes,
       user1UC,
       user2UC,
       user3UC,

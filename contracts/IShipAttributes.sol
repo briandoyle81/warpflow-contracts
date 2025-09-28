@@ -12,6 +12,10 @@ interface IShipAttributes {
         uint _shipId
     ) external view returns (Attributes memory);
 
+    function calculateShipAttributesByIds(
+        uint[] memory _shipIds
+    ) external view returns (Attributes[] memory);
+
     function getSpecialRange(Special _special) external view returns (uint8);
 
     function getSpecialStrength(Special _special) external view returns (uint8);

@@ -14,6 +14,8 @@ DON'T FORGET TO SET SHIPNAMES APPROPRIATELY!
 
 TODO:
 
+CRITICAL: ERC-5192 to lock and unlock tokens on opensea
+Costs should probably be in the attributes arrays instead of separate
 Add battle scarring to ships each time they get disabled
 CRITICAL: Don't allow lobbies to be created for map ids that don't exist
 CRITICAL: Handle fleets that have more than 10 ships running out of space for deployment

@@ -8,6 +8,10 @@ Please see other repos for composable and forkable contracts, apps, etc.!
 
 Thanks!
 
+## ⚠️ Testnet Alpha Warning
+
+**In active development, ships and games will be lost**
+
 npx hardhat ignition deploy ignition/modules/DeployAndConfig.ts --network flow-testnet --verify
 
 DON'T FORGET TO SET SHIPNAMES APPROPRIATELY!
@@ -15,6 +19,9 @@ DON'T FORGET TO SET SHIPNAMES APPROPRIATELY!
 TODO:
 
 CRITICAL: ERC-5192 to lock and unlock tokens on opensea
+CRITICAL: Make sure I can expand ship collections
+CRITICAL: Make sure I can migrate ships
+CRITICAL: Reserved lobbies
 Costs should probably be in the attributes arrays instead of separate
 Add battle scarring to ships each time they get disabled
 CRITICAL: Don't allow lobbies to be created for map ids that don't exist

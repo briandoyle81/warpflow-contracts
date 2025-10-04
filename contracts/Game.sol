@@ -360,34 +360,6 @@ contract Game is Ownable {
         return false;
     }
 
-    // Helper function to iterate over both fleets and apply a callback function that can modify state
-    function _iterateOverBothFleetsStateful(
-        uint _gameId,
-        function(uint, uint) internal callback
-    ) internal {
-        GameData storage game = games[_gameId];
-        EnumerableSet.UintSet storage creatorShipIds = game.playerActiveShipIds[
-            game.metadata.creator
-        ];
-        EnumerableSet.UintSet storage joinerShipIds = game.playerActiveShipIds[
-            game.metadata.joiner
-        ];
-
-        // Check creator ships
-        uint creatorShipCount = EnumerableSet.length(creatorShipIds);
-        for (uint i = 0; i < creatorShipCount; i++) {
-            uint shipId = EnumerableSet.at(creatorShipIds, i);
-            callback(_gameId, shipId);
-        }
-
-        // Check joiner ships
-        uint joinerShipCount = EnumerableSet.length(joinerShipIds);
-        for (uint i = 0; i < joinerShipCount; i++) {
-            uint shipId = EnumerableSet.at(joinerShipIds, i);
-            callback(_gameId, shipId);
-        }
-    }
-
     // Helper function to check if a ship is active (not destroyed and has hull points)
     function _isShipActive(
         uint _gameId,
@@ -533,7 +505,11 @@ contract Game is Ownable {
 
         // Perform the move only if it's not a no-op move
         if (!isNoOpMove) {
-            _executeMove(_gameId, _shipId, currentPos, _newRow, _newCol);
+            game.grid[currentPos.row][currentPos.col] = 0;
+
+            // Place ship at new position
+            game.grid[_newRow][_newCol] = _shipId;
+            game.shipPositions[_shipId] = Position(_newRow, _newCol);
         }
 
         // Mark ship as moved this round
@@ -603,8 +579,6 @@ contract Game is Ownable {
         } else if (actionType == ActionType.ClaimPoints) {
             // ClaimPoints: get points from the tile the ship moved to
             _performClaimPoints(_gameId, ship.owner, _newRow, _newCol);
-        } else {
-            revert InvalidMove();
         }
     }
 
@@ -1329,41 +1303,6 @@ contract Game is Ownable {
 
         // Set ship in grid
         games[_gameId].grid[_row][_col] = _shipId;
-    }
-
-    // Internal helper functions
-
-    function _calculateMovementCost(
-        Position memory _currentPos,
-        int16 _newRow,
-        int16 _newCol
-    ) internal pure returns (uint8) {
-        uint8 rowDiff = _currentPos.row > _newRow
-            ? uint8(uint16(_currentPos.row - _newRow))
-            : uint8(uint16(_newRow - _currentPos.row));
-        uint8 colDiff = _currentPos.col > _newCol
-            ? uint8(uint16(_currentPos.col - _newCol))
-            : uint8(uint16(_newCol - _currentPos.col));
-
-        // Allow diagonal movement - cost is Manhattan distance (rowDiff + colDiff)
-        return rowDiff + colDiff;
-    }
-
-    function _executeMove(
-        uint _gameId,
-        uint _shipId,
-        Position memory _currentPos,
-        int16 _newRow,
-        int16 _newCol
-    ) internal {
-        GameData storage game = games[_gameId];
-
-        // Remove ship from current position
-        game.grid[_currentPos.row][_currentPos.col] = 0;
-
-        // Place ship at new position
-        game.grid[_newRow][_newCol] = _shipId;
-        game.shipPositions[_shipId] = Position(_newRow, _newCol);
     }
 
     // View functions

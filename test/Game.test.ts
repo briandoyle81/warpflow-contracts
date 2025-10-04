@@ -3707,7 +3707,8 @@ describe("Game", function () {
       // 8. Make sure that ship is undamaged (FlakArray ship should not damage itself)
       expect(ship1AttrsAfter.hullPoints).to.equal(ship1AttrsBefore.hullPoints);
 
-      // 9. Make sure that the 1 friendly and 1 enemy ship in range are damaged
+      // 9. Make sure that both friendly and enemy ships in range are damaged
+      // FlakArray damages ALL ships in range (both friendly and enemy)
       // FlakArray strength is 15, so ships in range should lose 15 hull points
       expect(ship2AttrsAfter.hullPoints).to.equal(
         Math.max(0, ship2AttrsBefore.hullPoints - 15)

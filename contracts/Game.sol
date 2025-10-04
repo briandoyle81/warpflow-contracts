@@ -18,7 +18,7 @@ contract Game is Ownable {
     address public lobbiesAddress;
     IGameResults public gameResults;
 
-    mapping(uint => GameData) public games;
+    mapping(uint => GameData) games;
     uint public gameCount;
 
     mapping(address => uint[]) public playerGames;
@@ -326,40 +326,6 @@ contract Game is Ownable {
 
     // Helper functions to consolidate fleet iteration logic
 
-    // Helper function to iterate over both fleets and apply a callback function
-    function _iterateOverBothFleets(
-        uint _gameId,
-        function(uint, uint) internal view returns (bool) callback
-    ) internal view returns (bool) {
-        GameData storage game = games[_gameId];
-        EnumerableSet.UintSet storage creatorShipIds = game.playerActiveShipIds[
-            game.metadata.creator
-        ];
-        EnumerableSet.UintSet storage joinerShipIds = game.playerActiveShipIds[
-            game.metadata.joiner
-        ];
-
-        // Check creator ships
-        uint creatorShipCount = EnumerableSet.length(creatorShipIds);
-        for (uint i = 0; i < creatorShipCount; i++) {
-            uint shipId = EnumerableSet.at(creatorShipIds, i);
-            if (callback(_gameId, shipId)) {
-                return true;
-            }
-        }
-
-        // Check joiner ships
-        uint joinerShipCount = EnumerableSet.length(joinerShipIds);
-        for (uint i = 0; i < joinerShipCount; i++) {
-            uint shipId = EnumerableSet.at(joinerShipIds, i);
-            if (callback(_gameId, shipId)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     // Helper function to check if a ship is active (not destroyed and has hull points)
     function _isShipActive(
         uint _gameId,
@@ -472,7 +438,7 @@ contract Game is Ownable {
         ) revert ShipNotFound();
 
         // Check if ship has already moved this round
-        if (game.shipMovedThisRound[game.turnState.currentRound][_shipId])
+        if (EnumerableSet.contains(game.shipMovedThisRound, _shipId))
             revert ShipAlreadyMoved();
 
         // Get current position
@@ -513,7 +479,7 @@ contract Game is Ownable {
         }
 
         // Mark ship as moved this round
-        game.shipMovedThisRound[game.turnState.currentRound][_shipId] = true;
+        EnumerableSet.add(game.shipMovedThisRound, _shipId);
 
         // Perform the action
         _performAction(
@@ -636,8 +602,7 @@ contract Game is Ownable {
         // Truncate division result
         // Reduce hull points
         if (reducedDamage >= targetAttributes.hullPoints) {
-            targetAttributes.hullPoints = 0;
-            // Track the kill for the shooter
+            _setShipHPToZero(_gameId, targetShipId);
             lastDamage[targetShipId] = _shipId;
         } else {
             targetAttributes.hullPoints -= uint8(reducedDamage);
@@ -658,6 +623,17 @@ contract Game is Ownable {
         return rowDiff + colDiff;
     }
 
+    // Helper function to add ship to zero HP set
+    function _addShipToZeroHPSet(uint _gameId, uint _shipId) internal {
+        EnumerableSet.add(games[_gameId].shipsWithZeroHP, _shipId);
+    }
+
+    // Helper function to set ship HP to 0 and add to zero HP set
+    function _setShipHPToZero(uint _gameId, uint _shipId) internal {
+        games[_gameId].shipAttributes[_shipId].hullPoints = 0;
+        EnumerableSet.add(games[_gameId].shipsWithZeroHP, _shipId);
+    }
+
     // Helper function to copy EnumerableSet to array
     function _copySetToArray(
         EnumerableSet.UintSet storage set
@@ -671,6 +647,7 @@ contract Game is Ownable {
     }
 
     // Helper function to get ships that have moved this round for a specific player
+    // This is used to get the game state for the client
     function _getMovedShipIds(
         uint _gameId,
         address _player
@@ -685,7 +662,7 @@ contract Game is Ownable {
         uint shipCount = EnumerableSet.length(playerShipIds);
         for (uint i = 0; i < shipCount; i++) {
             uint shipId = EnumerableSet.at(playerShipIds, i);
-            if (game.shipMovedThisRound[game.turnState.currentRound][shipId]) {
+            if (EnumerableSet.contains(game.shipMovedThisRound, shipId)) {
                 movedCount++;
             }
         }
@@ -695,7 +672,7 @@ contract Game is Ownable {
         uint index = 0;
         for (uint i = 0; i < shipCount; i++) {
             uint shipId = EnumerableSet.at(playerShipIds, i);
-            if (game.shipMovedThisRound[game.turnState.currentRound][shipId]) {
+            if (EnumerableSet.contains(game.shipMovedThisRound, shipId)) {
                 movedShipIds[index] = shipId;
                 index++;
             }
@@ -716,23 +693,24 @@ contract Game is Ownable {
 
     // Check if both players have moved all their ships (round complete)
     function _checkRoundComplete(uint _gameId) internal view returns (bool) {
-        // Use helper function to check if any active ship hasn't moved
-        bool hasUnmovedShip = _iterateOverBothFleets(_gameId, _checkShipMoved);
-        return !hasUnmovedShip;
-    }
-
-    // Helper function for _checkRoundComplete
-    function _checkShipMoved(
-        uint _gameId,
-        uint _shipId
-    ) internal view returns (bool) {
         GameData storage game = games[_gameId];
 
-        // Only check active ships
-        if (!_isShipActive(_gameId, _shipId)) return false;
+        // Get total active ships
+        uint totalActiveShips = EnumerableSet.length(
+            game.playerActiveShipIds[game.metadata.creator]
+        ) +
+            EnumerableSet.length(
+                game.playerActiveShipIds[game.metadata.joiner]
+            );
 
-        // Return true if ship hasn't moved (indicating round is not complete)
-        return !game.shipMovedThisRound[game.turnState.currentRound][_shipId];
+        // Get moved ships this round
+        uint movedShips = EnumerableSet.length(game.shipMovedThisRound);
+
+        // Get ships with 0 HP that can't move
+        uint shipsWithZeroHP = EnumerableSet.length(game.shipsWithZeroHP);
+
+        // Round is complete when all ships have either moved or have 0 HP
+        return (movedShips + shipsWithZeroHP) >= totalActiveShips;
     }
 
     // Switch turns only if the other player has unmoved ships
@@ -745,7 +723,13 @@ contract Game is Ownable {
                 _gameId,
                 game.metadata.joiner
             );
-            if (joinerHasUnmovedShips) {
+            // Also check if creator has no ships that can move (all 0 HP)
+            bool creatorHasMovableShips = _checkPlayerHasMovableShips(
+                _gameId,
+                game.metadata.creator
+            );
+
+            if (joinerHasUnmovedShips || !creatorHasMovableShips) {
                 game.turnState.currentTurn = game.metadata.joiner;
             }
         } else {
@@ -754,10 +738,36 @@ contract Game is Ownable {
                 _gameId,
                 game.metadata.creator
             );
-            if (creatorHasUnmovedShips) {
+            // Also check if joiner has no ships that can move (all 0 HP)
+            bool joinerHasMovableShips = _checkPlayerHasMovableShips(
+                _gameId,
+                game.metadata.joiner
+            );
+
+            if (creatorHasUnmovedShips || !joinerHasMovableShips) {
                 game.turnState.currentTurn = game.metadata.creator;
             }
         }
+    }
+
+    // Helper function to check if a player has any ships that can move (not 0 HP)
+    function _checkPlayerHasMovableShips(
+        uint _gameId,
+        address _player
+    ) internal view returns (bool) {
+        GameData storage game = games[_gameId];
+        EnumerableSet.UintSet storage shipIds = game.playerActiveShipIds[
+            _player
+        ];
+
+        uint shipCount = EnumerableSet.length(shipIds);
+        for (uint i = 0; i < shipCount; i++) {
+            uint shipId = EnumerableSet.at(shipIds, i);
+            if (_isShipActive(_gameId, shipId)) {
+                return true; // Found at least one ship that can move
+            }
+        }
+        return false; // No ships that can move
     }
 
     // Helper function to check if a specific player has unmoved ships
@@ -775,7 +785,7 @@ contract Game is Ownable {
             uint shipId = EnumerableSet.at(shipIds, i);
             if (
                 _isShipActive(_gameId, shipId) &&
-                !game.shipMovedThisRound[game.turnState.currentRound][shipId]
+                !EnumerableSet.contains(game.shipMovedThisRound, shipId)
             ) {
                 return true;
             }
@@ -913,6 +923,11 @@ contract Game is Ownable {
         } else {
             targetAttributes.hullPoints = newHullPoints;
         }
+
+        // Remove ship from zero HP set if it was there and now has HP > 0
+        if (targetAttributes.hullPoints > 0) {
+            EnumerableSet.remove(game.shipsWithZeroHP, _targetShipId);
+        }
     }
 
     // Internal function to perform EMP special
@@ -994,14 +1009,14 @@ contract Game is Ownable {
 
             if (distance <= flakRange && targetShipId != _shipId) {
                 lastDamage[targetShipId] = _shipId;
-                // Apply damage to this ship
-                Attributes storage shipAttrs = game.shipAttributes[
-                    targetShipId
-                ];
-                if (flakStrength >= shipAttrs.hullPoints) {
-                    shipAttrs.hullPoints = 0;
+                if (
+                    flakStrength >= game.shipAttributes[targetShipId].hullPoints
+                ) {
+                    _setShipHPToZero(_gameId, targetShipId);
                 } else {
-                    shipAttrs.hullPoints -= flakStrength;
+                    game
+                        .shipAttributes[targetShipId]
+                        .hullPoints -= flakStrength;
                 }
             }
         }
@@ -1073,8 +1088,11 @@ contract Game is Ownable {
         Position storage shipPosition = game.shipPositions[_shipId];
         game.grid[shipPosition.row][shipPosition.col] = 0;
 
-        // Mark ship as moved this round so it doesn't block round completion
-        game.shipMovedThisRound[game.turnState.currentRound][_shipId] = true;
+        // Remove ship from moved set since it's no longer active
+        EnumerableSet.remove(game.shipMovedThisRound, _shipId);
+
+        // Remove ship from zero HP set since it's no longer active
+        EnumerableSet.remove(game.shipsWithZeroHP, _shipId);
 
         // Remove ship from fleet
         if (isCreatorShip) {
@@ -1120,8 +1138,11 @@ contract Game is Ownable {
         Position storage shipPosition = game.shipPositions[_shipId];
         game.grid[shipPosition.row][shipPosition.col] = 0;
 
-        // Mark ship as moved this round so it doesn't block round completion
-        game.shipMovedThisRound[game.turnState.currentRound][_shipId] = true;
+        // Remove ship from moved set since it's no longer active
+        EnumerableSet.remove(game.shipMovedThisRound, _shipId);
+
+        // Remove ship from zero HP set since it's no longer active
+        EnumerableSet.remove(game.shipsWithZeroHP, _shipId);
 
         // Call the Ships contract to mark the ship as destroyed
         // For reactor critical destruction, there's no specific destroyer
@@ -1206,28 +1227,11 @@ contract Game is Ownable {
     ) internal {
         GameData storage game = games[_gameId];
 
-        // Check creator ships
-        EnumerableSet.UintSet storage creatorShipIds = game.playerActiveShipIds[
-            game.metadata.creator
-        ];
-        uint creatorShipCount = EnumerableSet.length(creatorShipIds);
-        for (uint i = 0; i < creatorShipCount; i++) {
-            uint shipId = EnumerableSet.at(creatorShipIds, i);
-            if (
-                _isShipNotDestroyed(shipId) &&
-                game.shipAttributes[shipId].hullPoints == 0
-            ) {
-                game.shipAttributes[shipId].reactorCriticalTimer++;
-            }
-        }
-
-        // Check joiner ships
-        EnumerableSet.UintSet storage joinerShipIds = game.playerActiveShipIds[
-            game.metadata.joiner
-        ];
-        uint joinerShipCount = EnumerableSet.length(joinerShipIds);
-        for (uint i = 0; i < joinerShipCount; i++) {
-            uint shipId = EnumerableSet.at(joinerShipIds, i);
+        // Iterate through ships with 0 HP using the dedicated set
+        uint zeroHPShipCount = EnumerableSet.length(game.shipsWithZeroHP);
+        for (uint i = 0; i < zeroHPShipCount; i++) {
+            uint shipId = EnumerableSet.at(game.shipsWithZeroHP, i);
+            // Double-check that ship is still not destroyed and has 0 HP
             if (
                 _isShipNotDestroyed(shipId) &&
                 game.shipAttributes[shipId].hullPoints == 0
@@ -1249,13 +1253,13 @@ contract Game is Ownable {
         GameData storage game = games[_gameId];
 
         // Set hull points to 0
-        game.shipAttributes[_shipId].hullPoints = 0;
+        _setShipHPToZero(_gameId, _shipId);
 
         // Don't remove ship from grid to allow testing scenarios where we want
         // to simulate 0 hull points but still have the ship in the game for repair
 
-        // Mark ship as moved this round so it doesn't block round completion
-        game.shipMovedThisRound[game.turnState.currentRound][_shipId] = true;
+        // Remove ship from moved set since it's no longer active
+        EnumerableSet.remove(game.shipMovedThisRound, _shipId);
 
         // Note: We don't remove from playerActiveShipIds to allow testing scenarios
         // where we want to simulate 0 hull points but still have the ship participate
@@ -1281,7 +1285,7 @@ contract Game is Ownable {
     ) external onlyOwner {
         GameData storage game = games[_gameId];
         // Mark ship as moved this round
-        game.shipMovedThisRound[game.turnState.currentRound][_shipId] = true;
+        EnumerableSet.add(game.shipMovedThisRound, _shipId);
     }
 
     // Debug function to set a ship in a specific position (onlyOwner for testing)
@@ -1303,6 +1307,25 @@ contract Game is Ownable {
 
         // Set ship in grid
         games[_gameId].grid[_row][_col] = _shipId;
+    }
+
+    // Debug function to get ships with zero HP
+    function _getShipsWithZeroHP(
+        uint _gameId
+    ) external view returns (uint[] memory) {
+        return _copySetToArray(games[_gameId].shipsWithZeroHP);
+    }
+
+    // Debug function to manually trigger auto-pass turn (onlyOwner for testing)
+    function debugAutoPassTurn(uint _gameId) external onlyOwner {
+        _autoPassTurn(_gameId);
+    }
+
+    // Debug function to manually trigger reactor critical timer increment for 0 HP ships (onlyOwner for testing)
+    function debugIncrementReactorCriticalTimerForZeroHPShips(
+        uint _gameId
+    ) external onlyOwner {
+        _incrementReactorCriticalTimerForZeroHPShips(_gameId);
     }
 
     // View functions
@@ -1459,6 +1482,9 @@ contract Game is Ownable {
 
         game.turnState.currentRound++;
 
+        // Clear the moved ships set for the new round
+        EnumerableSet.clear(game.shipMovedThisRound);
+
         // Beginning of new round: increment reactorCriticalTimer for ships with 0 HP
         _incrementReactorCriticalTimerForZeroHPShips(_gameId);
 
@@ -1503,12 +1529,10 @@ contract Game is Ownable {
             uint shipId = EnumerableSet.at(shipIds, i);
             if (
                 _isShipActive(_gameId, shipId) &&
-                !game.shipMovedThisRound[game.turnState.currentRound][shipId]
+                !EnumerableSet.contains(game.shipMovedThisRound, shipId)
             ) {
                 // Mark ship as moved (auto-pass)
-                game.shipMovedThisRound[game.turnState.currentRound][
-                    shipId
-                ] = true;
+                EnumerableSet.add(game.shipMovedThisRound, shipId);
             }
         }
     }

@@ -132,7 +132,8 @@ struct GameData {
     // Grid state - grid[row][column] = shipId (0 if empty)
     mapping(int16 row => mapping(int16 column => uint shipId)) grid;
     mapping(uint => Position) shipPositions; // shipId => position
-    mapping(uint => mapping(uint => bool)) shipMovedThisRound; // round => shipId => hasMoved
+    EnumerableSet.UintSet shipMovedThisRound; // movedShipIds in current round
+    EnumerableSet.UintSet shipsWithZeroHP; // shipIds with 0 hull points
     // Store active ship IDs for each player to avoid repeated fleet calls
     mapping(address => EnumerableSet.UintSet) playerActiveShipIds; // player => shipIds
 }

@@ -801,14 +801,15 @@ contract Game is Ownable {
         int16 _newCol,
         uint _targetShipId
     ) internal {
-        // Validate target ship exists
-        Ship memory targetShip = _validateShipExistsAndNotDestroyed(
-            _targetShipId
-        );
-
         // Check if using ship has a special
         Ship memory usingShip = ships.getShip(_shipId);
         if (usingShip.equipment.special == Special.None) revert InvalidMove();
+
+        // Only validate target ship for specials that need targets
+        Ship memory targetShip;
+        if (usingShip.equipment.special != Special.FlakArray) {
+            targetShip = _validateShipExistsAndNotDestroyed(_targetShipId);
+        }
 
         // Validate special-specific requirements
         _validateSpecialRequirements(

@@ -3693,7 +3693,7 @@ describe("Game", function () {
       ])) as unknown as GameDataView;
       const flakPos = findShipPosition(gameData, 1n);
       await game.write.moveShip(
-        [1n, 1n, flakPos.row, flakPos.col, ActionType.Special, 1n],
+        [1n, 1n, flakPos.row, flakPos.col, ActionType.Special, 0n],
         { account: creator.account }
       );
 

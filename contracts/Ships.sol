@@ -82,6 +82,11 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
     event MetadataUpdate(uint256 _tokenId);
 
+    // ERC-5192 Minimal Soulbound extension (no extra storage required)
+    // See: https://eips.ethereum.org/EIPS/eip-5192
+    event Locked(uint256 tokenId);
+    event Unlocked(uint256 tokenId);
+
     mapping(address => bool) public isAllowedToCreateShips;
 
     // TODO: Should variants have different weapons or props?
@@ -312,6 +317,10 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         }
 
         ships[_id].shipData.inFleet = _inFleet;
+
+        // ERC-5192: Lock when added to fleet; unlock when removed (purely via events)
+        if (_inFleet) emit Locked(_id);
+        else emit Unlocked(_id);
     }
 
     /**
@@ -357,6 +366,9 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
             ships[tokenId].owner = to;
         }
 
+        // ERC-5192: if burning (to == address(0)) emit Locked for final state
+        if (to == address(0)) emit Locked(tokenId);
+
         return super._update(to, tokenId, auth);
     }
 
@@ -375,6 +387,9 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
         // Set owner after minting to avoid check in _update
         newShip.owner = _to;
+
+        // ERC-5192: Ships start unlocked (emit for indexers if desired)
+        emit Unlocked(shipCount);
     }
 
     function _processReferral(
@@ -415,6 +430,9 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
             revert NotAuthorized(msg.sender);
         }
         ships[_id].shipData.timestampDestroyed = block.timestamp;
+
+        // ERC-5192: Lock when destroyed
+        emit Locked(_id);
 
         ships[_destroyerId].shipData.shipsDestroyed++;
 
@@ -522,6 +540,13 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
     function isShipDestroyed(uint _id) public view returns (bool) {
         return ships[_id].shipData.timestampDestroyed != 0;
+    }
+
+    // ERC-5192: minimal interface view - derived from existing state
+    function locked(uint256 tokenId) external view returns (bool) {
+        Ship storage s = ships[tokenId];
+        if (s.shipData.timestampDestroyed != 0) return true;
+        return s.shipData.inFleet;
     }
 
     function getPurchaseInfo()

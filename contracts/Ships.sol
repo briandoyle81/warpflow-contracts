@@ -429,12 +429,24 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         if (msg.sender != owner() && msg.sender != config.gameAddress) {
             revert NotAuthorized(msg.sender);
         }
+        if (ships[_id].shipData.timestampDestroyed != 0) {
+            revert ShipAlreadyDestroyed(_id);
+        }
         ships[_id].shipData.timestampDestroyed = block.timestamp;
 
         // ERC-5192: Lock when destroyed
         emit Locked(_id);
 
         ships[_destroyerId].shipData.shipsDestroyed++;
+
+        // Pay the destroyer 1/4 of salvage value (base recycleReward)
+        address destroyerOwner = ships[_destroyerId].owner;
+        if (destroyerOwner != address(0)) {
+            uint quarterSalvage = recycleReward / 4;
+            if (quarterSalvage > 0) {
+                universalCredits.mint(destroyerOwner, quarterSalvage);
+            }
+        }
 
         emit MetadataUpdate(_id);
     }
@@ -612,18 +624,28 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         for (uint i = 0; i < _shipIds.length; i++) {
             uint shipId = _shipIds[i];
 
+            // Cache storage reference to avoid repeated SLOADs
+            Ship storage s = ships[shipId];
+
             // Check if caller owns the ship
             // TODO: I'm 85% sure this is redundant.
-            if (ships[shipId].owner != msg.sender) {
+            if (s.owner != msg.sender) {
                 revert NotYourShip(shipId);
             }
 
+            // Determine recycle reward based on destruction state PRIOR to this call
+            bool wasDestroyed = s.shipData.timestampDestroyed != 0;
+            uint rewardForThisShip = wasDestroyed
+                ? (recycleReward / 2)
+                : recycleReward;
+
             // Mark ship as destroyed and burn it
-            ships[shipId].shipData.timestampDestroyed = block.timestamp;
+            s.shipData.timestampDestroyed = block.timestamp;
+            emit Locked(shipId);
             _burn(shipId);
 
             // Add to total reward
-            totalReward += recycleReward;
+            totalReward += rewardForThisShip;
         }
 
         // Mint reward tokens to the owner

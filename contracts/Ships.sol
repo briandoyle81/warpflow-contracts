@@ -15,6 +15,7 @@ import "./IRenderer.sol";
 import "./IRandomManager.sol";
 import "./IGenerateNewShip.sol";
 import "./IUniversalCredits.sol";
+import "./IShipAttributes.sol";
 
 contract Ships is ERC721, Ownable, ReentrancyGuard {
     using EnumerableSet for EnumerableSet.UintSet;
@@ -65,6 +66,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         IRenderMetadata metadataRenderer;
         IRandomManager randomManager;
         IGenerateNewShip shipGenerator;
+        IShipAttributes shipAttributes;
     }
 
     ContractConfig public config;
@@ -72,9 +74,6 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     uint8[] public purchaseTiers;
     uint8[] public tierShips;
     uint[] public tierPrices;
-
-    Costs public costs;
-    uint public costsVersion;
 
     bool public paused;
 
@@ -101,18 +100,6 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         address _renderer
     ) ERC721("Warpflow Ships", "SHIP") Ownable(msg.sender) {
         config.metadataRenderer = IRenderMetadata(_renderer);
-
-        costs.version = 1;
-        costs.baseCost = 50;
-
-        costs.accuracy = [0, 10, 25];
-        costs.hull = [0, 10, 25];
-        costs.speed = [0, 10, 25];
-
-        costs.mainWeapon = [25, 30, 40, 40];
-        costs.armor = [0, 5, 10, 15];
-        costs.shields = [0, 10, 20, 30];
-        costs.special = [0, 10, 20, 15];
 
         // Variant 0 has no modifiers, already exists as zeroes
 
@@ -220,7 +207,9 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         newShip.equipment = generatedShip.equipment;
         newShip.shipData.shiny = generatedShip.shipData.shiny;
         newShip.shipData.shipsDestroyed = generatedShip.shipData.shipsDestroyed;
-        newShip.shipData.costsVersion = costs.version;
+        newShip.shipData.costsVersion = config
+            .shipAttributes
+            .getCurrentCostsVersion();
         newShip.shipData.constructed = true;
 
         _setCostOfShip(_id);
@@ -256,7 +245,9 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         newShip.equipment = generatedShip.equipment;
         newShip.shipData.shiny = generatedShip.shipData.shiny;
         newShip.shipData.shipsDestroyed = generatedShip.shipData.shipsDestroyed;
-        newShip.shipData.costsVersion = costs.version;
+        newShip.shipData.costsVersion = config
+            .shipAttributes
+            .getCurrentCostsVersion();
         newShip.shipData.constructed = true;
 
         _setCostOfShip(_id);
@@ -272,35 +263,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
     function _setCostOfShip(uint _id) internal {
         Ship storage ship = ships[_id];
-
-        uint16 unadjustedCost = uint16(
-            costs.baseCost +
-                costs.accuracy[uint8(ship.traits.accuracy)] +
-                costs.hull[uint8(ship.traits.hull)] +
-                costs.speed[uint8(ship.traits.speed)] +
-                costs.mainWeapon[uint8(ship.equipment.mainWeapon)] +
-                costs.armor[uint8(ship.equipment.armor)] +
-                costs.shields[uint8(ship.equipment.shields)] +
-                costs.special[uint8(ship.equipment.special)]
-        );
-
-        // // TODO: Cap for rank to cost
-        // // For now cost is reduced by  0% for rank 1, 10% for rank 2, 20% for rank 3, 30% for rank 4 and above
-        // uint16 rank = getRank(ship.shipData.shipsDestroyed);
-        // uint16 rankCost;
-        // if (rank == 1) {
-        //     rankCost = (unadjustedCost * 0) / 100;
-        // } else if (rank == 2) {
-        //     rankCost = (unadjustedCost * 10) / 100;
-        // } else if (rank == 3) {
-        //     rankCost = (unadjustedCost * 20) / 100;
-        // } else if (rank >= 4) {
-        //     rankCost = (unadjustedCost * 30) / 100;
-        // }
-
-        // uint16 finalCost = unadjustedCost - rankCost;
-
-        ship.shipData.cost = unadjustedCost;
+        ship.shipData.cost = config.shipAttributes.calculateShipCost(ship);
     }
 
     /**
@@ -473,7 +436,8 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         address _fleetsAddress,
         address _shipGenerator,
         address _randomManager,
-        address _metadataRenderer
+        address _metadataRenderer,
+        address _shipAttributes
     ) public onlyOwner {
         if (_gameAddress != address(0)) {
             config.gameAddress = _gameAddress;
@@ -493,11 +457,9 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         if (_metadataRenderer != address(0)) {
             config.metadataRenderer = IRenderMetadata(_metadataRenderer);
         }
-    }
-
-    function setCosts(Costs memory _costs) public onlyOwner {
-        costsVersion++;
-        costs = _costs;
+        if (_shipAttributes != address(0)) {
+            config.shipAttributes = IShipAttributes(_shipAttributes);
+        }
     }
 
     function setPaused(bool _paused) public onlyOwner {
@@ -538,12 +500,8 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
      * @dev VIEW
      */
 
-    function getCosts() public view returns (uint, Costs memory) {
-        return (costsVersion, costs);
-    }
-
     function getCurrentCostsVersion() public view returns (uint16) {
-        return costs.version;
+        return config.shipAttributes.getCurrentCostsVersion();
     }
 
     function getShip(uint _id) public view returns (Ship memory) {

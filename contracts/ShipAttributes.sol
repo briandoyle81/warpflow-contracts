@@ -13,14 +13,31 @@ contract ShipAttributes is IShipAttributes, Ownable {
     mapping(uint16 => AttributesVersion) public attributesVersions;
     uint16 public currentAttributesVersion;
 
+    // Cost system
+    Costs public costs;
+
     error InvalidAttributesVersion();
     error ShipNotFound();
+    error InvalidCostsVersion();
 
     constructor(address _ships) Ownable(msg.sender) {
         ships = IShips(_ships);
 
         // Initialize attributes version 1
         currentAttributesVersion = 1;
+
+        // Initialize cost system
+        costs.version = 1;
+        costs.baseCost = 50;
+
+        costs.accuracy = [0, 10, 25];
+        costs.hull = [0, 10, 25];
+        costs.speed = [0, 10, 25];
+
+        costs.mainWeapon = [25, 30, 40, 40];
+        costs.armor = [0, 5, 10, 15];
+        costs.shields = [0, 10, 20, 30];
+        costs.special = [0, 10, 20, 15];
 
         // Set up default attributes version 1
         AttributesVersion storage v1 = attributesVersions[1];
@@ -279,5 +296,107 @@ contract ShipAttributes is IShipAttributes, Ownable {
             attributesVersions[currentAttributesVersion].specials[
                 uint8(_special)
             ];
+    }
+
+    // Cost calculation functions
+    function calculateShipCost(
+        Ship memory ship
+    ) external view returns (uint16) {
+        uint16 unadjustedCost = uint16(
+            costs.baseCost +
+                costs.accuracy[uint8(ship.traits.accuracy)] +
+                costs.hull[uint8(ship.traits.hull)] +
+                costs.speed[uint8(ship.traits.speed)] +
+                costs.mainWeapon[uint8(ship.equipment.mainWeapon)] +
+                costs.armor[uint8(ship.equipment.armor)] +
+                costs.shields[uint8(ship.equipment.shields)] +
+                costs.special[uint8(ship.equipment.special)]
+        );
+
+        // TODO: Add rank-based discounts here if needed
+        // For now, return unadjusted cost
+        return unadjustedCost;
+    }
+
+    function setCosts(Costs memory _costs) external onlyOwner {
+        costs.version++;
+        costs = _costs;
+    }
+
+    function getCosts() external view returns (uint, Costs memory) {
+        return (costs.version, costs);
+    }
+
+    function getCurrentCostsVersion() external view returns (uint16) {
+        return costs.version;
+    }
+
+    // Attributes version management functions
+    function setCurrentAttributesVersion(uint16 _version) external onlyOwner {
+        currentAttributesVersion = _version;
+    }
+
+    function setAttributesVersionBase(
+        uint16 _version,
+        uint8 _baseHull,
+        uint8 _baseSpeed
+    ) external onlyOwner {
+        attributesVersions[_version].version = _version;
+        attributesVersions[_version].baseHull = _baseHull;
+        attributesVersions[_version].baseSpeed = _baseSpeed;
+    }
+
+    function addGunData(
+        uint16 _version,
+        GunData memory _gunData
+    ) external onlyOwner {
+        attributesVersions[_version].guns.push(_gunData);
+    }
+
+    function addArmorData(
+        uint16 _version,
+        ArmorData memory _armorData
+    ) external onlyOwner {
+        attributesVersions[_version].armors.push(_armorData);
+    }
+
+    function addShieldData(
+        uint16 _version,
+        ShieldData memory _shieldData
+    ) external onlyOwner {
+        attributesVersions[_version].shields.push(_shieldData);
+    }
+
+    function addSpecialData(
+        uint16 _version,
+        SpecialData memory _specialData
+    ) external onlyOwner {
+        attributesVersions[_version].specials.push(_specialData);
+    }
+
+    function addForeAccuracy(
+        uint16 _version,
+        uint8 _accuracy
+    ) external onlyOwner {
+        attributesVersions[_version].foreAccuracy.push(_accuracy);
+    }
+
+    function addEngineSpeed(uint16 _version, uint8 _speed) external onlyOwner {
+        attributesVersions[_version].engineSpeeds.push(_speed);
+    }
+
+    function getCurrentAttributesVersion() external view returns (uint16) {
+        return currentAttributesVersion;
+    }
+
+    function getAttributesVersionBase(
+        uint16 _version
+    ) external view returns (uint16 version, uint8 baseHull, uint8 baseSpeed) {
+        AttributesVersion storage versionData = attributesVersions[_version];
+        return (
+            versionData.version,
+            versionData.baseHull,
+            versionData.baseSpeed
+        );
     }
 }

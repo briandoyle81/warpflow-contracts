@@ -121,6 +121,7 @@ const DeployModule = buildModule("DeployModule", (m) => {
     generateNewShip,
     randomManager,
     metadataRenderer,
+    shipAttributes, // shipAttributes
   ]);
 
   // Set all addresses in Game contract

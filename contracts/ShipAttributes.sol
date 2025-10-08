@@ -50,28 +50,30 @@ contract ShipAttributes is IShipAttributes, Ownable {
         v1.foreAccuracy.push(125);
         v1.foreAccuracy.push(150);
 
+        // Hull is currently hardcoded to 0%, 10%, 20%
+
         // Engine speed in raw movement modifier
+        v1.engineSpeeds.push(0);
         v1.engineSpeeds.push(1);
         v1.engineSpeeds.push(2);
-        v1.engineSpeeds.push(4);
 
         // Initialize gun data
-        v1.guns.push(GunData(8, 20, 0)); // Laser
-        v1.guns.push(GunData(15, 15, 0)); // Railgun
-        v1.guns.push(GunData(12, 25, -1)); // MissileLauncher
+        v1.guns.push(GunData(8, 25, 0)); // Laser
+        v1.guns.push(GunData(15, 20, 0)); // Railgun
+        v1.guns.push(GunData(12, 30, -1)); // MissileLauncher
         v1.guns.push(GunData(4, 40, 0)); // PlasmaCannon
 
         // Initialize armor data
-        v1.armors.push(ArmorData(0, 0)); // None
-        v1.armors.push(ArmorData(15, -1)); // Light
-        v1.armors.push(ArmorData(30, -2)); // Medium
-        v1.armors.push(ArmorData(45, -3)); // Heavy
+        v1.armors.push(ArmorData(0, 1)); // None
+        v1.armors.push(ArmorData(15, 0)); // Light
+        v1.armors.push(ArmorData(30, -1)); // Medium
+        v1.armors.push(ArmorData(45, -2)); // Heavy
 
         // Initialize shield data
-        v1.shields.push(ShieldData(0, 0)); // None
-        v1.shields.push(ShieldData(15, 0)); // Light
-        v1.shields.push(ShieldData(30, -1)); // Medium
-        v1.shields.push(ShieldData(45, -2)); // Heavy
+        v1.shields.push(ShieldData(0, 1)); // None
+        v1.shields.push(ShieldData(15, 1)); // Light
+        v1.shields.push(ShieldData(30, 0)); // Medium
+        v1.shields.push(ShieldData(45, -1)); // Heavy
 
         // Initialize special data
         v1.specials.push(SpecialData(0, 0, 0)); // None

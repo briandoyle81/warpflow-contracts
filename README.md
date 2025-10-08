@@ -29,7 +29,7 @@ CRITICAL: Put rank in json metadata and on image
 CRITICAL: Find a way to show hull trait
 CRITICAL: Deployment zones and position selection
 Allow third party map creation for 50+ flow and allow payments to map creators (probably as voluntary tips). DON'T GENERATE UTC HERE - EXPLOITABLE
-Pay UTC to winner of games if I can game exploitsyou
+Pay UTC to winner of games if I can game exploits
 Map creator should get 1/4 the recycle fee for ships destroyed on their maps.
 Potential issue: Map owner plus owner of two fleets allows training for free.
 Limit fleet max cost

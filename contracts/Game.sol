@@ -27,8 +27,8 @@ contract Game is Ownable {
     mapping(uint target => uint lastDamager) public lastDamage;
 
     // Grid constants
-    int16 public constant GRID_WIDTH = 30; // Number of columns
-    int16 public constant GRID_HEIGHT = 20; // Number of rows
+    int16 public constant GRID_WIDTH = 25; // Number of columns
+    int16 public constant GRID_HEIGHT = 13; // Number of rows
 
     event GameStarted(
         uint indexed gameId,
@@ -183,12 +183,12 @@ contract Game is Ownable {
         uint creatorShipCount = EnumerableSet.length(creatorShipIds);
         for (uint i = 0; i < creatorShipCount; i++) {
             uint shipId = EnumerableSet.at(creatorShipIds, i);
-            int16 row = int16(uint16((i % 10) * 2)); // Use modulo 10 for row cycling (rows 0, 2, 4, 6, 8, 10, 12, 14, 16, 18)
+            int16 row = int16(uint16((i % 13))); // Use modulo 13 for row cycling (rows 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
             int16 col = int16(uint16(i / 10)); // Move to next column every 10 ships
             _placeShipOnGrid(_gameId, shipId, row, col);
         }
 
-        // Place joiner ships starting at the far right edge (column 29)
+        // Place joiner ships starting at the far right edge (column 24)
         // If there are more than 10 ships, place them in additional columns towards the center
         EnumerableSet.UintSet storage joinerShipIds = game.playerActiveShipIds[
             game.metadata.joiner
@@ -197,9 +197,9 @@ contract Game is Ownable {
         for (uint i = 0; i < joinerShipCount; i++) {
             uint shipId = EnumerableSet.at(joinerShipIds, i);
             int16 row = int16(
-                uint16((GRID_HEIGHT - 1) - int16(uint16((i % 10) * 2)))
-            ); // Use modulo 10 for row cycling (rows 19, 17, 15, 13, 11, 9, 7, 5, 3, 1)
-            int16 col = int16(uint16(29 - (i / 10))); // Move to previous column every 10 ships (towards center)
+                uint16((GRID_HEIGHT - 1) - int16(uint16((i % 13))))
+            ); // Use modulo 13 for row cycling (rows 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
+            int16 col = int16(uint16(24 - (i / 10))); // Move to previous column every 10 ships (towards center)
             _placeShipOnGrid(_gameId, shipId, row, col);
         }
     }

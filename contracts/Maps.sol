@@ -6,8 +6,8 @@ import "./Types.sol";
 
 contract Maps is Ownable {
     // Grid dimensions
-    int16 public constant GRID_WIDTH = 30; // Number of columns
-    int16 public constant GRID_HEIGHT = 20; // Number of rows
+    int16 public constant GRID_WIDTH = 25; // Number of columns
+    int16 public constant GRID_HEIGHT = 13; // Number of rows
 
     // Mapping: gameId => row => column => blocked
     mapping(uint => mapping(int16 => mapping(int16 => bool)))

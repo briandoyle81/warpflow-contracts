@@ -98,8 +98,8 @@ describe("Line of Sight System", function () {
       const gridWidth = await maps.read.GRID_WIDTH();
       const gridHeight = await maps.read.GRID_HEIGHT();
 
-      expect(gridWidth).to.equal(30);
-      expect(gridHeight).to.equal(20);
+      expect(gridWidth).to.equal(25);
+      expect(gridHeight).to.equal(13);
     });
 
     it("Should allow owner to set blocked tiles", async function () {
@@ -678,7 +678,7 @@ describe("Line of Sight System", function () {
     it("Should handle long horizontal line", async function () {
       const gameId = 1;
       const startPos: [number, number] = [10, 0];
-      const endPos: [number, number] = [10, 29]; // Full width of grid
+      const endPos: [number, number] = [10, 24]; // Full width of grid
 
       const hasLOS = await maps.read.hasMaps([
         BigInt(gameId),
@@ -694,8 +694,8 @@ describe("Line of Sight System", function () {
 
     it("Should handle long vertical line", async function () {
       const gameId = 1;
-      const startPos: [number, number] = [0, 29];
-      const endPos: [number, number] = [19, 20]; // Full height of grid
+      const startPos: [number, number] = [0, 24];
+      const endPos: [number, number] = [12, 20]; // Full height of grid
 
       const hasLOS = await maps.read.hasMaps([
         BigInt(gameId),
@@ -712,7 +712,7 @@ describe("Line of Sight System", function () {
     it("Should handle long diagonal line", async function () {
       const gameId = 1;
       const startPos: [number, number] = [0, 0];
-      const endPos: [number, number] = [19, 19]; // Full diagonal
+      const endPos: [number, number] = [12, 12]; // Full diagonal
 
       const hasLOS = await maps.read.hasMaps([
         BigInt(gameId),
@@ -964,7 +964,7 @@ describe("Line of Sight System", function () {
         // Update with new blocked and scoring tiles
         const newBlocked = [
           { row: 10, col: 10 },
-          { row: 15, col: 15 },
+          { row: 12, col: 12 },
         ];
         const newScoring = [
           { row: 5, col: 5, points: 10, onlyOnce: true },
@@ -981,7 +981,7 @@ describe("Line of Sight System", function () {
 
         expect(retrievedBlocked).to.have.length(2);
         expect(retrievedBlocked[0]).to.deep.equal({ row: 10, col: 10 });
-        expect(retrievedBlocked[1]).to.deep.equal({ row: 15, col: 15 });
+        expect(retrievedBlocked[1]).to.deep.equal({ row: 12, col: 12 });
 
         expect(retrievedScoring).to.have.length(2);
         expect(retrievedScoring[0]).to.deep.equal({
@@ -1010,7 +1010,7 @@ describe("Line of Sight System", function () {
         // Update with new blocked tiles only
         const newBlocked = [
           { row: 10, col: 10 },
-          { row: 15, col: 15 },
+          { row: 12, col: 12 },
         ];
 
         await maps.write.updatePresetMap([mapId, newBlocked, []], {
@@ -1166,7 +1166,7 @@ describe("Line of Sight System", function () {
         );
 
         // Create second map with only blocked tiles
-        const blockedPositions2 = [{ row: 15, col: 15 }];
+        const blockedPositions2 = [{ row: 12, col: 12 }];
         await maps.write.createPresetMap([blockedPositions2], {
           account: owner.address,
         });
@@ -1357,7 +1357,7 @@ describe("Line of Sight System", function () {
         const scoringPositions = [
           { row: 5, col: 5, points: 1, onlyOnce: false },
           { row: 10, col: 10, points: 2, onlyOnce: true },
-          { row: 15, col: 15, points: 3, onlyOnce: false },
+          { row: 12, col: 12, points: 3, onlyOnce: false },
         ];
 
         const initialMapCount = await maps.read.mapCount();
@@ -1372,7 +1372,7 @@ describe("Line of Sight System", function () {
         const mapId = newMapCount;
         expect(await maps.read.presetScoringMaps([mapId, 5, 5])).to.equal(1);
         expect(await maps.read.presetScoringMaps([mapId, 10, 10])).to.equal(2);
-        expect(await maps.read.presetScoringMaps([mapId, 15, 15])).to.equal(3);
+        expect(await maps.read.presetScoringMaps([mapId, 12, 12])).to.equal(3);
 
         // Verify other positions are not scoring
         expect(await maps.read.presetScoringMaps([mapId, 0, 0])).to.equal(0);
@@ -1489,7 +1489,7 @@ describe("Line of Sight System", function () {
 
         const mapId = await maps.read.mapCount();
         const updatedPositions = [
-          { row: 15, col: 15, points: 2, onlyOnce: false },
+          { row: 12, col: 12, points: 2, onlyOnce: false },
         ];
 
         await maps.write.updatePresetScoringMap([mapId, updatedPositions], {
@@ -1498,8 +1498,8 @@ describe("Line of Sight System", function () {
 
         const retrievedPositions = await maps.read.getPresetScoringMap([mapId]);
         expect(retrievedPositions).to.have.length(1);
-        expect(retrievedPositions[0].row).to.equal(15);
-        expect(retrievedPositions[0].col).to.equal(15);
+        expect(retrievedPositions[0].row).to.equal(12);
+        expect(retrievedPositions[0].col).to.equal(12);
         expect(retrievedPositions[0].onlyOnce).to.equal(false);
       });
 

@@ -11,6 +11,21 @@ import {
 } from "./types";
 import DeployModule from "../ignition/modules/DeployAndConfig";
 
+// Helper function to generate starting positions
+function generateStartingPositions(shipIds: bigint[], isCreator: boolean) {
+  const positions = [];
+  for (let i = 0; i < shipIds.length; i++) {
+    if (isCreator) {
+      // Creator starts in top-left, each ship 1 down, in columns 0-4
+      positions.push({ row: i, col: i % 5 }); // Use columns 0-4
+    } else {
+      // Joiner starts in bottom-right, each ship 1 up, in columns 20-24
+      positions.push({ row: 12 - i, col: 20 + (i % 5) }); // Use columns 20-24
+    }
+  }
+  return positions;
+}
+
 describe("Lobbies", function () {
   // Restore the original deployLobbiesFixture for basic tests
   async function deployLobbiesFixture() {
@@ -128,8 +143,16 @@ describe("Lobbies", function () {
     await joinerLobbies.write.joinLobby([1n]);
 
     // Create fleets for both players
-    await creatorLobbies.write.createFleet([1n, [1n]]);
-    await joinerLobbies.write.createFleet([1n, [6n]]);
+    await creatorLobbies.write.createFleet([
+      1n,
+      [1n],
+      generateStartingPositions([1n], true),
+    ]);
+    await joinerLobbies.write.createFleet([
+      1n,
+      [6n],
+      generateStartingPositions([6n], false),
+    ]);
 
     return {
       lobbies: deployed.lobbies,
@@ -721,7 +744,11 @@ describe("Lobbies", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Only joiner creates a fleet
-      await joinerLobbies.write.createFleet([1n, [6n]]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
       // Verify lobby is in FleetSelection state before quitting
       const lobbyBefore = await creatorLobbies.read.getLobby([1n]);
@@ -818,12 +845,172 @@ describe("Lobbies", function () {
 
       // Try to create a fleet directly through the Fleets contract (should fail)
       await expect(
-        fleets.write.createFleet([1n, creator.account.address, [1n], 1000n])
+        fleets.write.createFleet([
+          1n,
+          creator.account.address,
+          [1n],
+          generateStartingPositions([1n], true),
+          1000n,
+          true, // isCreator parameter
+        ])
       ).to.be.rejectedWith("NotLobbiesContract");
 
       // Create a fleet through the Lobbies contract (should succeed)
-      await expect(creatorLobbies.write.createFleet([1n, [1n]])).to.not.be
-        .rejected;
+      await expect(
+        creatorLobbies.write.createFleet([
+          1n,
+          [1n],
+          generateStartingPositions([1n], true),
+        ])
+      ).to.not.be.rejected;
+    });
+
+    it("should reject fleet creation with duplicate positions", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        randomManager,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships for testing (following the pattern from other tests)
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Fulfill random requests for all ships
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create lobby and join
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map,
+        100n, // maxScore
+      ]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create duplicate positions array (same position twice)
+      const duplicatePositions = [
+        { row: 0, col: 0 }, // First ship at (0, 0)
+        { row: 0, col: 0 }, // Second ship also at (0, 0) - DUPLICATE!
+      ];
+
+      // Try to create a fleet with duplicate positions (should fail)
+      await expect(
+        creatorLobbies.write.createFleet([1n, [1n, 2n], duplicatePositions])
+      ).to.be.rejectedWith("DuplicatePosition");
+    });
+
+    it("should reject fleet creation with invalid positions for creator", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        randomManager,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships for testing
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Fulfill random request
+      const shipTuple = (await ships.read.ships([BigInt(1)])) as ShipTuple;
+      const ship = tupleToShip(shipTuple);
+      const serialNumber = ship.traits.serialNumber;
+      await randomManager.write.fulfillRandomRequest([serialNumber]);
+
+      await ships.write.constructAllMyShips({ account: creator.account });
+
+      // Create lobby and join
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map,
+        100n, // maxScore
+      ]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Try to create a fleet with creator ship in joiner column (should fail)
+      const invalidPositions = [
+        { row: 0, col: 20 }, // Creator ship in joiner column - INVALID!
+      ];
+
+      await expect(
+        creatorLobbies.write.createFleet([1n, [1n], invalidPositions])
+      ).to.be.rejectedWith("InvalidPosition");
+    });
+
+    it("should reject fleet creation with invalid positions for joiner", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        randomManager,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Purchase and construct ships for testing
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address],
+        { value: parseEther("4.99") }
+      );
+
+      // Fulfill random requests
+      for (let i = 1; i <= 2; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        const serialNumber = ship.traits.serialNumber;
+        await randomManager.write.fulfillRandomRequest([serialNumber]);
+      }
+
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create lobby and join
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map,
+        100n, // maxScore
+      ]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Try to create a fleet with joiner ship in creator column (should fail)
+      const invalidPositions = [
+        { row: 0, col: 0 }, // Joiner ship in creator column - INVALID!
+      ];
+
+      await expect(
+        joinerLobbies.write.createFleet([1n, [2n], invalidPositions])
+      ).to.be.rejectedWith("InvalidPosition");
     });
   });
 
@@ -1062,7 +1249,11 @@ describe("Lobbies", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleet for joiner
-      await joinerLobbies.write.createFleet([1n, [6n]]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
       // Wait for timeout and quit with penalty
       await hre.network.provider.send("evm_increaseTime", [400]); // 400 seconds later
@@ -1125,8 +1316,16 @@ describe("Lobbies", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start game
-      await creatorLobbies.write.createFleet([1n, [1n]]);
-      await joinerLobbies.write.createFleet([1n, [6n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
       // Check tracking sets are cleaned up
       const creatorLobbyIds = await creatorLobbies.read.getPlayerLobbies([

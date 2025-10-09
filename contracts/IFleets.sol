@@ -8,7 +8,9 @@ interface IFleets {
         uint _lobbyId,
         address _owner,
         uint[] calldata _shipIds,
-        uint _costLimit
+        Position[] calldata _startingPositions,
+        uint _costLimit,
+        bool _isCreator
     ) external returns (uint);
 
     function clearFleet(uint _fleetId) external;
@@ -22,7 +24,10 @@ interface IFleets {
         uint _shipId
     ) external view returns (bool);
 
-    function getFleetShipIds(
+    function getFleetShipIdsAndPositions(
         uint _fleetId
-    ) external view returns (uint[] memory);
+    )
+        external
+        view
+        returns (uint[] memory shipIds, Position[] memory startingPositions);
 }

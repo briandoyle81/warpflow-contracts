@@ -23,6 +23,21 @@ function findShipPosition(gameData: GameDataView, shipId: bigint) {
   throw new Error(`Ship ${shipId} not found in game data`);
 }
 
+// Helper function to generate starting positions
+function generateStartingPositions(shipIds: bigint[], isCreator: boolean) {
+  const positions = [];
+  for (let i = 0; i < shipIds.length; i++) {
+    if (isCreator) {
+      // Creator starts in top-left, each ship 1 down, in columns 0-4
+      positions.push({ row: i, col: i % 5 }); // Use columns 0-4
+    } else {
+      // Joiner starts in bottom-right, each ship 1 up, in columns 20-24
+      positions.push({ row: 12 - i, col: 20 + (i % 5) }); // Use columns 20-24
+    }
+  }
+  return positions;
+}
+
 describe("Game", function () {
   async function deployGameFixture() {
     const [owner, creator, joiner, other] = await hre.viem.getWalletClients();
@@ -143,8 +158,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
-      await creatorLobbies.write.createFleet([1n, [1n]]);
-      await joinerLobbies.write.createFleet([1n, [6n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
       // Get the ship attributes
       const attributes = await game.read.getShipAttributes([1n, 1n]);
@@ -196,8 +219,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
-      await creatorLobbies.write.createFleet([1n, [1n]]);
-      await joinerLobbies.write.createFleet([1n, [6n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
       // Get ship attributes for both players
       const creatorAttributes = await game.read.getShipAttributes([1n, 1n]);
@@ -262,8 +293,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
-      await creatorLobbies.write.createFleet([1n, [1n]]);
-      await joinerLobbies.write.createFleet([1n, [6n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
       // Get the ship attributes
       const attributes = await game.read.getShipAttributes([1n, 1n]);
@@ -323,8 +362,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
-      await creatorLobbies.write.createFleet([1n, [1n]]);
-      await joinerLobbies.write.createFleet([1n, [6n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
       // Get ship attributes for both players
       const creatorAttributes = await game.read.getShipAttributes([1n, 1n]);
@@ -379,8 +426,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with multiple ships
-      await creatorLobbies.write.createFleet([1n, [1n, 2n, 3n]]);
-      await joinerLobbies.write.createFleet([1n, [6n, 7n, 8n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n, 2n, 3n],
+        generateStartingPositions([1n, 2n, 3n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n, 7n, 8n],
+        generateStartingPositions([6n, 7n, 8n], false),
+      ]);
 
       // Get game data which includes all ship attributes
       const gameData = (await game.read.getGame([1n])) as any;
@@ -442,8 +497,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets
-      await creatorLobbies.write.createFleet([1n, [1n]]);
-      await joinerLobbies.write.createFleet([1n, [6n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
       // Get complete game data
       const gameData = (await game.read.getGame([1n])) as any;
@@ -537,8 +600,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
-      await creatorLobbies.write.createFleet([1n, [1n]]);
-      await joinerLobbies.write.createFleet([1n, [6n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
       // Try to get attributes for non-existent ship
       await expect(game.read.getShipAttributes([1n, 999n])).to.be.rejectedWith(
@@ -592,8 +663,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
-      await creatorLobbies.write.createFleet([1n, [1n]]);
-      await joinerLobbies.write.createFleet([1n, [6n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
       // Get complete game data
       const gridGameData = (await game.read.getGame([1n])) as any;
@@ -680,8 +759,16 @@ describe("Game", function () {
         27n,
       ];
 
-      await creatorLobbies.write.createFleet([1n, creatorShipIds]);
-      await joinerLobbies.write.createFleet([1n, joinerShipIds]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        creatorShipIds,
+        generateStartingPositions(creatorShipIds, true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        joinerShipIds,
+        generateStartingPositions(joinerShipIds, false),
+      ]);
 
       // Get ship positions
       const shipPositions = (await game.read.getAllShipPositions([1n])) as any;
@@ -698,54 +785,70 @@ describe("Game", function () {
       expect(creatorShips.length).to.equal(12);
       expect(joinerShips.length).to.equal(12);
 
-      // Verify creator ships are placed in multiple columns
-      // Ships 1,2,3,4,5,11,12,13,14,15 should be in column 0, ships 21,22 should be in column 1
+      // Verify creator ships are placed in columns 0-4
+      // With 12 ships and i % 5, we get: 0,1,2,3,4,0,1,2,3,4,0,1
       const creatorShipsInCol0 = creatorShips.filter(
         (ship) => ship.position.col === 0
       );
       const creatorShipsInCol1 = creatorShips.filter(
         (ship) => ship.position.col === 1
       );
+      const creatorShipsInCol2 = creatorShips.filter(
+        (ship) => ship.position.col === 2
+      );
+      const creatorShipsInCol3 = creatorShips.filter(
+        (ship) => ship.position.col === 3
+      );
+      const creatorShipsInCol4 = creatorShips.filter(
+        (ship) => ship.position.col === 4
+      );
 
-      expect(creatorShipsInCol0.length).to.equal(10);
-      expect(creatorShipsInCol1.length).to.equal(2);
+      expect(creatorShipsInCol0.length).to.equal(3); // Ships at indices 0, 5, 10
+      expect(creatorShipsInCol1.length).to.equal(3); // Ships at indices 1, 6, 11
+      expect(creatorShipsInCol2.length).to.equal(2); // Ships at indices 2, 7
+      expect(creatorShipsInCol3.length).to.equal(2); // Ships at indices 3, 8
+      expect(creatorShipsInCol4.length).to.equal(2); // Ships at indices 4, 9
 
-      // Verify column 0 ships are in correct rows
-      for (let i = 0; i < 10; i++) {
-        expect(creatorShipsInCol0[i].position.row).to.equal(i); // Rows 0, 1, 2, 3, 4, 5, 6, 7, 8, 9
-      }
+      // Verify no ships are placed outside allowed columns
+      const creatorColumns = [
+        ...new Set(creatorShips.map((ship) => ship.position.col)),
+      ].sort((a, b) => a - b);
+      expect(creatorColumns).to.deep.equal([0, 1, 2, 3, 4]); // Only columns 0-4
 
-      // Verify column 1 ships are in correct rows
-      for (let i = 0; i < 2; i++) {
-        expect(creatorShipsInCol1[i].position.row).to.equal(10 + i); // Rows 10, 11
-      }
-
-      // Verify joiner ships are placed in multiple columns
-      // Ships 6,7,8,9,10,11,12,13,14,15 should be in column 24, ships 16,17 should be in column 23
-      const joinerShipsInCol24 = joinerShips.filter(
-        (ship) => ship.position.col === 24
+      // Verify joiner ships are placed in columns 20-24
+      // With 12 ships and 20 + (i % 5), we get: 20,21,22,23,24,20,21,22,23,24,20,21
+      const joinerShipsInCol20 = joinerShips.filter(
+        (ship) => ship.position.col === 20
+      );
+      const joinerShipsInCol21 = joinerShips.filter(
+        (ship) => ship.position.col === 21
+      );
+      const joinerShipsInCol22 = joinerShips.filter(
+        (ship) => ship.position.col === 22
       );
       const joinerShipsInCol23 = joinerShips.filter(
         (ship) => ship.position.col === 23
       );
+      const joinerShipsInCol24 = joinerShips.filter(
+        (ship) => ship.position.col === 24
+      );
 
-      expect(joinerShipsInCol24.length).to.equal(10);
-      expect(joinerShipsInCol23.length).to.equal(2);
+      expect(joinerShipsInCol20.length).to.equal(3); // Ships at indices 0, 5, 10
+      expect(joinerShipsInCol21.length).to.equal(3); // Ships at indices 1, 6, 11
+      expect(joinerShipsInCol22.length).to.equal(2); // Ships at indices 2, 7
+      expect(joinerShipsInCol23.length).to.equal(2); // Ships at indices 3, 8
+      expect(joinerShipsInCol24.length).to.equal(2); // Ships at indices 4, 9
 
-      // Verify column 24 ships are in correct rows (first 10 ships: rows 12, 11, 10, 9, 8, 7, 6, 5, 4, 3)
-      for (let i = 0; i < 10; i++) {
-        expect(joinerShipsInCol24[i].position.row).to.equal(12 - i); // Rows 12, 11, 10, 9, 8, 7, 6, 5, 4, 3
-      }
-
-      // Verify column 23 ships are in correct rows (ships 11-12: rows 2, 1)
-      for (let i = 0; i < 2; i++) {
-        expect(joinerShipsInCol23[i].position.row).to.equal(2 - i); // Rows 2, 1
-      }
+      // Verify no ships are placed outside allowed columns
+      const joinerColumns = [
+        ...new Set(joinerShips.map((ship) => ship.position.col)),
+      ].sort((a, b) => a - b);
+      expect(joinerColumns).to.deep.equal([20, 21, 22, 23, 24]); // Only columns 20-24
 
       // Verify no ships are placed in columns between the two sides
       const allColumns = shipPositions.map((pos: any) => pos.position.col);
       const uniqueColumns = [...new Set(allColumns)].sort((a, b) => a - b);
-      expect(uniqueColumns).to.deep.equal([0, 1, 23, 24]); // Only edge columns and adjacent ones
+      expect(uniqueColumns).to.deep.equal([0, 1, 2, 3, 4, 20, 21, 22, 23, 24]); // Creator columns 0-4, Joiner columns 20-24
     });
 
     it("should allow querying ship at specific grid position", async function () {
@@ -792,8 +895,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
-      await creatorLobbies.write.createFleet([1n, [1n]]);
-      await joinerLobbies.write.createFleet([1n, [6n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
       // Check ship positions using getAllShipPositions
       const allShipPositions = await game.read.getAllShipPositions([1n]);
@@ -803,7 +914,7 @@ describe("Game", function () {
       expect(shipAtOrigin?.position.row).to.equal(0);
       expect(shipAtOrigin?.position.col).to.equal(0);
       expect(shipAtEnd?.position.row).to.equal(12);
-      expect(shipAtEnd?.position.col).to.equal(24);
+      expect(shipAtEnd?.position.col).to.equal(20);
     });
 
     it("should allow querying individual ship positions", async function () {
@@ -850,8 +961,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
-      await creatorLobbies.write.createFleet([1n, [1n]]);
-      await joinerLobbies.write.createFleet([1n, [6n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
       // Get individual ship positions
       const gameData = (await game.read.getGame([
@@ -863,7 +982,7 @@ describe("Game", function () {
 
       const joinerShipPosition = findShipPosition(gameData, 6n);
       expect(joinerShipPosition.row).to.equal(12);
-      expect(joinerShipPosition.col).to.equal(24);
+      expect(joinerShipPosition.col).to.equal(20);
     });
   });
 
@@ -912,8 +1031,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
-      await creatorLobbies.write.createFleet([1n, [1n]]);
-      await joinerLobbies.write.createFleet([1n, [6n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
       // Get creator's ship attributes to check movement range
       const creatorAttributes = await game.read.getShipAttributes([1n, 1n]);
@@ -1003,8 +1130,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
-      await creatorLobbies.write.createFleet([1n, [1n]]);
-      await joinerLobbies.write.createFleet([1n, [6n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
       // Get creator's ship attributes
       const creatorAttributes = await game.read.getShipAttributes([1n, 1n]);
@@ -1065,8 +1200,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
-      await creatorLobbies.write.createFleet([1n, [1n]]);
-      await joinerLobbies.write.createFleet([1n, [6n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
       // Try to move joiner's ship when it's creator's turn
       await expect(
@@ -1120,8 +1263,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
-      await creatorLobbies.write.createFleet([1n, [1n]]);
-      await joinerLobbies.write.createFleet([1n, [6n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
       // Try to move joiner's ship with creator's account
       await expect(
@@ -1175,8 +1326,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
-      await creatorLobbies.write.createFleet([1n, [1n]]);
-      await joinerLobbies.write.createFleet([1n, [6n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
       // Move ship once
       await game.write.moveShip([1n, 1n, 0, 1, ActionType.Pass, 0n], {
@@ -1235,8 +1394,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with multiple ships
-      await creatorLobbies.write.createFleet([1n, [1n, 2n]]);
-      await joinerLobbies.write.createFleet([1n, [6n, 7n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n, 2n],
+        generateStartingPositions([1n, 2n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n, 7n],
+        generateStartingPositions([6n, 7n], false),
+      ]);
 
       // Check initial turn
       let gameData = (await game.read.getGame([1n])) as any;
@@ -1338,12 +1505,20 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with multiple ships
-      await creatorLobbies.write.createFleet([1n, [1n, 2n]]);
-      await joinerLobbies.write.createFleet([1n, [6n, 7n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n, 2n],
+        generateStartingPositions([1n, 2n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n, 7n],
+        generateStartingPositions([6n, 7n], false),
+      ]);
 
       // Try to move ship to position occupied by another ship
       await expect(
-        game.write.moveShip([1n, 1n, 1, 0, ActionType.Pass, 0n], {
+        game.write.moveShip([1n, 1n, 1, 1, ActionType.Pass, 0n], {
           account: creator.account,
         })
       ).to.be.rejectedWith("PositionOccupied");
@@ -1393,8 +1568,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
-      await creatorLobbies.write.createFleet([1n, [1n]]);
-      await joinerLobbies.write.createFleet([1n, [6n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
       // Try diagonal movement (both row and column change) - should work now
       await game.write.moveShip([1n, 1n, 1, 1, ActionType.Pass, 0n], {
@@ -1454,8 +1637,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with different sizes: creator has 3 ships, joiner has 5 ships
-      await creatorLobbies.write.createFleet([1n, [1n, 2n, 3n]]);
-      await joinerLobbies.write.createFleet([1n, [6n, 7n, 8n, 9n, 10n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n, 2n, 3n],
+        generateStartingPositions([1n, 2n, 3n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n, 7n, 8n, 9n, 10n],
+        generateStartingPositions([6n, 7n, 8n, 9n, 10n], false),
+      ]);
 
       // Round 1: Creator moves first ship
       await game.write.moveShip([1n, 1n, 0, 1, ActionType.Pass, 0n], {
@@ -1554,8 +1745,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game (multiple ships so destroying one doesn't end the game)
-      await creatorLobbies.write.createFleet([1n, [1n, 2n]]);
-      await joinerLobbies.write.createFleet([1n, [6n, 7n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n, 2n],
+        generateStartingPositions([1n, 2n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n, 7n],
+        generateStartingPositions([6n, 7n], false),
+      ]);
 
       // Destroy creator's ship
       await (game.write as any).debugDestroyShip([1n, 1n], {
@@ -1616,8 +1815,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with single ships each
-      await creatorLobbies.write.createFleet([1n, [1n]]);
-      await joinerLobbies.write.createFleet([1n, [6n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
       const gameId = 1n;
 
@@ -1694,8 +1901,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with multiple ships
-      await creatorLobbies.write.createFleet([1n, [1n, 2n]]);
-      await joinerLobbies.write.createFleet([1n, [6n, 7n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n, 2n],
+        generateStartingPositions([1n, 2n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n, 7n],
+        generateStartingPositions([6n, 7n], false),
+      ]);
 
       // Destroy one of creator's ships
       await (game.write as any).debugDestroyShip([1n, 1n], {
@@ -1772,8 +1987,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
-      await creatorLobbies.write.createFleet([1n, [1n]]);
-      await joinerLobbies.write.createFleet([1n, [6n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
       // Verify ship is initially on the grid
       let allShipPositions = await game.read.getAllShipPositions([1n]);
@@ -1840,8 +2063,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with multiple ships
-      await creatorLobbies.write.createFleet([1n, [1n, 2n]]);
-      await joinerLobbies.write.createFleet([1n, [6n, 7n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n, 2n],
+        generateStartingPositions([1n, 2n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n, 7n],
+        generateStartingPositions([6n, 7n], false),
+      ]);
 
       // Get initial ship positions
       const initialPositions = (await game.read.getAllShipPositions([
@@ -1947,8 +2178,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
-      await creatorLobbies.write.createFleet([1n, [1n]]);
-      await joinerLobbies.write.createFleet([1n, [6n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
       // Destroy the ship once
       await (game.write as any).debugDestroyShip([1n, 1n], {
@@ -2007,8 +2246,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets: creator has 2 ships, joiner has 3 ships
-      await creatorLobbies.write.createFleet([1n, [1n, 2n]]);
-      await joinerLobbies.write.createFleet([1n, [6n, 7n, 8n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n, 2n],
+        generateStartingPositions([1n, 2n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n, 7n, 8n],
+        generateStartingPositions([6n, 7n, 8n], false),
+      ]);
 
       // Round 1: Creator moves first ship
       await game.write.moveShip([1n, 1n, 0, 1, ActionType.Pass, 0n], {
@@ -2116,8 +2363,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets: both have 3 ships initially
-      await creatorLobbies.write.createFleet([1n, [1n, 2n, 3n]]);
-      await joinerLobbies.write.createFleet([1n, [6n, 7n, 8n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n, 2n, 3n],
+        generateStartingPositions([1n, 2n, 3n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n, 7n, 8n],
+        generateStartingPositions([6n, 7n, 8n], false),
+      ]);
 
       // Round 1: Creator moves first ship
       await game.write.moveShip([1n, 1n, 0, 1, ActionType.Pass, 0n], {
@@ -2140,7 +2395,7 @@ describe("Game", function () {
       });
 
       // Round 1: Joiner moves second ship
-      await game.write.moveShip([1n, 7n, 7, 24, ActionType.Pass, 0n], {
+      await game.write.moveShip([1n, 7n, 7, 21, ActionType.Pass, 0n], {
         account: joiner.account,
       });
 
@@ -2151,7 +2406,7 @@ describe("Game", function () {
       );
 
       // Round 1: Joiner moves third ship (completing the round)
-      await game.write.moveShip([1n, 8n, 8, 24, ActionType.Pass, 0n], {
+      await game.write.moveShip([1n, 8n, 8, 22, ActionType.Pass, 0n], {
         account: joiner.account,
       });
 
@@ -2213,8 +2468,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with one ship each
-      await creatorLobbies.write.createFleet([1n, [1n]]);
-      await joinerLobbies.write.createFleet([1n, [6n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
       // Get initial positions and attributes
       let gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
@@ -2434,8 +2697,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with one ship each
-      await creatorLobbies.write.createFleet([1n, [1n]]);
-      await joinerLobbies.write.createFleet([1n, [6n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
       // Use debug moves to position ships exactly where we need them
       // Position creator ship at (10, 5) and joiner ship at (10, 7)
@@ -2582,8 +2853,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with one ship each
-      await creatorLobbies.write.createFleet([1n, [1n]]);
-      await joinerLobbies.write.createFleet([1n, [6n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
       // Get initial positions and attributes
       let gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
@@ -2689,8 +2968,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with multiple ships
-      await creatorLobbies.write.createFleet([1n, [1n, 2n]]);
-      await joinerLobbies.write.createFleet([1n, [6n, 7n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n, 2n],
+        generateStartingPositions([1n, 2n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n, 7n],
+        generateStartingPositions([6n, 7n], false),
+      ]);
 
       // Get initial ship positions
       const initialPositions = (await game.read.getAllShipPositions([
@@ -2733,10 +3020,10 @@ describe("Game", function () {
       await game.write.moveShip([1n, 2n, 2, 2, ActionType.Pass, 0n], {
         account: creator.account,
       });
-      await game.write.moveShip([1n, 6n, 12, 24, ActionType.Pass, 0n], {
+      await game.write.moveShip([1n, 6n, 12, 20, ActionType.Pass, 0n], {
         account: joiner.account,
       });
-      await game.write.moveShip([1n, 7n, 6, 24, ActionType.Pass, 0n], {
+      await game.write.moveShip([1n, 7n, 6, 21, ActionType.Pass, 0n], {
         account: joiner.account,
       });
 
@@ -2799,8 +3086,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with one ship each
-      await creatorLobbies.write.createFleet([1n, [1n]]);
-      await joinerLobbies.write.createFleet([1n, [6n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
       // Move ships toward each other until in range (similar to shooting test)
       let gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
@@ -2908,8 +3203,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with one ship each
-      await creatorLobbies.write.createFleet([1n, [1n]]);
-      await joinerLobbies.write.createFleet([1n, [6n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
       // Complete the first round
       let gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
@@ -3005,8 +3308,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with two ships each
-      await creatorLobbies.write.createFleet([1n, [1n, 2n]]);
-      await joinerLobbies.write.createFleet([1n, [6n, 7n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n, 2n],
+        generateStartingPositions([1n, 2n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n, 7n],
+        generateStartingPositions([6n, 7n], false),
+      ]);
 
       // Use debug to set player 1's first ship's HP to zero
       await (game.write as any).debugSetHullPointsToZero([1n, 1n], {
@@ -3158,8 +3469,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with two ships each
-      await creatorLobbies.write.createFleet([1n, [1n, 2n]]);
-      await joinerLobbies.write.createFleet([1n, [6n, 7n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n, 2n],
+        generateStartingPositions([1n, 2n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n, 7n],
+        generateStartingPositions([6n, 7n], false),
+      ]);
 
       // Get initial ship positions
       let gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
@@ -3262,8 +3581,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with two ships each
-      await creatorLobbies.write.createFleet([1n, [1n, 2n]]);
-      await joinerLobbies.write.createFleet([1n, [6n, 7n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n, 2n],
+        generateStartingPositions([1n, 2n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n, 7n],
+        generateStartingPositions([6n, 7n], false),
+      ]);
 
       // Get initial ship positions
       let gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
@@ -3402,8 +3729,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start the game
-      await creatorLobbies.write.createFleet([1n, [1n, 2n]]);
-      await joinerLobbies.write.createFleet([1n, [6n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n, 2n],
+        generateStartingPositions([1n, 2n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
       // Set ship 2's HP to 0 using debug function
       await (game.write as any).debugSetHullPointsToZero([1n, 2n], {
@@ -3520,8 +3855,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with one ship each
-      await creatorLobbies.write.createFleet([1n, [1n]]);
-      await joinerLobbies.write.createFleet([1n, [6n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
       // Use debug function to position ships adjacent to each other for EMP test
       // Position creator's ship at (10, 24) and joiner's ship at (11, 24) - adjacent positions
@@ -3649,8 +3992,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets with multiple ships each
-      await creatorLobbies.write.createFleet([1n, [1n, 2n, 3n]]);
-      await joinerLobbies.write.createFleet([1n, [6n, 7n]]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n, 2n, 3n],
+        generateStartingPositions([1n, 2n, 3n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n, 7n],
+        generateStartingPositions([6n, 7n], false),
+      ]);
 
       // 5. Move the FlakArray ship to the center with the debug function
       await game.write.debugSetShipPosition([1n, 1n, 10, 20], {
@@ -3773,8 +4124,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([lobbyId]);
 
       // Create fleets (this automatically starts the game)
-      await creatorLobbies.write.createFleet([lobbyId, [1n, 2n]]);
-      await joinerLobbies.write.createFleet([lobbyId, [6n, 7n]]);
+      await creatorLobbies.write.createFleet([
+        lobbyId,
+        [1n, 2n],
+        generateStartingPositions([1n, 2n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        lobbyId,
+        [6n, 7n],
+        generateStartingPositions([6n, 7n], false),
+      ]);
 
       const gameId = 1n;
 
@@ -3858,8 +4217,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([lobbyId]);
 
       // Create fleets (this automatically starts the game)
-      await creatorLobbies.write.createFleet([lobbyId, [1n, 2n]]);
-      await joinerLobbies.write.createFleet([lobbyId, [6n, 7n]]);
+      await creatorLobbies.write.createFleet([
+        lobbyId,
+        [1n, 2n],
+        generateStartingPositions([1n, 2n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        lobbyId,
+        [6n, 7n],
+        generateStartingPositions([6n, 7n], false),
+      ]);
 
       const gameId = 1n;
 
@@ -3948,8 +4315,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([lobbyId]);
 
       // Create fleets (this automatically starts the game)
-      await creatorLobbies.write.createFleet([lobbyId, [1n, 2n]]);
-      await joinerLobbies.write.createFleet([lobbyId, [6n, 7n]]);
+      await creatorLobbies.write.createFleet([
+        lobbyId,
+        [1n, 2n],
+        generateStartingPositions([1n, 2n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        lobbyId,
+        [6n, 7n],
+        generateStartingPositions([6n, 7n], false),
+      ]);
 
       const gameId = 1n;
 
@@ -4048,8 +4423,16 @@ describe("Game", function () {
       await joinerLobbies.write.joinLobby([lobbyId]);
 
       // Create fleets (this automatically starts the game and applies the preset map)
-      await creatorLobbies.write.createFleet([lobbyId, [1n]]);
-      await joinerLobbies.write.createFleet([lobbyId, [6n]]);
+      await creatorLobbies.write.createFleet([
+        lobbyId,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        lobbyId,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
       const gameId = 1n;
       const creatorShipIds = [1n];

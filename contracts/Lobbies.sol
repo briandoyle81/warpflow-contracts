@@ -321,7 +321,8 @@ contract Lobbies is Ownable, ReentrancyGuard {
 
     function createFleet(
         uint _lobbyId,
-        uint[] calldata _shipIds
+        uint[] calldata _shipIds,
+        Position[] calldata _startingPositions
     ) public nonReentrant {
         Lobby storage lobby = lobbies[_lobbyId];
         if (lobby.basic.id == 0) revert LobbyNotFound();
@@ -343,11 +344,14 @@ contract Lobbies is Ownable, ReentrancyGuard {
         ) revert FleetAlreadyCreated();
 
         // Create fleet through Fleets contract
+        bool isCreator = (msg.sender == lobby.basic.creator);
         uint fleetId = fleets.createFleet(
             _lobbyId,
             msg.sender,
             _shipIds,
-            lobby.basic.costLimit
+            _startingPositions,
+            lobby.basic.costLimit,
+            isCreator
         );
 
         // Assign fleet to the correct player and determine who goes first

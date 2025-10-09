@@ -18,6 +18,8 @@ DON'T FORGET TO SET SHIPNAMES APPROPRIATELY!
 
 TODO:
 
+CRITICAL: Update maps creation to set horizontal or vertical deployment
+Consider allowing more custom deployments like diagonals, etc.
 CRITICAL: Make sure I can expand ship collections
 CRITICAL: Make sure I can migrate ships
 CRITICAL: Reserved lobbies
@@ -33,6 +35,6 @@ Pay UTC to winner of games if I can game exploits
 Map creator should get 1/4 the recycle fee for ships destroyed on their maps.
 Potential issue: Map owner plus owner of two fleets allows training for free.
 Limit fleet max cost
-Enforce minimum fleet size
+Enforce minimum fleet size. WE DON'T DO THIS NOW FOR TESTING
 Decide if players should be able to cancel fleet before other submits
 The creator should probably be allowed to set their fleet without a joiner

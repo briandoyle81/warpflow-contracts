@@ -144,8 +144,10 @@ contract Game is Ownable {
     ) internal {
         GameData storage game = games[_gameId];
 
-        // Get creator fleet ship IDs and calculate attributes
-        uint[] memory creatorShipIds = fleets.getFleetShipIds(_creatorFleetId);
+        // Get creator fleet ship IDs and positions, then calculate attributes
+        (uint[] memory creatorShipIds, ) = fleets.getFleetShipIdsAndPositions(
+            _creatorFleetId
+        );
         // Store creator ship IDs
         for (uint i = 0; i < creatorShipIds.length; i++) {
             EnumerableSet.add(
@@ -155,8 +157,10 @@ contract Game is Ownable {
             calculateShipAttributes(_gameId, creatorShipIds[i]);
         }
 
-        // Get joiner fleet ship IDs and calculate attributes
-        uint[] memory joinerShipIds = fleets.getFleetShipIds(_joinerFleetId);
+        // Get joiner fleet ship IDs and positions, then calculate attributes
+        (uint[] memory joinerShipIds, ) = fleets.getFleetShipIdsAndPositions(
+            _joinerFleetId
+        );
         // Store joiner ship IDs
         for (uint i = 0; i < joinerShipIds.length; i++) {
             EnumerableSet.add(
@@ -170,37 +174,33 @@ contract Game is Ownable {
     // Internal function to place ships on the grid
     function _placeShipsOnGrid(
         uint _gameId,
-        uint /* _creatorFleetId */,
-        uint /* _joinerFleetId */
+        uint _creatorFleetId,
+        uint _joinerFleetId
     ) internal {
-        GameData storage game = games[_gameId];
+        // Get creator fleet ship IDs and positions
+        (
+            uint[] memory creatorShipIds,
+            Position[] memory creatorPositions
+        ) = fleets.getFleetShipIdsAndPositions(_creatorFleetId);
 
-        // Place creator ships starting at the far left edge (column 0)
-        // If there are more than 10 ships, place them in additional columns towards the center
-        EnumerableSet.UintSet storage creatorShipIds = game.playerActiveShipIds[
-            game.metadata.creator
-        ];
-        uint creatorShipCount = EnumerableSet.length(creatorShipIds);
-        for (uint i = 0; i < creatorShipCount; i++) {
-            uint shipId = EnumerableSet.at(creatorShipIds, i);
-            int16 row = int16(uint16((i % 13))); // Use modulo 13 for row cycling (rows 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
-            int16 col = int16(uint16(i / 10)); // Move to next column every 10 ships
-            _placeShipOnGrid(_gameId, shipId, row, col);
+        // Place creator ships using their specified positions
+        for (uint i = 0; i < creatorShipIds.length; i++) {
+            uint shipId = creatorShipIds[i];
+            Position memory pos = creatorPositions[i];
+            _placeShipOnGrid(_gameId, shipId, pos.row, pos.col);
         }
 
-        // Place joiner ships starting at the far right edge (column 24)
-        // If there are more than 10 ships, place them in additional columns towards the center
-        EnumerableSet.UintSet storage joinerShipIds = game.playerActiveShipIds[
-            game.metadata.joiner
-        ];
-        uint joinerShipCount = EnumerableSet.length(joinerShipIds);
-        for (uint i = 0; i < joinerShipCount; i++) {
-            uint shipId = EnumerableSet.at(joinerShipIds, i);
-            int16 row = int16(
-                uint16((GRID_HEIGHT - 1) - int16(uint16((i % 13))))
-            ); // Use modulo 13 for row cycling (rows 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
-            int16 col = int16(uint16(24 - (i / 10))); // Move to previous column every 10 ships (towards center)
-            _placeShipOnGrid(_gameId, shipId, row, col);
+        // Get joiner fleet ship IDs and positions
+        (
+            uint[] memory joinerShipIds,
+            Position[] memory joinerPositions
+        ) = fleets.getFleetShipIdsAndPositions(_joinerFleetId);
+
+        // Place joiner ships using their specified positions
+        for (uint i = 0; i < joinerShipIds.length; i++) {
+            uint shipId = joinerShipIds[i];
+            Position memory pos = joinerPositions[i];
+            _placeShipOnGrid(_gameId, shipId, pos.row, pos.col);
         }
     }
 

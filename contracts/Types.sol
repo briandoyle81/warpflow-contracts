@@ -279,6 +279,7 @@ struct Fleet {
     uint lobbyId;
     address owner;
     uint[] shipIds;
+    Position[] startingPositions;
     uint totalCost;
     bool isComplete;
 }

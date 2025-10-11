@@ -521,6 +521,9 @@ contract Game is Ownable {
         // Get ship data once for all action types
         Ship memory ship = ships.getShip(_shipId);
 
+        // Collect points for all actions
+        _checkAndCollectPoints(_gameId, ship.owner, _newRow, _newCol);
+
         if (actionType == ActionType.Pass) {
             // Pass: do nothing
         } else if (actionType == ActionType.Shoot) {
@@ -542,9 +545,6 @@ contract Game is Ownable {
         } else if (actionType == ActionType.Special) {
             // Special: use special equipment
             _performSpecial(_gameId, _shipId, _newRow, _newCol, targetShipId);
-        } else if (actionType == ActionType.ClaimPoints) {
-            // ClaimPoints: get points from the tile the ship moved to
-            _performClaimPoints(_gameId, ship.owner, _newRow, _newCol);
         }
     }
 
@@ -1538,8 +1538,8 @@ contract Game is Ownable {
         }
     }
 
-    // Internal function to handle ClaimPoints action
-    function _performClaimPoints(
+    // Internal function to check and collect points from a tile
+    function _checkAndCollectPoints(
         uint _gameId,
         address _player,
         int16 _row,

@@ -311,7 +311,7 @@ describe("Game", function () {
       const mainWeapon = constructedShip.equipment.mainWeapon;
 
       // Expected values based on ShipAttributes contract's gun data
-      const expectedRanges = [8, 15, 12, 4]; // Laser, Railgun, MissileLauncher, PlasmaCannon
+      const expectedRanges = [8, 12, 10, 4]; // Laser, Railgun, MissileLauncher, PlasmaCannon
       const expectedDamages = [25, 20, 30, 40];
 
       expect(attributes.range).to.equal(expectedRanges[mainWeapon]);
@@ -2117,7 +2117,7 @@ describe("Game", function () {
       await game.write.moveShip([1n, 6n, 12, 24, ActionType.Pass, 0n], {
         account: joiner.account,
       });
-      await game.write.moveShip([1n, 7n, 9, 24, ActionType.Pass, 0n], {
+      await game.write.moveShip([1n, 7n, 11, 21, ActionType.Pass, 0n], {
         account: joiner.account,
       });
 
@@ -2291,7 +2291,7 @@ describe("Game", function () {
       );
 
       // Round 1: Joiner moves second ship
-      await game.write.moveShip([1n, 7n, 8, 24, ActionType.Pass, 0n], {
+      await game.write.moveShip([1n, 7n, 11, 21, ActionType.Pass, 0n], {
         account: joiner.account,
       });
 
@@ -3023,7 +3023,7 @@ describe("Game", function () {
       await game.write.moveShip([1n, 6n, 12, 20, ActionType.Pass, 0n], {
         account: joiner.account,
       });
-      await game.write.moveShip([1n, 7n, 6, 21, ActionType.Pass, 0n], {
+      await game.write.moveShip([1n, 7n, 11, 21, ActionType.Pass, 0n], {
         account: joiner.account,
       });
 

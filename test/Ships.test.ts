@@ -2027,106 +2027,6 @@ describe("Ships", function () {
   });
 
   describe("ShipAttributes Update Functions", function () {
-    it("Should allow owner to update attributes version and switch between versions", async function () {
-      const { ships, shipAttributes, owner } = await loadFixture(
-        deployShipsFixture
-      );
-
-      // Verify current version is 1
-      const currentVersion =
-        await shipAttributes.read.getCurrentAttributesVersion();
-      expect(currentVersion).to.equal(1);
-
-      // Create a new attributes version (v2)
-      await shipAttributes.write.setAttributesVersionBase(
-        [2, 120, 7], // version 2, baseHull 120, baseSpeed 7
-        { account: owner.account }
-      );
-
-      // Add some gun data for version 2
-      await shipAttributes.write.addGunData(
-        [2, { range: 12, damage: 30, movement: 0 }], // Laser with different stats
-        { account: owner.account }
-      );
-
-      await shipAttributes.write.addGunData(
-        [2, { range: 20, damage: 25, movement: 0 }], // Railgun with different stats
-        { account: owner.account }
-      );
-
-      // Add armor data for version 2
-      await shipAttributes.write.addArmorData(
-        [2, { damageReduction: 8, movement: 0 }], // Light armor with different stats
-        { account: owner.account }
-      );
-
-      // Add shield data for version 2
-      await shipAttributes.write.addShieldData(
-        [2, { damageReduction: 15, movement: 0 }], // Light shield with different stats
-        { account: owner.account }
-      );
-
-      // Add special data for version 2
-      await shipAttributes.write.addSpecialData(
-        [2, { range: 6, strength: 20, movement: 0 }], // FlakArray with different stats
-        { account: owner.account }
-      );
-
-      // Add fore accuracy values for version 2
-      await shipAttributes.write.addForeAccuracy([2, 5], {
-        account: owner.account,
-      });
-      await shipAttributes.write.addForeAccuracy([2, 10], {
-        account: owner.account,
-      });
-      await shipAttributes.write.addForeAccuracy([2, 20], {
-        account: owner.account,
-      });
-
-      // Add engine speed values for version 2
-      await shipAttributes.write.addEngineSpeed([2, 3], {
-        account: owner.account,
-      });
-      await shipAttributes.write.addEngineSpeed([2, 5], {
-        account: owner.account,
-      });
-      await shipAttributes.write.addEngineSpeed([2, 8], {
-        account: owner.account,
-      });
-
-      // Switch to version 2
-      await shipAttributes.write.setCurrentAttributesVersion([2], {
-        account: owner.account,
-      });
-
-      // Verify we're now on version 2
-      const newCurrentVersion =
-        await shipAttributes.read.getCurrentAttributesVersion();
-      expect(newCurrentVersion).to.equal(2);
-
-      // Verify the base values for version 2
-      const version2Base = await shipAttributes.read.getAttributesVersionBase([
-        2,
-      ]);
-      expect(version2Base[0]).to.equal(2); // version
-      expect(version2Base[1]).to.equal(120); // baseHull
-      expect(version2Base[2]).to.equal(7); // baseSpeed
-
-      // Test that we can switch between versions
-      // Note: We don't test ship attributes calculation with version 2
-      // because it requires complete data setup which is complex for this test
-
-      // Switch back to version 1
-      await shipAttributes.write.setCurrentAttributesVersion([1], {
-        account: owner.account,
-      });
-
-      // Verify we're back on version 1
-      const backToVersion1 =
-        await shipAttributes.read.getCurrentAttributesVersion();
-      expect(backToVersion1).to.equal(1);
-    });
-
     it("Should not allow non-owner to update attributes", async function () {
       const { shipAttributes, user1 } = await loadFixture(deployShipsFixture);
 
@@ -2137,19 +2037,50 @@ describe("Ships", function () {
         })
       ).to.be.rejectedWith("OwnableUnauthorizedAccount");
 
-      // Try to add gun data as non-owner
+      // Try to use setAllAttributes as non-owner
+      const newGuns = [
+        { range: 12, damage: 30, movement: 0 },
+        { range: 20, damage: 25, movement: 0 },
+        { range: 8, damage: 30, movement: -1 },
+        { range: 3, damage: 40, movement: 0 },
+      ];
+      const newArmors = [
+        { damageReduction: 0, movement: 1 },
+        { damageReduction: 8, movement: 0 },
+        { damageReduction: 10, movement: -1 },
+        { damageReduction: 15, movement: -2 },
+      ];
+      const newShields = [
+        { damageReduction: 0, movement: 1 },
+        { damageReduction: 15, movement: 0 },
+        { damageReduction: 20, movement: -1 },
+        { damageReduction: 30, movement: -2 },
+      ];
+      const newSpecials = [
+        { range: 0, strength: 0, movement: 0 },
+        { range: 6, strength: 20, movement: 0 },
+        { range: 8, strength: 0, movement: 0 },
+        { range: 4, strength: 15, movement: 0 },
+      ];
+      const newForeAccuracy = [0, 5, 10, 20];
+      const newEngineSpeeds = [0, 3, 5, 8];
+      const newHull = [0, 10, 20, 30];
+
       await expect(
-        shipAttributes.write.addGunData(
-          [2, { range: 12, damage: 30, movement: 0 }],
+        shipAttributes.write.setAllAttributes(
+          [
+            120, // baseHull
+            7, // baseSpeed
+            newGuns,
+            newArmors,
+            newShields,
+            newSpecials,
+            newForeAccuracy,
+            newHull,
+            newEngineSpeeds,
+          ],
           { account: user1.account }
         )
-      ).to.be.rejectedWith("OwnableUnauthorizedAccount");
-
-      // Try to set base values as non-owner
-      await expect(
-        shipAttributes.write.setAttributesVersionBase([2, 120, 7], {
-          account: user1.account,
-        })
       ).to.be.rejectedWith("OwnableUnauthorizedAccount");
     });
 
@@ -2208,6 +2139,126 @@ describe("Ships", function () {
       // Try to update costs as non-owner
       await expect(
         shipAttributes.write.setCosts([newCosts], { account: user1.account })
+      ).to.be.rejectedWith("OwnableUnauthorizedAccount");
+    });
+
+    it("Should allow owner to update all attributes at once and increment version", async function () {
+      const { shipAttributes, owner } = await loadFixture(deployShipsFixture);
+
+      // Get current version
+      const currentVersion =
+        await shipAttributes.read.getCurrentAttributesVersion();
+      expect(currentVersion).to.equal(1);
+
+      // Define new attributes
+      const newGuns = [
+        { range: 8, damage: 30, movement: 0 },
+        { range: 15, damage: 25, movement: 0 },
+        { range: 10, damage: 35, movement: -1 },
+        { range: 5, damage: 45, movement: 0 },
+      ];
+      const newArmors = [
+        { damageReduction: 0, movement: 1 },
+        { damageReduction: 5, movement: 0 },
+        { damageReduction: 10, movement: -1 },
+        { damageReduction: 15, movement: -2 },
+      ];
+      const newShields = [
+        { damageReduction: 0, movement: 1 },
+        { damageReduction: 8, movement: 0 },
+        { damageReduction: 15, movement: -1 },
+        { damageReduction: 25, movement: -2 },
+      ];
+      const newSpecials = [
+        { range: 0, strength: 0, movement: 0 },
+        { range: 6, strength: 10, movement: 0 },
+        { range: 8, strength: 0, movement: 0 },
+        { range: 4, strength: 15, movement: 0 },
+      ];
+      const newForeAccuracy = [0, 130, 160];
+      const newEngineSpeeds = [0, 2, 3];
+      const newHull = [0, 10, 20];
+
+      // Update all attributes
+      await shipAttributes.write.setAllAttributes(
+        [
+          120, // baseHull
+          4, // baseSpeed
+          newGuns,
+          newArmors,
+          newShields,
+          newSpecials,
+          newForeAccuracy,
+          newHull,
+          newEngineSpeeds,
+        ],
+        {
+          account: owner.account,
+        }
+      );
+
+      // Verify version incremented
+      const newVersion =
+        await shipAttributes.read.getCurrentAttributesVersion();
+      expect(newVersion).to.equal(2);
+
+      // Verify new attributes are set correctly
+      const versionData = await shipAttributes.read.getAttributesVersionBase([
+        2,
+      ]);
+      expect(versionData[0]).to.equal(2); // version
+      expect(versionData[1]).to.equal(120); // baseHull
+      expect(versionData[2]).to.equal(4); // baseSpeed
+    });
+
+    it("Should not allow non-owner to update all attributes", async function () {
+      const { shipAttributes, user1 } = await loadFixture(deployShipsFixture);
+
+      const newGuns = [
+        { range: 8, damage: 30, movement: 0 },
+        { range: 15, damage: 25, movement: 0 },
+        { range: 10, damage: 35, movement: -1 },
+        { range: 5, damage: 45, movement: 0 },
+      ];
+      const newArmors = [
+        { damageReduction: 0, movement: 1 },
+        { damageReduction: 5, movement: 0 },
+        { damageReduction: 10, movement: -1 },
+        { damageReduction: 15, movement: -2 },
+      ];
+      const newShields = [
+        { damageReduction: 0, movement: 1 },
+        { damageReduction: 8, movement: 0 },
+        { damageReduction: 15, movement: -1 },
+        { damageReduction: 25, movement: -2 },
+      ];
+      const newSpecials = [
+        { range: 0, strength: 0, movement: 0 },
+        { range: 6, strength: 10, movement: 0 },
+        { range: 8, strength: 0, movement: 0 },
+        { range: 4, strength: 15, movement: 0 },
+      ];
+      const newForeAccuracy = [0, 130, 160];
+      const newEngineSpeeds = [0, 2, 3];
+      const newHull = [0, 10, 20];
+
+      await expect(
+        shipAttributes.write.setAllAttributes(
+          [
+            120, // baseHull
+            4, // baseSpeed
+            newGuns,
+            newArmors,
+            newShields,
+            newSpecials,
+            newForeAccuracy,
+            newHull,
+            newEngineSpeeds,
+          ],
+          {
+            account: user1.account,
+          }
+        )
       ).to.be.rejectedWith("OwnableUnauthorizedAccount");
     });
   });

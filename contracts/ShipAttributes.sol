@@ -45,12 +45,15 @@ contract ShipAttributes is IShipAttributes, Ownable {
         v1.baseHull = 100;
         v1.baseSpeed = 3;
 
-        // Fore accuracy bonuses in whole number percentage multipliers
+        // Fore accuracy bonuses in whole number percentage additions
         v1.foreAccuracy.push(0);
-        v1.foreAccuracy.push(125);
-        v1.foreAccuracy.push(150);
+        v1.foreAccuracy.push(25);
+        v1.foreAccuracy.push(50);
 
-        // Hull is currently hardcoded to 0%, 10%, 20%
+        // Hull bonuses in hull points
+        v1.hull.push(0);
+        v1.hull.push(10);
+        v1.hull.push(20);
 
         // Engine speed in raw movement modifier
         v1.engineSpeeds.push(0);
@@ -58,10 +61,11 @@ contract ShipAttributes is IShipAttributes, Ownable {
         v1.engineSpeeds.push(2);
 
         // Initialize gun data
-        v1.guns.push(GunData(8, 25, 0)); // Laser
-        v1.guns.push(GunData(12, 20, 0)); // Railgun
-        v1.guns.push(GunData(10, 30, -1)); // MissileLauncher
-        v1.guns.push(GunData(4, 40, 0)); // PlasmaCannon
+        // Remember, bridge + level extend range
+        v1.guns.push(GunData(6, 25, 0)); // Laser
+        v1.guns.push(GunData(10, 20, 0)); // Railgun
+        v1.guns.push(GunData(8, 30, -1)); // MissileLauncher
+        v1.guns.push(GunData(3, 40, 0)); // PlasmaCannon
 
         // Initialize armor data
         v1.armors.push(ArmorData(0, 1)); // None
@@ -78,7 +82,7 @@ contract ShipAttributes is IShipAttributes, Ownable {
         // Initialize special data
         v1.specials.push(SpecialData(0, 0, 0)); // None
         v1.specials.push(SpecialData(1, 1, 0)); // EMP
-        v1.specials.push(SpecialData(6, 10, 0)); // RepairDrones
+        v1.specials.push(SpecialData(6, 20, 0)); // RepairDrones
         v1.specials.push(SpecialData(4, 15, 0)); // FlakArray
     }
 
@@ -116,6 +120,12 @@ contract ShipAttributes is IShipAttributes, Ownable {
             .range;
         // Increase range by the rank multiplier as a percentage (avoid overflow)
         uint calculatedBonus = (uint(attributes.range) * rankMultiplier) / 100;
+        attributes.range += uint8(calculatedBonus);
+
+        // Apply fore accuracy bonus to range as percentage increase (bridge + level extend range)
+        uint8 foreAccuracyBonus = attributesVersions[currentAttributesVersion]
+            .foreAccuracy[uint8(_ship.traits.accuracy)];
+        calculatedBonus = (uint(attributes.range) * foreAccuracyBonus) / 100;
         attributes.range += uint8(calculatedBonus);
         attributes.gunDamage = attributesVersions[currentAttributesVersion]
             .guns[uint8(_ship.equipment.mainWeapon)]
@@ -193,7 +203,8 @@ contract ShipAttributes is IShipAttributes, Ownable {
             currentAttributesVersion
         ];
         uint8 baseHull = version.baseHull;
-        uint8 traitBonus = _ship.traits.hull * 10; // Convert trait to hull points
+        // uint8 traitBonus = _ship.traits.hull * 10; // Convert trait to hull points
+        uint8 traitBonus = version.hull[_ship.traits.hull];
         return baseHull + traitBonus;
     }
 
@@ -206,7 +217,7 @@ contract ShipAttributes is IShipAttributes, Ownable {
         int8 baseMovement = int8(version.baseSpeed);
 
         // Add trait bonus
-        baseMovement += int8(_ship.traits.speed);
+        baseMovement += int8(version.engineSpeeds[_ship.traits.speed]);
 
         // Extract equipment bonuses as int8 to avoid stack-too-deep or type mismatch
         int8 gunMovement = version
@@ -338,55 +349,6 @@ contract ShipAttributes is IShipAttributes, Ownable {
         currentAttributesVersion = _version;
     }
 
-    function setAttributesVersionBase(
-        uint16 _version,
-        uint8 _baseHull,
-        uint8 _baseSpeed
-    ) external onlyOwner {
-        attributesVersions[_version].version = _version;
-        attributesVersions[_version].baseHull = _baseHull;
-        attributesVersions[_version].baseSpeed = _baseSpeed;
-    }
-
-    function addGunData(
-        uint16 _version,
-        GunData memory _gunData
-    ) external onlyOwner {
-        attributesVersions[_version].guns.push(_gunData);
-    }
-
-    function addArmorData(
-        uint16 _version,
-        ArmorData memory _armorData
-    ) external onlyOwner {
-        attributesVersions[_version].armors.push(_armorData);
-    }
-
-    function addShieldData(
-        uint16 _version,
-        ShieldData memory _shieldData
-    ) external onlyOwner {
-        attributesVersions[_version].shields.push(_shieldData);
-    }
-
-    function addSpecialData(
-        uint16 _version,
-        SpecialData memory _specialData
-    ) external onlyOwner {
-        attributesVersions[_version].specials.push(_specialData);
-    }
-
-    function addForeAccuracy(
-        uint16 _version,
-        uint8 _accuracy
-    ) external onlyOwner {
-        attributesVersions[_version].foreAccuracy.push(_accuracy);
-    }
-
-    function addEngineSpeed(uint16 _version, uint8 _speed) external onlyOwner {
-        attributesVersions[_version].engineSpeeds.push(_speed);
-    }
-
     function getCurrentAttributesVersion() external view returns (uint16) {
         return currentAttributesVersion;
     }
@@ -400,5 +362,77 @@ contract ShipAttributes is IShipAttributes, Ownable {
             versionData.baseHull,
             versionData.baseSpeed
         );
+    }
+
+    /**
+     * @dev Set all attributes for a new version at once and increment the version
+     * @param _baseHull Base hull points
+     * @param _baseSpeed Base speed
+     * @param _guns Array of gun data
+     * @param _armors Array of armor data
+     * @param _shields Array of shield data
+     * @param _specials Array of special equipment data
+     * @param _foreAccuracy Array of fore accuracy bonuses
+     * @param _hull Array of hull bonuses
+     * @param _engineSpeeds Array of engine speed bonuses
+     */
+    function setAllAttributes(
+        uint8 _baseHull,
+        uint8 _baseSpeed,
+        GunData[] memory _guns,
+        ArmorData[] memory _armors,
+        ShieldData[] memory _shields,
+        SpecialData[] memory _specials,
+        uint8[] memory _foreAccuracy,
+        uint8[] memory _hull,
+        uint8[] memory _engineSpeeds
+    ) external onlyOwner {
+        // Increment version
+        currentAttributesVersion++;
+        uint16 newVersion = currentAttributesVersion;
+
+        // Set base attributes
+        AttributesVersion storage newVersionData = attributesVersions[
+            newVersion
+        ];
+        newVersionData.version = newVersion;
+        newVersionData.baseHull = _baseHull;
+        newVersionData.baseSpeed = _baseSpeed;
+
+        // Clear existing arrays and set new data
+        delete newVersionData.guns;
+        for (uint i = 0; i < _guns.length; i++) {
+            newVersionData.guns.push(_guns[i]);
+        }
+
+        delete newVersionData.armors;
+        for (uint i = 0; i < _armors.length; i++) {
+            newVersionData.armors.push(_armors[i]);
+        }
+
+        delete newVersionData.shields;
+        for (uint i = 0; i < _shields.length; i++) {
+            newVersionData.shields.push(_shields[i]);
+        }
+
+        delete newVersionData.specials;
+        for (uint i = 0; i < _specials.length; i++) {
+            newVersionData.specials.push(_specials[i]);
+        }
+
+        delete newVersionData.foreAccuracy;
+        for (uint i = 0; i < _foreAccuracy.length; i++) {
+            newVersionData.foreAccuracy.push(_foreAccuracy[i]);
+        }
+
+        delete newVersionData.hull;
+        for (uint i = 0; i < _hull.length; i++) {
+            newVersionData.hull.push(_hull[i]);
+        }
+
+        delete newVersionData.engineSpeeds;
+        for (uint i = 0; i < _engineSpeeds.length; i++) {
+            newVersionData.engineSpeeds.push(_engineSpeeds[i]);
+        }
     }
 }

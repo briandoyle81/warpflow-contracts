@@ -311,10 +311,23 @@ describe("Game", function () {
       const mainWeapon = constructedShip.equipment.mainWeapon;
 
       // Expected values based on ShipAttributes contract's gun data
-      const expectedRanges = [8, 12, 10, 4]; // Laser, Railgun, MissileLauncher, PlasmaCannon
+      const expectedRanges = [6, 10, 8, 3]; // Laser, Railgun, MissileLauncher, PlasmaCannon
       const expectedDamages = [25, 20, 30, 40];
 
-      expect(attributes.range).to.equal(expectedRanges[mainWeapon]);
+      // Get the ship's accuracy level to calculate expected range with fore accuracy bonus
+      const shipTuple = (await ships.read.ships([1n])) as ShipTuple;
+      const ship = tupleToShip(shipTuple);
+      const accuracyLevel = ship.traits.accuracy;
+
+      // Fore accuracy bonuses as percentages: 0, 25, 50 for levels 0, 1, 2
+      const foreAccuracyBonuses = [0, 25, 50];
+      const baseRange = expectedRanges[mainWeapon];
+      const foreAccuracyBonus = Math.floor(
+        (baseRange * foreAccuracyBonuses[accuracyLevel]) / 100
+      );
+      const expectedRangeWithBonus = baseRange + foreAccuracyBonus;
+
+      expect(attributes.range).to.equal(expectedRangeWithBonus);
       expect(attributes.gunDamage).to.equal(expectedDamages[mainWeapon]);
     });
 
@@ -3762,9 +3775,9 @@ describe("Game", function () {
         account: creator.account,
       });
 
-      // Verify ship 2's HP was increased by the repair strength (10)
+      // Verify ship 2's HP was increased by the repair strength (20)
       const ship2AttrsAfter = await game.read.getShipAttributes([1n, 2n]);
-      expect(ship2AttrsAfter.hullPoints).to.equal(10); // Should be exactly 10 since RepairDrones restores 10 HP
+      expect(ship2AttrsAfter.hullPoints).to.equal(20); // Should be exactly 20 since RepairDrones restores 20 HP
     });
 
     it("should allow ships with EMP to increase enemy ship's reactor critical timer", async function () {

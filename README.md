@@ -18,10 +18,14 @@ DON'T FORGET TO SET SHIPNAMES APPROPRIATELY!
 
 TODO:
 
+CRITICAL: Make sure I have a path to upgrade ships and add new collections
+CRITICAL: Make sure I can expand ship collections, add new weapons specials etc.
+CRITICAL: Make sure I can migrate ships
+CRITICAL: Either avoid updating maps or change map copying to when the lobby is created and not the game.
+Add buying UTC at the same price as recycling a ship to avoid people having to buy and recycle ships for it.
+Add wagers in UTC only.
 CRITICAL: Update maps creation to set horizontal or vertical deployment
 Consider allowing more custom deployments like diagonals, etc.
-CRITICAL: Make sure I can expand ship collections
-CRITICAL: Make sure I can migrate ships
 CRITICAL: Reserved lobbies
 Costs should probably be in the attributes arrays instead of separate
 Add battle scarring to ships each time they get disabled
@@ -29,7 +33,6 @@ And a way to "clean" or repair them
 CRITICAL: Don't allow lobbies to be created for map ids that don't exist
 CRITICAL: Put rank in json metadata and on image
 CRITICAL: Find a way to show hull trait
-CRITICAL: Deployment zones and position selection
 Allow third party map creation for 50+ flow and allow payments to map creators (probably as voluntary tips). DON'T GENERATE UTC HERE - EXPLOITABLE
 Pay UTC to winner of games if I can game exploits
 Map creator should get 1/4 the recycle fee for ships destroyed on their maps.

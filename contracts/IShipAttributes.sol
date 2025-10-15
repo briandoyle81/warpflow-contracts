@@ -48,36 +48,21 @@ interface IShipAttributes {
     // Attributes version management functions
     function setCurrentAttributesVersion(uint16 _version) external;
 
-    function setAttributesVersionBase(
-        uint16 _version,
-        uint8 _baseHull,
-        uint8 _baseSpeed
-    ) external;
-
-    function addGunData(uint16 _version, GunData memory _gunData) external;
-
-    function addArmorData(
-        uint16 _version,
-        ArmorData memory _armorData
-    ) external;
-
-    function addShieldData(
-        uint16 _version,
-        ShieldData memory _shieldData
-    ) external;
-
-    function addSpecialData(
-        uint16 _version,
-        SpecialData memory _specialData
-    ) external;
-
-    function addForeAccuracy(uint16 _version, uint8 _accuracy) external;
-
-    function addEngineSpeed(uint16 _version, uint8 _speed) external;
-
     function getCurrentAttributesVersion() external view returns (uint16);
 
     function getAttributesVersionBase(
         uint16 _version
     ) external view returns (uint16 version, uint8 baseHull, uint8 baseSpeed);
+
+    function setAllAttributes(
+        uint8 _baseHull,
+        uint8 _baseSpeed,
+        GunData[] memory _guns,
+        ArmorData[] memory _armors,
+        ShieldData[] memory _shields,
+        SpecialData[] memory _specials,
+        uint8[] memory _foreAccuracy,
+        uint8[] memory _hull,
+        uint8[] memory _engineSpeeds
+    ) external;
 }

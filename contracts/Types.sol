@@ -222,6 +222,7 @@ struct AttributesVersion {
     uint8 baseHull;
     uint8 baseSpeed;
     uint8[] foreAccuracy;
+    uint8[] hull;
     uint8[] engineSpeeds;
     GunData[] guns;
     ArmorData[] armors;

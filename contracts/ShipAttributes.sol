@@ -62,10 +62,10 @@ contract ShipAttributes is IShipAttributes, Ownable {
 
         // Initialize gun data
         // Remember, bridge + level extend range
-        v1.guns.push(GunData(6, 25, 0)); // Laser
-        v1.guns.push(GunData(10, 20, 0)); // Railgun
-        v1.guns.push(GunData(8, 30, -1)); // MissileLauncher
-        v1.guns.push(GunData(3, 40, 0)); // PlasmaCannon
+        v1.guns.push(GunData(3, 50, 0)); // Laser
+        v1.guns.push(GunData(6, 40, 0)); // Railgun
+        v1.guns.push(GunData(4, 60, -1)); // MissileLauncher
+        v1.guns.push(GunData(2, 80, 0)); // PlasmaCannon
 
         // Initialize armor data
         v1.armors.push(ArmorData(0, 1)); // None
@@ -82,8 +82,8 @@ contract ShipAttributes is IShipAttributes, Ownable {
         // Initialize special data
         v1.specials.push(SpecialData(0, 0, 0)); // None
         v1.specials.push(SpecialData(1, 1, 0)); // EMP
-        v1.specials.push(SpecialData(6, 20, 0)); // RepairDrones
-        v1.specials.push(SpecialData(4, 15, 0)); // FlakArray
+        v1.specials.push(SpecialData(3, 40, 0)); // RepairDrones
+        v1.specials.push(SpecialData(3, 30, 0)); // FlakArray
     }
 
     function setShipsAddress(address _ships) public onlyOwner {

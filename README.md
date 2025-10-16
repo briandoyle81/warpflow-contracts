@@ -18,6 +18,7 @@ DON'T FORGET TO SET SHIPNAMES APPROPRIATELY!
 
 TODO:
 
+CRITICAL: Add guaranteed high tier and shiny ships to higher tiers
 CRITICAL: Make sure I have a path to upgrade ships and add new collections
 CRITICAL: Make sure I can expand ship collections, add new weapons specials etc.
 CRITICAL: Make sure I can migrate ships

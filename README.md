@@ -25,6 +25,7 @@ CRITICAL: Make sure I can migrate ships
 CRITICAL: Either avoid updating maps or change map copying to when the lobby is created and not the game.
 Add buying UTC at the same price as recycling a ship to avoid people having to buy and recycle ships for it.
 Add wagers in UTC only.
+Flak doesn't respect armor/shields but adding it exceeds contract size
 CRITICAL: Update maps creation to set horizontal or vertical deployment
 Consider allowing more custom deployments like diagonals, etc.
 CRITICAL: Reserved lobbies

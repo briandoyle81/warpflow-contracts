@@ -996,13 +996,6 @@ contract Game is Ownable {
 
         for (uint i = 0; i < shipCount; i++) {
             uint targetShipId = EnumerableSet.at(shipIds, i);
-            Ship memory ship = ships.getShip(targetShipId);
-
-            // Skip destroyed ships
-            if (ship.shipData.timestampDestroyed != 0) continue;
-
-            // Skip ships with 0 hull points (treat same as destroyed)
-            if (game.shipAttributes[targetShipId].hullPoints == 0) continue;
 
             // Check if ship is within range and not the ship using flak
             Position storage shipPos = game.shipPositions[targetShipId];
@@ -1010,6 +1003,14 @@ contract Game is Ownable {
 
             if (distance <= flakRange && targetShipId != _shipId) {
                 lastDamage[targetShipId] = _shipId;
+                // Apply damage reduction and deal damage
+                uint8 damageReduction = game
+                    .shipAttributes[targetShipId]
+                    .damageReduction;
+                flakStrength = uint8(
+                    flakStrength -
+                        ((uint16(flakStrength) * damageReduction) / 100)
+                );
                 if (
                     flakStrength >= game.shipAttributes[targetShipId].hullPoints
                 ) {

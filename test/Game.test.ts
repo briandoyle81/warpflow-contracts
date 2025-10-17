@@ -311,8 +311,8 @@ describe("Game", function () {
       const mainWeapon = constructedShip.equipment.mainWeapon;
 
       // Expected values based on ShipAttributes contract's gun data
-      const expectedRanges = [6, 10, 8, 3]; // Laser, Railgun, MissileLauncher, PlasmaCannon
-      const expectedDamages = [25, 20, 30, 40];
+      const expectedRanges = [3, 6, 4, 2]; // Laser, Railgun, MissileLauncher, PlasmaCannon
+      const expectedDamages = [50, 40, 60, 80];
 
       // Get the ship's accuracy level to calculate expected range with fore accuracy bonus
       const shipTuple = (await ships.read.ships([1n])) as ShipTuple;
@@ -3770,14 +3770,14 @@ describe("Game", function () {
       const ship2Pos = findShipPosition(gameData, 2n);
 
       // Move ship 1 to be within range 3 of ship 2 and use RepairDrones special
-      // Since RepairDrones has range 3, we can move ship 1 to position (5, 0) which is 3 squares away from ship 2 at (2, 0)
-      await game.write.moveShip([1n, 1n, 5, 0, ActionType.Special, 2n], {
+      // Since RepairDrones has range 3, we can move ship 1 to position (2, 0) which is adjacent to ship 2 at (1, 0)
+      await game.write.moveShip([1n, 1n, 2, 0, ActionType.Special, 2n], {
         account: creator.account,
       });
 
-      // Verify ship 2's HP was increased by the repair strength (20)
+      // Verify ship 2's HP was increased by the repair strength (40)
       const ship2AttrsAfter = await game.read.getShipAttributes([1n, 2n]);
-      expect(ship2AttrsAfter.hullPoints).to.equal(20); // Should be exactly 20 since RepairDrones restores 20 HP
+      expect(ship2AttrsAfter.hullPoints).to.equal(40); // Should be exactly 40 since RepairDrones restores 40 HP
     });
 
     it("should allow ships with EMP to increase enemy ship's reactor critical timer", async function () {
@@ -4021,26 +4021,26 @@ describe("Game", function () {
         account: owner.account,
       });
 
-      // 6. Move the remaining ships so that 1 from each team are within 5 squares and 1 from each team are outside 5 away
-      // FlakArray has range 5, so we need ships within 5 squares and outside 5 squares
+      // 6. Move the remaining ships so that 1 from each team are within 3 squares and 1 from each team are outside 3 away
+      // FlakArray has range 3, so we need ships within 3 squares and outside 3 squares
 
-      // Creator's second ship (ship 2) - within range (distance 3)
-      await game.write.debugSetShipPosition([1n, 2n, 7, 20], {
+      // Creator's second ship (ship 2) - within range (distance 2)
+      await game.write.debugSetShipPosition([1n, 2n, 8, 20], {
         account: owner.account,
       });
 
-      // Creator's third ship (ship 3) - outside range (distance 7)
-      await game.write.debugSetShipPosition([1n, 3n, 3, 20], {
+      // Creator's third ship (ship 3) - outside range (distance 5)
+      await game.write.debugSetShipPosition([1n, 3n, 5, 20], {
         account: owner.account,
       });
 
-      // Joiner's first ship (ship 6) - within range (distance 4)
-      await game.write.debugSetShipPosition([1n, 6n, 14, 20], {
+      // Joiner's first ship (ship 6) - within range (distance 3)
+      await game.write.debugSetShipPosition([1n, 6n, 13, 20], {
         account: owner.account,
       });
 
-      // Joiner's second ship (ship 7) - outside range (distance 8)
-      await game.write.debugSetShipPosition([1n, 7n, 18, 20], {
+      // Joiner's second ship (ship 7) - outside range (distance 6)
+      await game.write.debugSetShipPosition([1n, 7n, 16, 20], {
         account: owner.account,
       });
 
@@ -4073,12 +4073,29 @@ describe("Game", function () {
 
       // 9. Make sure that both friendly and enemy ships in range are damaged
       // FlakArray damages ALL ships in range (both friendly and enemy)
-      // FlakArray strength is 15, so ships in range should lose 15 hull points
+      // FlakArray strength is 30, and it applies armor/shield damage reduction
+      const flakStrength = 30; // Current FlakArray strength
+
+      // Ship 2 damage calculation (friendly ship in range)
+      // Apply damage reduction like regular weapons
+      const ship2DamageReduction = ship2AttrsBefore.damageReduction;
+      const ship2ExpectedDamage = Math.max(
+        0,
+        flakStrength - Math.floor((flakStrength * ship2DamageReduction) / 100)
+      );
       expect(ship2AttrsAfter.hullPoints).to.equal(
-        Math.max(0, ship2AttrsBefore.hullPoints - 15)
+        Math.max(0, ship2AttrsBefore.hullPoints - ship2ExpectedDamage)
+      );
+
+      // Ship 6 damage calculation (enemy ship in range)
+      // Apply damage reduction like regular weapons
+      const ship6DamageReduction = ship6AttrsBefore.damageReduction;
+      const ship6ExpectedDamage = Math.max(
+        0,
+        flakStrength - Math.floor((flakStrength * ship6DamageReduction) / 100)
       );
       expect(ship6AttrsAfter.hullPoints).to.equal(
-        Math.max(0, ship6AttrsBefore.hullPoints - 15)
+        Math.max(0, ship6AttrsBefore.hullPoints - ship6ExpectedDamage)
       );
 
       // 10. Make sure that the ships out of range are undamaged

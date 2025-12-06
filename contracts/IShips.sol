@@ -4,9 +4,7 @@ pragma solidity ^0.8.24;
 import "./Types.sol";
 
 interface IShips {
-    function createShips(address _to, uint _amount) external;
-
-    function getCurrentCostsVersion() external view returns (uint16);
+    function createShips(address _to, uint _amount, uint16 _variant) external;
 
     function getShip(uint _id) external view returns (Ship memory);
 
@@ -15,4 +13,10 @@ interface IShips {
     function setTimestampDestroyed(uint _id, uint _destroyerId) external;
 
     function setInFleet(uint _id, bool _inFleet) external;
+
+    function customizeShip(
+        uint _id,
+        Ship memory _ship,
+        bool _rerollName
+    ) external;
 }

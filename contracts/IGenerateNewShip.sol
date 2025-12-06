@@ -8,7 +8,7 @@ interface IGenerateNewShip {
         uint id,
         uint serialNumber,
         uint64 randomBase,
-        uint16 numberOfVariants
+        uint16 variant
     ) external view returns (Ship memory);
 
     function generateSpecificShip(

@@ -8,6 +8,7 @@ import "./Types.sol";
 import "./Ships.sol";
 import "./Game.sol";
 import "./IFleets.sol";
+import "./IMaps.sol";
 
 contract Lobbies is Ownable, ReentrancyGuard {
     using EnumerableSet for EnumerableSet.UintSet;
@@ -15,10 +16,12 @@ contract Lobbies is Ownable, ReentrancyGuard {
     Ships public ships;
     Game public game;
     IFleets public fleets;
+    IMaps public maps;
 
     uint public lobbyCount;
     uint public freeGamesPerAddress = 1;
     uint public additionalLobbyFee = 1 ether;
+    uint public maxFleetCostLimit = 2000;
     bool public paused;
 
     mapping(uint => Lobby) public lobbies;
@@ -47,6 +50,7 @@ contract Lobbies is Ownable, ReentrancyGuard {
         address indexed player,
         uint fleetId
     );
+    event MaxFleetCostLimitUpdated(uint newLimit);
 
     error LobbyNotFound();
     error LobbyFull();
@@ -69,6 +73,8 @@ contract Lobbies is Ownable, ReentrancyGuard {
     error PlayerInTimeout();
     error NotLobbyJoiner();
     error CreatorTimeoutNotReached();
+    error InvalidMapId();
+    error MaxFleetCostExceeded();
 
     uint public constant MIN_TURN_TIME = 60; // 1 minute in seconds
     uint public constant MAX_TURN_TIME = 86400; // 24 hours in seconds
@@ -85,6 +91,10 @@ contract Lobbies is Ownable, ReentrancyGuard {
 
     function setFleetsAddress(address _fleetsAddress) public onlyOwner {
         fleets = IFleets(_fleetsAddress);
+    }
+
+    function setMapsAddress(address _mapsAddress) public onlyOwner {
+        maps = IMaps(_mapsAddress);
     }
 
     function isLobbyOpenForJoining(uint _id) public view returns (bool) {
@@ -206,6 +216,13 @@ contract Lobbies is Ownable, ReentrancyGuard {
         if (paused) revert LobbyCreationPaused();
         if (_turnTime < MIN_TIMEOUT || _turnTime > MAX_TURN_TIME)
             revert InvalidTurnTime();
+        if (_costLimit > maxFleetCostLimit) revert MaxFleetCostExceeded();
+
+        // Validate mapId: 0 means no preset map (valid), otherwise must exist
+        if (_selectedMapId > 0) {
+            if (address(maps) == address(0)) revert InvalidMapId();
+            if (!maps.mapExists(_selectedMapId)) revert InvalidMapId();
+        }
 
         // Check if player is in timeout
         PlayerLobbyState storage state = playerStates[msg.sender];
@@ -251,7 +268,7 @@ contract Lobbies is Ownable, ReentrancyGuard {
         );
     }
 
-    function joinLobby(uint _lobbyId) public nonReentrant {
+    function joinLobby(uint _lobbyId) public payable nonReentrant {
         Lobby storage lobby = lobbies[_lobbyId];
         if (lobby.basic.id == 0) revert LobbyNotFound();
         if (lobby.state.status != LobbyStatus.Open) revert LobbyNotOpen();
@@ -259,7 +276,6 @@ contract Lobbies is Ownable, ReentrancyGuard {
         if (lobby.players.joiner != address(0)) revert LobbyFull();
 
         PlayerLobbyState storage state = playerStates[msg.sender];
-        if (state.hasActiveLobby) revert PlayerAlreadyInLobby();
 
         // Check if player is in timeout
         if (state.kickCount > 0) {
@@ -268,12 +284,20 @@ contract Lobbies is Ownable, ReentrancyGuard {
             if (block.timestamp < timeoutEnd) revert PlayerInTimeout();
         }
 
+        // Check if player needs to pay for additional lobbies
+        if (state.activeLobbiesCount >= freeGamesPerAddress) {
+            if (msg.value < additionalLobbyFee) revert InsufficientFee();
+        }
+
         lobby.players.joiner = msg.sender;
         lobby.state.status = LobbyStatus.FleetSelection;
         lobby.players.joinedAt = block.timestamp;
 
-        state.hasActiveLobby = true;
-        state.activeLobbyId = _lobbyId;
+        // Update player state - allow multiple active lobbies
+        if (!state.hasActiveLobby) {
+            state.hasActiveLobby = true;
+            state.activeLobbyId = _lobbyId;
+        }
         state.activeLobbiesCount++;
 
         // Add joiner to lobby tracking and remove from open set
@@ -475,6 +499,73 @@ contract Lobbies is Ownable, ReentrancyGuard {
         emit LobbyTerminated(_lobbyId);
     }
 
+    // Owner function to create a lobby with both creator and joiner already set
+    // Bypasses paused state, timeout checks, and fee requirements
+    // Who goes first is determined by who creates their fleet first (not a lobby setting)
+    function createLobbyForAddresses(
+        address _creator,
+        address _joiner,
+        uint _costLimit,
+        uint _turnTime,
+        uint _selectedMapId,
+        uint _maxScore
+    ) public onlyOwner {
+        if (_turnTime < MIN_TIMEOUT || _turnTime > MAX_TURN_TIME)
+            revert InvalidTurnTime();
+        if (_creator == _joiner) revert PlayerAlreadyInLobby();
+        if (_costLimit > maxFleetCostLimit) revert MaxFleetCostExceeded();
+
+        // Validate mapId: 0 means no preset map (valid), otherwise must exist
+        if (_selectedMapId > 0) {
+            if (address(maps) == address(0)) revert InvalidMapId();
+            if (!maps.mapExists(_selectedMapId)) revert InvalidMapId();
+        }
+
+        lobbyCount++;
+        Lobby storage newLobby = lobbies[lobbyCount];
+        newLobby.basic.id = lobbyCount;
+        newLobby.basic.creator = _creator;
+        newLobby.basic.costLimit = _costLimit;
+        newLobby.state.status = LobbyStatus.FleetSelection; // Both players set, ready for fleet selection
+        newLobby.basic.createdAt = block.timestamp;
+        newLobby.gameConfig.turnTime = _turnTime;
+        newLobby.gameConfig.selectedMapId = _selectedMapId;
+        newLobby.gameConfig.maxScore = _maxScore;
+        // creatorGoesFirst will be set when fleets are created based on who creates first
+
+        // Set joiner immediately
+        newLobby.players.joiner = _joiner;
+        newLobby.players.joinedAt = block.timestamp;
+
+        // Update creator's state
+        PlayerLobbyState storage creatorState = playerStates[_creator];
+        creatorState.hasActiveLobby = true;
+        creatorState.activeLobbyId = lobbyCount;
+        creatorState.activeLobbiesCount++;
+
+        // Update joiner's state
+        PlayerLobbyState storage joinerState = playerStates[_joiner];
+        joinerState.hasActiveLobby = true;
+        joinerState.activeLobbyId = lobbyCount;
+        joinerState.activeLobbiesCount++;
+
+        // Add both players to tracking sets (not open for joining since both players are set)
+        _addPlayerToLobby(_creator, lobbyCount);
+        _addPlayerToLobby(_joiner, lobbyCount);
+        // Don't add to open set since lobby is already full
+
+        emit LobbyCreated(
+            lobbyCount,
+            _creator,
+            _costLimit,
+            _turnTime,
+            false, // creatorGoesFirst - will be determined by fleet creation order
+            _selectedMapId,
+            _maxScore
+        );
+        emit PlayerJoinedLobby(lobbyCount, _joiner);
+    }
+
     // Owner functions
     function setFreeGamesPerAddress(uint _count) public onlyOwner {
         freeGamesPerAddress = _count;
@@ -486,6 +577,11 @@ contract Lobbies is Ownable, ReentrancyGuard {
 
     function setPaused(bool _paused) public onlyOwner {
         paused = _paused;
+    }
+
+    function setMaxFleetCostLimit(uint _maxFleetCostLimit) public onlyOwner {
+        maxFleetCostLimit = _maxFleetCostLimit;
+        emit MaxFleetCostLimitUpdated(_maxFleetCostLimit);
     }
 
     function withdraw() public onlyOwner {

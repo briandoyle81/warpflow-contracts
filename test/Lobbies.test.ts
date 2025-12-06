@@ -363,6 +363,103 @@ describe("Lobbies", function () {
         "PlayerInTimeout"
       );
     });
+
+    it("should allow owner to create lobby for two addresses and start a game", async function () {
+      const {
+        lobbies,
+        creatorLobbies,
+        joinerLobbies,
+        ships,
+        randomManager,
+        game,
+        owner,
+        creator,
+        joiner,
+      } = await loadFixture(deployLobbiesFixture);
+
+      const ownerLobbies = await hre.viem.getContractAt(
+        "Lobbies",
+        lobbies.address,
+        { client: { wallet: owner } }
+      );
+
+      // Both players claim their free ships
+      await ships.write.claimFreeShips({ account: creator.account });
+      await ships.write.claimFreeShips({ account: joiner.account });
+
+      const fulfillRandomnessForPlayer = async (accountAddress: string) => {
+        const shipIds = await ships.read.getShipIdsOwned([accountAddress]);
+        for (const shipId of shipIds) {
+          const shipTuple = (await ships.read.ships([shipId])) as ShipTuple;
+          const ship = tupleToShip(shipTuple);
+          await randomManager.write.fulfillRandomRequest([
+            ship.traits.serialNumber,
+          ]);
+        }
+        return shipIds;
+      };
+
+      const creatorShipIds = await fulfillRandomnessForPlayer(
+        creator.account.address
+      );
+      const joinerShipIds = await fulfillRandomnessForPlayer(
+        joiner.account.address
+      );
+
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      const costLimit = 1000n;
+      const turnTime = 300n;
+      const maxScore = 100n;
+
+      await ownerLobbies.write.createLobbyForAddresses([
+        creator.account.address,
+        joiner.account.address,
+        costLimit,
+        turnTime,
+        0n,
+        maxScore,
+      ]);
+
+      let lobby = await creatorLobbies.read.getLobby([1n]);
+      expect(lobby.state.status).to.equal(LobbyStatus.FleetSelection);
+      expect(lobby.players.joiner.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
+      );
+
+      const creatorShipId = creatorShipIds[0];
+      const joinerShipId = joinerShipIds[0];
+
+      await creatorLobbies.write.createFleet([
+        1n,
+        [creatorShipId],
+        generateStartingPositions([creatorShipId], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [joinerShipId],
+        generateStartingPositions([joinerShipId], false),
+      ]);
+
+      lobby = await creatorLobbies.read.getLobby([1n]);
+      expect(lobby.state.status).to.equal(LobbyStatus.InGame);
+      expect(lobby.players.creatorFleetId).to.not.equal(0n);
+      expect(lobby.players.joinerFleetId).to.not.equal(0n);
+
+      const creatorState = (await creatorLobbies.read.getPlayerState([
+        creator.account.address,
+      ])) as unknown as PlayerLobbyState;
+      expect(creatorState.hasActiveLobby).to.equal(false);
+
+      const joinerState = (await joinerLobbies.read.getPlayerState([
+        joiner.account.address,
+      ])) as unknown as PlayerLobbyState;
+      expect(joinerState.hasActiveLobby).to.equal(false);
+
+      const gameCount = await game.read.gameCount();
+      expect(gameCount).to.equal(1n);
+    });
   });
 
   describe("Lobby Joining", function () {
@@ -488,10 +585,14 @@ describe("Lobbies", function () {
       );
     });
 
-    it("should revert when player already in another lobby tries to join", async function () {
-      const { creatorLobbies, joinerLobbies, otherLobbies } = await loadFixture(
-        deployLobbiesFixture
-      );
+    it("should allow player to join multiple lobbies by paying fee", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        otherLobbies,
+        publicClient,
+        joiner,
+      } = await loadFixture(deployLobbiesFixture);
       const costLimit = 1000n;
       const turnTime = 300n;
       const creatorGoesFirst = true;
@@ -515,9 +616,26 @@ describe("Lobbies", function () {
         100n, // maxScore
       ]);
 
-      // Try to join second lobby while in first lobby
+      // Try to join second lobby without paying fee (should fail)
       await expect(joinerLobbies.write.joinLobby([2n])).to.be.rejectedWith(
-        "PlayerAlreadyInLobby"
+        "InsufficientFee"
+      );
+
+      // Join second lobby with fee (should succeed)
+      const tx = await joinerLobbies.write.joinLobby([2n], {
+        value: parseEther("1"),
+      });
+      const receipt = await publicClient.getTransactionReceipt({ hash: tx });
+      expect(receipt.status).to.equal("success");
+
+      // Verify player is in both lobbies
+      const lobby1 = await joinerLobbies.read.getLobby([1n]);
+      const lobby2 = await joinerLobbies.read.getLobby([2n]);
+      expect(lobby1.players.joiner.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
+      );
+      expect(lobby2.players.joiner.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
       );
     });
 

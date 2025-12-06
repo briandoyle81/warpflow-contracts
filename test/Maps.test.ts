@@ -218,7 +218,7 @@ describe("Line of Sight System", function () {
           endPos[1],
         ]);
 
-        console.log(createGridDiagram(10, 10, startPos, endPos, [], hasLOS));
+        // console.log(createGridDiagram(10, 10, startPos, endPos, [], hasLOS));
         expect(hasLOS).to.be.true;
       });
 
@@ -235,7 +235,7 @@ describe("Line of Sight System", function () {
           endPos[1],
         ]);
 
-        console.log(createGridDiagram(10, 10, startPos, endPos, [], hasLOS));
+        // console.log(createGridDiagram(10, 10, startPos, endPos, [], hasLOS));
         expect(hasLOS).to.be.true;
       });
 
@@ -252,7 +252,7 @@ describe("Line of Sight System", function () {
           endPos[1],
         ]);
 
-        console.log(createGridDiagram(10, 10, startPos, endPos, [], hasLOS));
+        // console.log(createGridDiagram(10, 10, startPos, endPos, [], hasLOS));
         expect(hasLOS).to.be.true;
       });
 
@@ -268,7 +268,7 @@ describe("Line of Sight System", function () {
           pos[1],
         ]);
 
-        console.log(createGridDiagram(10, 10, pos, pos, [], hasLOS));
+        // console.log(createGridDiagram(10, 10, pos, pos, [], hasLOS));
         expect(hasLOS).to.be.true;
       });
     });
@@ -290,9 +290,9 @@ describe("Line of Sight System", function () {
           endPos[1],
         ]);
 
-        console.log(
-          createGridDiagram(10, 10, startPos, endPos, blockedPositions, hasLOS)
-        );
+        // console.log(
+        //   createGridDiagram(10, 10, startPos, endPos, blockedPositions, hasLOS)
+        // );
         expect(hasLOS).to.be.false;
       });
 
@@ -312,9 +312,9 @@ describe("Line of Sight System", function () {
           endPos[1],
         ]);
 
-        console.log(
-          createGridDiagram(10, 10, startPos, endPos, blockedPositions, hasLOS)
-        );
+        // console.log(
+        //   createGridDiagram(10, 10, startPos, endPos, blockedPositions, hasLOS)
+        // );
         expect(hasLOS).to.be.false;
       });
 
@@ -334,9 +334,9 @@ describe("Line of Sight System", function () {
           endPos[1],
         ]);
 
-        console.log(
-          createGridDiagram(10, 10, startPos, endPos, blockedPositions, hasLOS)
-        );
+        // console.log(
+        //   createGridDiagram(10, 10, startPos, endPos, blockedPositions, hasLOS)
+        // );
         expect(hasLOS).to.be.false;
       });
     });
@@ -359,9 +359,9 @@ describe("Line of Sight System", function () {
           endPos[1],
         ]);
 
-        console.log(
-          createGridDiagram(6, 6, startPos, endPos, blockedPositions, hasLOS)
-        );
+        // console.log(
+        //   createGridDiagram(6, 6, startPos, endPos, blockedPositions, hasLOS)
+        // );
         expect(hasLOS).to.be.true;
       });
 
@@ -385,9 +385,9 @@ describe("Line of Sight System", function () {
           endPos[1],
         ]);
 
-        console.log(
-          createGridDiagram(6, 6, startPos, endPos, blockedPositions, hasLOS)
-        );
+        // console.log(
+        //   createGridDiagram(6, 6, startPos, endPos, blockedPositions, hasLOS)
+        // );
         expect(hasLOS).to.be.false;
       });
 
@@ -404,7 +404,7 @@ describe("Line of Sight System", function () {
           endPos[1],
         ]);
 
-        console.log(createGridDiagram(10, 10, startPos, endPos, [], hasLOS));
+        // console.log(createGridDiagram(10, 10, startPos, endPos, [], hasLOS));
         expect(hasLOS).to.be.true;
       });
 
@@ -421,7 +421,7 @@ describe("Line of Sight System", function () {
           endPos[1],
         ]);
 
-        console.log(createGridDiagram(10, 10, startPos, endPos, [], hasLOS));
+        // console.log(createGridDiagram(10, 10, startPos, endPos, [], hasLOS));
         expect(hasLOS).to.be.true;
       });
     });
@@ -449,9 +449,9 @@ describe("Line of Sight System", function () {
           endPos[1],
         ]);
 
-        console.log(
-          createGridDiagram(7, 7, startPos, endPos, blockedPositions, hasLOS)
-        );
+        // console.log(
+        //   createGridDiagram(7, 7, startPos, endPos, blockedPositions, hasLOS)
+        // );
         expect(hasLOS).to.be.false;
       });
 
@@ -479,9 +479,9 @@ describe("Line of Sight System", function () {
           endPos[1],
         ]);
 
-        console.log(
-          createGridDiagram(7, 7, startPos, endPos, blockedPositions, hasLOS)
-        );
+        // console.log(
+        //   createGridDiagram(7, 7, startPos, endPos, blockedPositions, hasLOS)
+        // );
         expect(hasLOS).to.be.false;
       });
     });
@@ -500,7 +500,7 @@ describe("Line of Sight System", function () {
           endPos[1],
         ]);
 
-        console.log(createGridDiagram(10, 10, startPos, endPos, [], hasLOS));
+        // console.log(createGridDiagram(10, 10, startPos, endPos, [], hasLOS));
         expect(hasLOS).to.be.true;
       });
 
@@ -517,7 +517,7 @@ describe("Line of Sight System", function () {
           endPos[1],
         ]);
 
-        console.log(createGridDiagram(10, 10, startPos, endPos, [], hasLOS));
+        // console.log(createGridDiagram(10, 10, startPos, endPos, [], hasLOS));
         expect(hasLOS).to.be.true;
       });
 
@@ -534,7 +534,7 @@ describe("Line of Sight System", function () {
           endPos[1],
         ]);
 
-        console.log(createGridDiagram(10, 10, startPos, endPos, [], hasLOS));
+        // console.log(createGridDiagram(10, 10, startPos, endPos, [], hasLOS));
         expect(hasLOS).to.be.true;
       });
     });
@@ -554,7 +554,7 @@ describe("Line of Sight System", function () {
         endPos[1],
       ]);
 
-      console.log(createGridDiagram(6, 6, startPos, endPos, [], hasLOS));
+      // console.log(createGridDiagram(6, 6, startPos, endPos, [], hasLOS));
       expect(hasLOS).to.be.true;
     });
 
@@ -571,7 +571,7 @@ describe("Line of Sight System", function () {
         endPos[1],
       ]);
 
-      console.log(createGridDiagram(7, 7, startPos, endPos, [], hasLOS));
+      // console.log(createGridDiagram(7, 7, startPos, endPos, [], hasLOS));
       expect(hasLOS).to.be.true;
     });
 
@@ -588,7 +588,7 @@ describe("Line of Sight System", function () {
         endPos[1],
       ]);
 
-      console.log(createGridDiagram(7, 7, startPos, endPos, [], hasLOS));
+      // console.log(createGridDiagram(7, 7, startPos, endPos, [], hasLOS));
       expect(hasLOS).to.be.true;
     });
 
@@ -608,9 +608,9 @@ describe("Line of Sight System", function () {
         endPos[1],
       ]);
 
-      console.log(
-        createGridDiagram(7, 7, startPos, endPos, blockedPositions, hasLOS)
-      );
+      // console.log(
+      //   createGridDiagram(7, 7, startPos, endPos, blockedPositions, hasLOS)
+      // );
       expect(hasLOS).to.be.false;
     });
   });
@@ -688,7 +688,7 @@ describe("Line of Sight System", function () {
         endPos[1],
       ]);
 
-      console.log(createGridDiagram(40, 20, startPos, endPos, [], hasLOS));
+      // console.log(createGridDiagram(40, 20, startPos, endPos, [], hasLOS));
       expect(hasLOS).to.be.true;
     });
 
@@ -705,7 +705,7 @@ describe("Line of Sight System", function () {
         endPos[1],
       ]);
 
-      console.log(createGridDiagram(40, 20, startPos, endPos, [], hasLOS));
+      // console.log(createGridDiagram(40, 20, startPos, endPos, [], hasLOS));
       expect(hasLOS).to.be.true;
     });
 
@@ -722,7 +722,7 @@ describe("Line of Sight System", function () {
         endPos[1],
       ]);
 
-      console.log(createGridDiagram(40, 20, startPos, endPos, [], hasLOS));
+      // console.log(createGridDiagram(40, 20, startPos, endPos, [], hasLOS));
       expect(hasLOS).to.be.true;
     });
 
@@ -758,9 +758,9 @@ describe("Line of Sight System", function () {
         endPos[1],
       ]);
 
-      console.log(
-        createGridDiagram(10, 10, startPos, endPos, blockedPositions, hasLOS)
-      );
+      // console.log(
+      //   createGridDiagram(10, 10, startPos, endPos, blockedPositions, hasLOS)
+      // );
       expect(hasLOS).to.be.false;
     });
   });

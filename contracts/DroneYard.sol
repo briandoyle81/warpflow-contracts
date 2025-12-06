@@ -1,0 +1,269 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.24;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "./IShips.sol";
+import "./IUniversalCredits.sol";
+import "./IShipPurchaser.sol";
+import "./IOnchainRandomShipNames.sol";
+import "./Types.sol";
+
+contract DroneYard is ReentrancyGuard {
+    error NotShipOwner(uint _shipId);
+    error ShipNotConstructed(uint _shipId);
+    error ShipInFleet(uint _shipId);
+    error InvalidModification();
+    error InsufficientFunds(uint _required, uint _available);
+    error InvalidTraitValue(uint8 _value);
+    error ArmorAndShieldsBothSet();
+
+    IShips public immutable ships;
+    IERC20 public immutable universalCredits;
+    IShipPurchaser public immutable shipPurchaser;
+    IOnchainRandomShipNames public immutable shipNames;
+
+    constructor(
+        address _ships,
+        address _universalCredits,
+        address _shipPurchaser,
+        address _shipNames
+    ) {
+        ships = IShips(_ships);
+        universalCredits = IERC20(_universalCredits);
+        shipPurchaser = IShipPurchaser(_shipPurchaser);
+        shipNames = IOnchainRandomShipNames(_shipNames);
+    }
+
+    /**
+     * @dev Calculate the cost to modify a ship
+     * @param _shipId The ID of the ship to modify
+     * @param _newShip The new ship configuration
+     * @param _rerollName If true, reroll the ship's name (counts as 1 modification)
+     * @return The cost in UTC tokens
+     */
+    function calculateCostToModify(
+        uint _shipId,
+        Ship memory _newShip,
+        bool _rerollName
+    ) public view returns (uint) {
+        Ship memory currentShip = ships.getShip(_shipId);
+        if (currentShip.id == 0) revert InvalidModification();
+
+        uint totalModifications = _calculateTotalModifications(
+            currentShip,
+            _newShip,
+            _rerollName
+        );
+
+        // Base cost is 1/5 of tier 0 price
+        uint baseCost = shipPurchaser.tierPrices(0) / 5;
+
+        // Cost doubles for each modification (existing + new)
+        // If totalModifications is 0, cost is baseCost
+        // If totalModifications is 1, cost is baseCost * 2
+        // If totalModifications is 2, cost is baseCost * 4
+        // etc.
+        if (totalModifications == 0) {
+            return baseCost;
+        }
+
+        // Calculate 2^totalModifications
+        uint costMultiplier = 1;
+        for (uint i = 0; i < totalModifications; i++) {
+            costMultiplier *= 2;
+        }
+
+        return baseCost * costMultiplier;
+    }
+
+    /**
+     * @dev Validate that a ship modification is valid
+     * @param _shipId The ID of the ship to modify
+     * @param _newShip The new ship configuration
+     */
+    function validateShip(
+        uint _shipId,
+        Ship memory _newShip
+    ) public view returns (bool) {
+        Ship memory currentShip = ships.getShip(_shipId);
+        if (currentShip.id == 0) revert InvalidModification();
+
+        // Validate trait values (must be 0, 1, or 2)
+        if (_newShip.traits.accuracy > 2)
+            revert InvalidTraitValue(_newShip.traits.accuracy);
+        if (_newShip.traits.hull > 2)
+            revert InvalidTraitValue(_newShip.traits.hull);
+        if (_newShip.traits.speed > 2)
+            revert InvalidTraitValue(_newShip.traits.speed);
+
+        // One of armor or shields must be None
+        if (
+            _newShip.equipment.armor != Armor.None &&
+            _newShip.equipment.shields != Shields.None
+        ) {
+            revert ArmorAndShieldsBothSet();
+        }
+
+        return true;
+    }
+
+    /**
+     * @dev Modify a ship owned by the caller
+     * @param _shipId The ID of the ship to modify
+     * @param _newShip The new ship configuration
+     * @param _rerollName If true, reroll the ship's name (counts as 1 modification)
+     */
+    function modifyShip(
+        uint _shipId,
+        Ship memory _newShip,
+        bool _rerollName
+    ) public nonReentrant {
+        Ship memory currentShip = ships.getShip(_shipId);
+        if (currentShip.id == 0) revert InvalidModification();
+
+        // Check ownership
+        if (currentShip.owner != msg.sender) {
+            revert NotShipOwner(_shipId);
+        }
+
+        // Ship must be constructed
+        if (!currentShip.shipData.constructed) {
+            revert ShipNotConstructed(_shipId);
+        }
+
+        // Ship must not be in a fleet
+        if (currentShip.shipData.inFleet) {
+            revert ShipInFleet(_shipId);
+        }
+
+        // Validate the modification
+        validateShip(_shipId, _newShip);
+
+        // Calculate cost
+        uint cost = calculateCostToModify(_shipId, _newShip, _rerollName);
+
+        // Check balance
+        uint balance = universalCredits.balanceOf(msg.sender);
+        if (balance < cost) {
+            revert InsufficientFunds(cost, balance);
+        }
+
+        // Transfer UTC tokens from user to this contract
+        require(
+            universalCredits.transferFrom(msg.sender, address(this), cost),
+            "UTC transfer failed"
+        );
+
+        // Update the ship using customizeShip
+        // We need to preserve the serial number, colors, and other immutable traits
+        _newShip.traits.serialNumber = currentShip.traits.serialNumber;
+        _newShip.traits.colors = currentShip.traits.colors; // Preserve colors
+        _newShip.id = _shipId;
+        _newShip.owner = currentShip.owner;
+
+        // Reroll name if requested
+        if (_rerollName) {
+            // Generate new name using serialNumber + block.timestamp + prevrandao
+            bytes32 seed = keccak256(
+                abi.encodePacked(
+                    currentShip.traits.serialNumber,
+                    block.timestamp,
+                    block.prevrandao
+                )
+            );
+            _newShip.name = shipNames.getRandomShipName(seed);
+        } else {
+            _newShip.name = currentShip.name; // Preserve name
+        }
+
+        // Call customizeShip on Ships contract (it will calculate modifications internally)
+        // Pass _rerollName so it knows to count name reroll as 1 modification
+        ships.customizeShip(_shipId, _newShip, _rerollName);
+    }
+
+    /**
+     * @dev Internal function to calculate total modifications (for cost calculation)
+     * Includes existing modified value + new modifications
+     * @param _currentShip The current ship state
+     * @param _newShip The new ship configuration
+     * @return Total number of modifications (existing + new)
+     */
+    function _calculateTotalModifications(
+        Ship memory _currentShip,
+        Ship memory _newShip,
+        bool _rerollName
+    ) internal pure returns (uint) {
+        uint modifications = _currentShip.shipData.modified;
+        modifications += _calculateNewModifications(
+            _currentShip,
+            _newShip,
+            _rerollName
+        );
+        return modifications;
+    }
+
+    /**
+     * @dev Internal function to calculate new modifications only
+     * @param _currentShip The current ship state
+     * @param _newShip The new ship configuration
+     * @return Number of new modifications
+     */
+    function _calculateNewModifications(
+        Ship memory _currentShip,
+        Ship memory _newShip,
+        bool _rerollName
+    ) internal pure returns (uint) {
+        uint modifications = 0;
+
+        // Count equipment changes (add 1 for each changed property)
+        if (
+            _currentShip.equipment.mainWeapon != _newShip.equipment.mainWeapon
+        ) {
+            modifications++;
+        }
+        if (_currentShip.equipment.armor != _newShip.equipment.armor) {
+            modifications++;
+        }
+        if (_currentShip.equipment.shields != _newShip.equipment.shields) {
+            modifications++;
+        }
+        if (_currentShip.equipment.special != _newShip.equipment.special) {
+            modifications++;
+        }
+
+        // Calculate trait changes (total absolute difference)
+        int16 accuracyChange = int16(int(uint(_newShip.traits.accuracy))) -
+            int16(int(uint(_currentShip.traits.accuracy)));
+        int16 hullChange = int16(int(uint(_newShip.traits.hull))) -
+            int16(int(uint(_currentShip.traits.hull)));
+        int16 speedChange = int16(int(uint(_newShip.traits.speed))) -
+            int16(int(uint(_currentShip.traits.speed)));
+
+        uint traitChanges = uint(
+            uint16(abs(accuracyChange)) +
+                uint16(abs(hullChange)) +
+                uint16(abs(speedChange))
+        );
+        modifications += traitChanges;
+
+        // Count shiny status change as 3 modifications
+        if (_currentShip.shipData.shiny != _newShip.shipData.shiny) {
+            modifications += 3;
+        }
+
+        // Count name reroll as 1 modification
+        if (_rerollName) {
+            modifications++;
+        }
+
+        return modifications;
+    }
+
+    /**
+     * @dev Helper function to get absolute value
+     */
+    function abs(int16 x) internal pure returns (int16) {
+        return x >= 0 ? x : -x;
+    }
+}

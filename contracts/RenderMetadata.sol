@@ -55,7 +55,10 @@ contract RenderMetadata is IRenderMetadata {
                     "},",
                     '{"trait_type": "Cost", "value": ',
                     Strings.toString(uint256(ship.shipData.cost)),
-                    "}"
+                    "},",
+                    '{"trait_type": "Modified", "value": "',
+                    ship.shipData.modified != 0 ? "Yes" : "No",
+                    '"}'
                 )
             );
     }

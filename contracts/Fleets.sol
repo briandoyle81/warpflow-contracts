@@ -5,9 +5,11 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Types.sol";
 import "./Ships.sol";
 import "./IFleets.sol";
+import "./IShipAttributes.sol";
 
 contract Fleets is Ownable, IFleets {
     Ships public ships;
+    IShipAttributes public shipAttributes;
     address public lobbiesAddress;
     address public gameAddress;
 
@@ -42,6 +44,10 @@ contract Fleets is Ownable, IFleets {
 
     function setGameAddress(address _gameAddress) public onlyOwner {
         gameAddress = _gameAddress;
+    }
+
+    function setShipAttributes(address _shipAttributes) public onlyOwner {
+        shipAttributes = IShipAttributes(_shipAttributes);
     }
 
     function createFleet(
@@ -101,8 +107,10 @@ contract Fleets is Ownable, IFleets {
             if (ship.shipData.inFleet) revert ShipAlreadyInFleet();
 
             // Validate cost version
-            if (ship.shipData.costsVersion != ships.getCurrentCostsVersion())
-                revert ShipCostVersionMismatch();
+            if (
+                ship.shipData.costsVersion !=
+                shipAttributes.getCurrentCostsVersion()
+            ) revert ShipCostVersionMismatch();
 
             totalCost += ship.shipData.cost;
         }

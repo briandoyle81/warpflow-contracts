@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./IShips.sol";
+import "./IUniversalCredits.sol";
 
 contract ShipPurchaser is Ownable, ReentrancyGuard {
     error InvalidReferral();
@@ -15,6 +16,7 @@ contract ShipPurchaser is Ownable, ReentrancyGuard {
 
     IShips public immutable ships;
     IERC20 public immutable universalCredits;
+    IUniversalCredits public immutable universalCreditsMintable;
 
     // Static - Contract with the world
     uint8[] public referralPercentages = [0, 10, 20, 35, 50];
@@ -37,6 +39,7 @@ contract ShipPurchaser is Ownable, ReentrancyGuard {
     constructor(address _ships, address _universalCredits) Ownable(msg.sender) {
         ships = IShips(_ships);
         universalCredits = IERC20(_universalCredits);
+        universalCreditsMintable = IUniversalCredits(_universalCredits);
 
         purchaseTiers = [1, 2, 3, 4, 5];
         tierShips = [5, 11, 28, 60, 125];
@@ -53,7 +56,8 @@ contract ShipPurchaser is Ownable, ReentrancyGuard {
     function purchaseWithUC(
         address _to,
         uint _tier,
-        address _referral
+        address _referral,
+        uint16 _variant
     ) public nonReentrant {
         if (_referral == address(0)) {
             revert InvalidReferral();
@@ -75,10 +79,50 @@ contract ShipPurchaser is Ownable, ReentrancyGuard {
         );
 
         // Create ships for the buyer
-        ships.createShips(_to, totalShips);
+        ships.createShips(_to, totalShips, _variant);
 
         // Process referral
         _processReferral(_referral, totalShips, price);
+    }
+
+    /**
+     * @dev Direct UTC Purchase - Matches ship purchase + recycle economics
+     *
+     * This function allows players to purchase UTC directly for FLOW at the same
+     * effective rate they would get by purchasing ships and recycling them.
+     *
+     * For each tier:
+     * - Tier 0: 0.5 UC for 4.99 FLOW (5 ships × 0.1 UC)
+     * - Tier 1: 1.1 UC for 9.99 FLOW (11 ships × 0.1 UC)
+     * - Tier 2: 2.8 UC for 24.99 FLOW (28 ships × 0.1 UC)
+     * - Tier 3: 6.0 UC for 49.99 FLOW (60 ships × 0.1 UC)
+     * - Tier 4: 12.5 UC for 99.99 FLOW (125 ships × 0.1 UC)
+     *
+     * This matches the gross cost (full purchase price) that players would pay
+     * if they purchased ships and recycled them, giving the owner the full FLOW
+     * amount instead of 50% after referral.
+     */
+    function purchaseUTCWithFlow(
+        address _to,
+        uint _tier
+    ) public payable nonReentrant {
+        if (_tier >= tierPrices.length) {
+            revert InvalidPurchase(_tier, msg.value);
+        }
+
+        uint price = tierPrices[_tier];
+        if (msg.value != price) {
+            revert InvalidPurchase(_tier, msg.value);
+        }
+
+        // Calculate UTC amount based on recycling reward
+        // recycleReward = 0.1 UC per ship
+        // UTC amount = tierShips[_tier] × 0.1 UC
+        uint shipsInTier = tierShips[_tier];
+        uint utcAmount = shipsInTier * 0.1 ether; // 0.1 UC per ship
+
+        // Mint UTC directly to the buyer
+        universalCreditsMintable.mint(_to, utcAmount);
     }
 
     function _processReferral(
@@ -140,5 +184,12 @@ contract ShipPurchaser is Ownable, ReentrancyGuard {
             universalCredits.transfer(owner(), balance),
             "UC withdrawal failed"
         );
+    }
+
+    function withdrawFlow() public onlyOwner {
+        (bool success, ) = payable(owner()).call{value: address(this).balance}(
+            ""
+        );
+        require(success, "FLOW withdrawal failed");
     }
 }

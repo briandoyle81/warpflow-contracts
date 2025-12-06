@@ -41,6 +41,8 @@ export interface ShipData {
   shiny: boolean;
   constructed: boolean;
   inFleet: boolean;
+  isFreeShip: boolean;
+  modified: number;
   timestampDestroyed: bigint;
 }
 
@@ -309,6 +311,17 @@ export interface ShipPosition {
   isCreator: boolean;
 }
 
+export interface LastMove {
+  shipId: bigint;
+  oldRow: number;
+  oldCol: number;
+  newRow: number;
+  newCol: number;
+  actionType: ActionType;
+  targetShipId: bigint;
+  timestamp: bigint; // When the move was made
+}
+
 export interface GameDataView {
   metadata: GameMetadata;
   turnState: GameTurnState;
@@ -316,10 +329,14 @@ export interface GameDataView {
   maxScore: bigint; // Maximum score needed to win the game
   creatorScore: bigint; // Current score of the creator player
   joinerScore: bigint; // Current score of the joiner player
+  lastMove: LastMove; // Most recent move in the game
   shipAttributes: readonly Attributes[]; // Combined array of all ship attributes indexed by ship ID
   shipPositions: readonly ShipPosition[]; // All ship positions on the grid
+  shipIds: readonly bigint[];
   creatorActiveShipIds: readonly bigint[];
   joinerActiveShipIds: readonly bigint[];
+  creatorMovedShipIds: readonly bigint[]; // Creator ships that have moved this round
+  joinerMovedShipIds: readonly bigint[]; // Joiner ships that have moved this round
 }
 
 export enum ActionType {

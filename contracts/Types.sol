@@ -7,7 +7,11 @@ enum MainWeapon {
     Laser,
     Railgun,
     MissileLauncher,
-    PlasmaCannon
+    PlasmaCannon,
+    future1,
+    future2,
+    future3,
+    future4
 }
 
 // Reduces Damage, Does not Provide Hitpoints
@@ -15,7 +19,11 @@ enum Armor {
     None,
     Light,
     Medium,
-    Heavy
+    Heavy,
+    future1,
+    future2,
+    future3,
+    future4
 }
 
 // Reduces Damage, Does not Provide Hitpoints
@@ -23,21 +31,29 @@ enum Shields {
     None,
     Light,
     Medium,
-    Heavy
+    Heavy,
+    future1,
+    future2,
+    future3,
+    future4
 }
 
 enum Special {
     None,
     EMP,
     RepairDrones,
-    FlakArray
+    FlakArray,
+    future1,
+    future2,
+    future3,
+    future4
 }
 
 // Raw Traits Will Never Change
 struct Traits {
     uint256 serialNumber; // Id for random number in commit reveal
     Colors colors;
-    uint8 variant; // Which art to use for the ship
+    uint16 variant; // Which art to use for the ship
     uint8 accuracy;
     uint8 hull; // Hitpoints
     uint8 speed;
@@ -50,7 +66,11 @@ struct Colors {
     uint16 h2;
     uint8 s2;
     uint8 l2;
+    uint16 h3;
+    uint8 s3;
+    uint8 l3;
 }
+
 struct Equipment {
     MainWeapon mainWeapon;
     Armor armor;
@@ -127,6 +147,7 @@ struct GameData {
     uint maxScore; // Maximum score needed to win the game
     uint creatorScore; // Current score of the creator player
     uint joinerScore; // Current score of the joiner player
+    LastMove lastMove; // Most recent move in the game
     // Keep all mappings in GameData
     mapping(uint => Attributes) shipAttributes; // shipId => attributes
     // Grid state - grid[row][column] = shipId (0 if empty)
@@ -145,6 +166,7 @@ struct GameDataView {
     uint maxScore; // Maximum score needed to win the game
     uint creatorScore; // Current score of the creator player
     uint joinerScore; // Current score of the joiner player
+    LastMove lastMove; // Most recent move in the game
     // Ship data arrays
     uint[] shipIds;
     Attributes[] shipAttributes; // Combined array of all ship attributes indexed by ship ID
@@ -170,9 +192,11 @@ struct ShipData {
     uint32 shipsDestroyed; // +1 for Frigate, +2 for Destroyer, +3 for Cruiser, +4 for Battleship
     uint16 costsVersion;
     uint16 cost;
+    uint16 modified; // 0 = false, anything else = true
     bool shiny;
     bool constructed;
     bool inFleet;
+    bool isFreeShip;
     uint timestampDestroyed;
 }
 
@@ -300,6 +324,18 @@ enum ActionType {
     Assist,
     Special,
     ClaimPoints
+}
+
+// Last move information stored in game data
+struct LastMove {
+    uint shipId;
+    int16 oldRow;
+    int16 oldCol;
+    int16 newRow;
+    int16 newCol;
+    ActionType actionType;
+    uint targetShipId;
+    uint timestamp; // When the move was made
 }
 
 // Player statistics for tracking wins and losses

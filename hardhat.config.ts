@@ -60,15 +60,15 @@ const config: HardhatUserConfig = {
     },
     // CRITICAL: CHANGE NAMES CONTRACT ADDRESS BEFORE ADDING AND DEPLOYING ON MAINNET
   },
-  // gasReporter: {
-  //   currency: "USD",
-  //   L1: "ethereum",
-  //   L2: "base",
-  //   L1Etherscan: process.env.ETHERSCAN_API_KEY,
-  //   L2Etherscan: process.env.BASESCAN_API_KEY,
-  //   coinmarketcap: process.env.COINMARKETCAP_API_KEY,
-  //   enabled: true,
-  // },
+  gasReporter: {
+    // currency: "USD",
+    // L1: "ethereum",
+    // L2: "base",
+    // L1Etherscan: process.env.ETHERSCAN_API_KEY,
+    // L2Etherscan: process.env.BASESCAN_API_KEY,
+    // coinmarketcap: process.env.COINMARKETCAP_API_KEY,
+    enabled: false,
+  },
 };
 
 export default config;

@@ -25,7 +25,7 @@ contract GenerateNewShip {
         uint id,
         uint serialNumber,
         uint64 randomBase,
-        uint16 numberOfVariants
+        uint16 variant
     ) external view returns (Ship memory) {
         Ship memory newShip;
         newShip.id = id;
@@ -82,9 +82,7 @@ contract GenerateNewShip {
         );
 
         randomBase++;
-        newShip.traits.variant = uint8(
-            uint(keccak256(abi.encodePacked(randomBase))) % numberOfVariants
-        );
+        newShip.traits.variant = variant;
 
         randomBase++;
         newShip.equipment.mainWeapon = MainWeapon(

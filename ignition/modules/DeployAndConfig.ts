@@ -78,10 +78,10 @@ const DeployModule = buildModule("DeployModule", (m) => {
   const metadataRenderer = m.contract("RenderMetadata", [imageRenderer]);
 
   // Deploy mock ship names
-  // const shipNames = m.contract("MockOnchainRandomShipNames");
+  const shipNames = m.contract("MockOnchainRandomShipNames");
 
   // For testnet use
-  const shipNames = "0x9E433A07D283d56E8243EA25b7358521b1922df5";
+  // const shipNames = "0x9E433A07D283d56E8243EA25b7358521b1922df5";
 
   // Deploy GenerateNewShip with ship names
   const generateNewShip = m.contract("GenerateNewShip", [shipNames]);
@@ -97,6 +97,14 @@ const DeployModule = buildModule("DeployModule", (m) => {
 
   // Deploy ShipPurchaser
   const shipPurchaser = m.contract("ShipPurchaser", [ships, universalCredits]);
+
+  // Deploy DroneYard
+  const droneYard = m.contract("DroneYard", [
+    ships,
+    universalCredits,
+    shipPurchaser,
+    shipNames,
+  ]);
 
   // Deploy Maps contract
   const maps = m.contract("Maps");
@@ -122,6 +130,7 @@ const DeployModule = buildModule("DeployModule", (m) => {
     randomManager,
     metadataRenderer,
     shipAttributes, // shipAttributes
+    universalCredits, // universalCredits
   ]);
 
   // Set all addresses in Game contract
@@ -145,14 +154,25 @@ const DeployModule = buildModule("DeployModule", (m) => {
   // Set Fleets address in Lobbies contract
   m.call(lobbies, "setFleetsAddress", [fleets]);
 
+  // Set Maps address in Lobbies contract
+  m.call(lobbies, "setMapsAddress", [maps]);
+
   // Set Lobbies address in Fleets contract
   m.call(fleets, "setLobbiesAddress", [lobbies]);
 
   // Set Game address in Fleets contract
   m.call(fleets, "setGameAddress", [game]);
 
+  // Set ShipAttributes address in Fleets contract
+  m.call(fleets, "setShipAttributes", [shipAttributes]);
+
   // Allow ShipPurchaser to create ships
   m.call(ships, "setIsAllowedToCreateShips", [shipPurchaser, true]);
+
+  // Allow DroneYard to modify ships
+  m.call(ships, "setIsAllowedToCreateShips", [droneYard, true], {
+    id: "AllowDroneYardToModifyShips",
+  });
 
   // Enable minting for UniversalCredits
   m.call(universalCredits, "setMintIsActive", [true]);
@@ -164,9 +184,6 @@ const DeployModule = buildModule("DeployModule", (m) => {
   m.call(universalCredits, "setAuthorizedToMint", [ships, true], {
     id: "AuthorizeShipsToMint",
   });
-
-  // Set UniversalCredits address in Ships contract
-  m.call(ships, "setUniversalCredits", [universalCredits]);
 
   // WARNING: This works for deploying but breaks the tests for some reason.
   // Purchase tier 4 for the deployer
@@ -218,6 +235,7 @@ const DeployModule = buildModule("DeployModule", (m) => {
     shipAttributes,
     universalCredits,
     shipPurchaser,
+    droneYard,
     maps,
     gameResults,
     game,

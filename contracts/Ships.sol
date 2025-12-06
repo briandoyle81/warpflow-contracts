@@ -24,10 +24,11 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     uint public shipCount;
 
     mapping(address => EnumerableSet.UintSet) private shipsOwned;
-    mapping(address => bool) public hasClaimedFreeShips;
+    mapping(address => uint256) public lastClaimTimestamp;
     mapping(address => uint) public amountPurchased;
 
-    mapping(address => uint) public onboardingStep;
+    // 4 weeks in seconds (28 days * 24 hours * 60 minutes * 60 seconds)
+    uint256 public claimCooldownPeriod = 28 days;
 
     mapping(address => uint) public referralCount;
 
@@ -45,19 +46,19 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     error InvalidReferral();
     error NotAuthorized(address);
     error NotYourShip(uint);
-    error InvalidId();
     error ShipDestroyed();
-    error ShipInGame();
-    error ShipInLobby();
-    error OldShipCost();
     error MintPaused();
-    error InvalidRenderer();
     error ShipConstructed(uint);
     error ShipInFleet(uint);
     error InsufficientPurchases(address);
     error InvalidPurchase(uint _tier, uint _amount);
     error ArrayLengthMismatch();
     error ShipAlreadyDestroyed(uint);
+    error CannotRecycleFreeShip(uint);
+    error InvalidVariant(uint16);
+    error ReferralTransferFailed();
+    error WithdrawalFailed();
+    error ClaimCooldownNotPassed();
 
     struct ContractConfig {
         address gameAddress;
@@ -77,7 +78,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
     bool public paused;
 
-    uint16 numberOfVariants = 1;
+    uint16 public maxVariant = 1;
 
     event MetadataUpdate(uint256 _tokenId);
 
@@ -122,13 +123,13 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     // For purchases with ERC20s such as Universal Credits
     // or anything else I think of
 
-    function createShips(address _to, uint _amount) public {
+    function createShips(address _to, uint _amount, uint16 _variant) public {
         if (!isAllowedToCreateShips[msg.sender]) {
             revert NotAuthorized(msg.sender);
         }
 
         for (uint i = 0; i < _amount; i++) {
-            _mintShip(_to);
+            _mintShip(_to, _variant);
         }
 
         // TODO: CRITICAL -> Evaluate side effects of this
@@ -139,7 +140,8 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     function purchaseWithFlow(
         address _to,
         uint _tier,
-        address _referral
+        address _referral,
+        uint16 _variant
     ) public payable nonReentrant {
         if (msg.value != tierPrices[_tier]) {
             revert InvalidPurchase(_tier, msg.value);
@@ -152,7 +154,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         uint totalShips = tierShips[_tier];
 
         for (uint i = 0; i < totalShips; i++) {
-            _mintShip(_to);
+            _mintShip(_to, _variant);
         }
 
         _processReferral(_referral, totalShips, tierPrices[_tier]);
@@ -160,13 +162,13 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         amountPurchased[_to] += totalShips;
     }
 
-    function constructShips(uint[] memory _ids) public {
+    function constructShips(uint[] calldata _ids) external {
         for (uint i = 0; i < _ids.length; i++) {
             constructShip(_ids[i]);
         }
     }
 
-    function constructAllMyShips() public {
+    function constructAllMyShips() external {
         uint[] memory ids = shipsOwned[msg.sender].values();
         for (uint i = 0; i < ids.length; i++) {
             if (!ships[ids[i]].shipData.constructed) {
@@ -180,39 +182,115 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     // This allows players to predict which ships to overwrite
     // with special ships.
     // I don't think I care, but should I?
-    function constructSpecificShip(uint _id, Ship memory _ship) public {
+    function customizeShip(
+        uint _id,
+        Ship calldata _ship,
+        bool _rerollName
+    ) external {
         emit MetadataUpdate(_id);
 
-        Ship storage newShip = ships[_id];
+        Ship storage ship = ships[_id];
 
         if (!isAllowedToCreateShips[msg.sender]) {
             revert NotAuthorized(msg.sender);
         }
 
-        if (newShip.shipData.constructed) {
-            revert ShipConstructed(_id);
+        if (ship.shipData.timestampDestroyed != 0) {
+            revert ShipDestroyed();
         }
 
-        // TODO: I'm not sure what I'm saving/doing passing this
-        // to the other contract, but it gives me the ability to
-        // update it later.
-        Ship memory generatedShip = config.shipGenerator.generateSpecificShip(
-            _id,
-            newShip.traits.serialNumber,
-            _ship
+        if (ship.shipData.inFleet) {
+            revert ShipInFleet(_id);
+        }
+
+        // Calculate modifications by comparing old and new
+        // _rerollName flag indicates name was rerolled (counts as 1 modification)
+        uint16 amountModified = _calculateModifications(
+            ship,
+            _ship,
+            _rerollName
         );
 
-        newShip.name = generatedShip.name;
-        newShip.traits = generatedShip.traits;
-        newShip.equipment = generatedShip.equipment;
-        newShip.shipData.shiny = generatedShip.shipData.shiny;
-        newShip.shipData.shipsDestroyed = generatedShip.shipData.shipsDestroyed;
-        newShip.shipData.costsVersion = config
-            .shipAttributes
-            .getCurrentCostsVersion();
-        newShip.shipData.constructed = true;
+        // Update ship properties (preserve immutable traits like serialNumber)
+        ship.name = _ship.name;
+        ship.traits.accuracy = _ship.traits.accuracy;
+        ship.traits.hull = _ship.traits.hull;
+        ship.traits.speed = _ship.traits.speed;
+        ship.traits.variant = _ship.traits.variant;
+        ship.traits.colors = _ship.traits.colors;
+        ship.equipment = _ship.equipment;
+
+        // Update shiny status if provided (counts as 3 modifications)
+        if (ship.shipData.shiny != _ship.shipData.shiny) {
+            ship.shipData.shiny = _ship.shipData.shiny;
+        }
+
+        // Update modified amount (add to existing if constructed, set if not)
+        if (ship.shipData.constructed) {
+            ship.shipData.modified += amountModified;
+        } else {
+            ship.shipData.modified = amountModified;
+            ship.shipData.constructed = true;
+            ship.shipData.costsVersion = config
+                .shipAttributes
+                .getCurrentCostsVersion();
+        }
 
         _setCostOfShip(_id);
+    }
+
+    function _calculateModifications(
+        Ship storage _currentShip,
+        Ship memory _newShip,
+        bool _rerollName
+    ) internal view returns (uint16) {
+        uint16 modifications = 0;
+
+        // Count equipment changes (add 1 for each changed property)
+        if (
+            _currentShip.equipment.mainWeapon != _newShip.equipment.mainWeapon
+        ) {
+            modifications++;
+        }
+        if (_currentShip.equipment.armor != _newShip.equipment.armor) {
+            modifications++;
+        }
+        if (_currentShip.equipment.shields != _newShip.equipment.shields) {
+            modifications++;
+        }
+        if (_currentShip.equipment.special != _newShip.equipment.special) {
+            modifications++;
+        }
+
+        // Calculate trait changes (total absolute difference)
+        uint8 accuracyDiff = _newShip.traits.accuracy >
+            _currentShip.traits.accuracy
+            ? _newShip.traits.accuracy - _currentShip.traits.accuracy
+            : _currentShip.traits.accuracy - _newShip.traits.accuracy;
+        uint8 hullDiff = _newShip.traits.hull > _currentShip.traits.hull
+            ? _newShip.traits.hull - _currentShip.traits.hull
+            : _currentShip.traits.hull - _newShip.traits.hull;
+        uint8 speedDiff = _newShip.traits.speed > _currentShip.traits.speed
+            ? _newShip.traits.speed - _currentShip.traits.speed
+            : _currentShip.traits.speed - _newShip.traits.speed;
+
+        modifications += accuracyDiff + hullDiff + speedDiff;
+
+        // Count shiny status change as 3 modifications
+        if (_currentShip.shipData.shiny != _newShip.shipData.shiny) {
+            modifications += 3;
+        }
+
+        // Count name change as 1 modification (either explicit reroll or if name changed)
+        if (
+            _rerollName ||
+            (keccak256(bytes(_currentShip.name)) !=
+                keccak256(bytes(_newShip.name)))
+        ) {
+            modifications++;
+        }
+
+        return modifications;
     }
 
     function constructShip(uint _id) public {
@@ -236,10 +314,12 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
             _id,
             newShip.traits.serialNumber,
             randomBase,
-            numberOfVariants
+            newShip.traits.variant
         );
 
         // Copy generated ship data to storage
+        // We already have variant, it was set at purchase
+        // as was the serial number
         newShip.name = generatedShip.name;
         newShip.traits = generatedShip.traits;
         newShip.equipment = generatedShip.equipment;
@@ -249,6 +329,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
             .shipAttributes
             .getCurrentCostsVersion();
         newShip.shipData.constructed = true;
+        // modified defaults to 0 (false) for regular construction
 
         _setCostOfShip(_id);
     }
@@ -298,10 +379,9 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     ) internal override(ERC721) returns (address) {
         // Skip destroyed check for burning (when to is address(0))
         if (to != address(0)) {
-            require(
-                ships[tokenId].shipData.timestampDestroyed == 0,
-                "Ship destroyed"
-            );
+            if (ships[tokenId].shipData.timestampDestroyed != 0) {
+                revert ShipDestroyed();
+            }
         }
 
         // Always check if ship is in fleet
@@ -335,9 +415,13 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         return super._update(to, tokenId, auth);
     }
 
-    function _mintShip(address _to) internal {
+    function _mintShip(address _to, uint16 _variant) internal {
         if (paused) {
             revert MintPaused();
+        }
+
+        if (_variant > maxVariant || _variant == 0) {
+            revert InvalidVariant(_variant);
         }
 
         shipCount++;
@@ -345,6 +429,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         newShip.id = shipCount;
 
         newShip.traits.serialNumber = config.randomManager.requestRandomness();
+        newShip.traits.variant = _variant;
 
         _safeMint(_to, shipCount);
 
@@ -366,7 +451,15 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
         for (uint i = referralStages.length; i > 0; i--) {
             if (referralCount[_referrer] >= referralStages[i - 1]) {
-                referralPercentage = referralPercentages[i - 1];
+                // If the matched percentage is 0, use the next tier's percentage
+                // This handles the case where referralPercentages[0] = 0
+                if (
+                    referralPercentages[i - 1] == 0 && i < referralStages.length
+                ) {
+                    referralPercentage = referralPercentages[i]; // Use next tier
+                } else {
+                    referralPercentage = referralPercentages[i - 1];
+                }
                 break;
             }
         }
@@ -374,7 +467,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         uint referralAmount = (_salePrice * referralPercentage) / 100;
 
         (bool success, ) = payable(_referrer).call{value: referralAmount}("");
-        require(success, "Referral transfer failed");
+        if (!success) revert ReferralTransferFailed();
     }
 
     /**
@@ -405,20 +498,17 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         // Pay the destroyer 1/4 of salvage value (base recycleReward)
         address destroyerOwner = ships[_destroyerId].owner;
         if (destroyerOwner != address(0)) {
-            uint quarterSalvage = recycleReward / 4;
-            if (quarterSalvage > 0) {
-                universalCredits.mint(destroyerOwner, quarterSalvage);
-            }
+            universalCredits.mint(destroyerOwner, recycleReward >> 2); // Division by 4
         }
 
         emit MetadataUpdate(_id);
     }
 
     function setPurchaseInfo(
-        uint8[] memory _purchaseTiers,
-        uint8[] memory _tierShips,
-        uint[] memory _tierPrices
-    ) public onlyOwner {
+        uint8[] calldata _purchaseTiers,
+        uint8[] calldata _tierShips,
+        uint[] calldata _tierPrices
+    ) external onlyOwner {
         if (
             _purchaseTiers.length != _tierShips.length ||
             _tierShips.length != _tierPrices.length
@@ -437,29 +527,17 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         address _shipGenerator,
         address _randomManager,
         address _metadataRenderer,
-        address _shipAttributes
+        address _shipAttributes,
+        address _universalCredits
     ) public onlyOwner {
-        if (_gameAddress != address(0)) {
-            config.gameAddress = _gameAddress;
-        }
-        if (_lobbyAddress != address(0)) {
-            config.lobbyAddress = _lobbyAddress;
-        }
-        if (_fleetsAddress != address(0)) {
-            config.fleetsAddress = _fleetsAddress;
-        }
-        if (_shipGenerator != address(0)) {
-            config.shipGenerator = IGenerateNewShip(_shipGenerator);
-        }
-        if (_randomManager != address(0)) {
-            config.randomManager = IRandomManager(_randomManager);
-        }
-        if (_metadataRenderer != address(0)) {
-            config.metadataRenderer = IRenderMetadata(_metadataRenderer);
-        }
-        if (_shipAttributes != address(0)) {
-            config.shipAttributes = IShipAttributes(_shipAttributes);
-        }
+        config.gameAddress = _gameAddress;
+        config.lobbyAddress = _lobbyAddress;
+        config.fleetsAddress = _fleetsAddress;
+        config.shipGenerator = IGenerateNewShip(_shipGenerator);
+        config.randomManager = IRandomManager(_randomManager);
+        config.metadataRenderer = IRenderMetadata(_metadataRenderer);
+        config.shipAttributes = IShipAttributes(_shipAttributes);
+        universalCredits = IUniversalCredits(_universalCredits);
     }
 
     function setPaused(bool _paused) public onlyOwner {
@@ -470,44 +548,63 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         (bool success, ) = payable(owner()).call{value: address(this).balance}(
             ""
         );
-        require(success, "Withdrawal failed");
+        if (!success) revert WithdrawalFailed();
     }
 
-    function setNumberOfVariants(uint8 _numberOfVariants) public onlyOwner {
-        numberOfVariants = _numberOfVariants;
-    }
-
-    function setUniversalCredits(address _universalCredits) public onlyOwner {
-        universalCredits = IUniversalCredits(_universalCredits);
+    function setMaxVariant(uint16 _maxVariant) public onlyOwner {
+        maxVariant = _maxVariant;
     }
 
     function setRecycleReward(uint _newReward) public onlyOwner {
         recycleReward = _newReward;
     }
 
-    function claimFreeShips() public {
-        require(!hasClaimedFreeShips[msg.sender], "Already claimed free ships");
+    function setClaimCooldownPeriod(
+        uint256 _newCooldownPeriod
+    ) public onlyOwner {
+        claimCooldownPeriod = _newCooldownPeriod;
+    }
+
+    // function setShipModified(uint _id, bool _modified) public onlyOwner {
+    //     Ship storage ship = ships[_id];
+    //     if (ship.id == 0) {
+    //         revert InvalidId();
+    //     }
+    //     ship.shipData.modified = _modified;
+    //     emit MetadataUpdate(_id);
+    // }
+
+    function claimFreeShips(uint16 _variant) external {
+        uint256 lastClaim = lastClaimTimestamp[msg.sender];
+        uint256 currentTime = block.timestamp;
+
+        // Check if 4 weeks have passed since last claim (or if never claimed)
+        if (lastClaim > 0) {
+            if (currentTime < lastClaim + claimCooldownPeriod) {
+                revert ClaimCooldownNotPassed();
+            }
+        }
 
         // Grant 10 free ships
         for (uint i = 0; i < 10; i++) {
-            _mintShip(msg.sender);
+            _mintShip(msg.sender, _variant);
+            // Mark the ship as free (shipCount was incremented in _mintShip, so it's the ID of the ship just minted)
+            ships[shipCount].shipData.isFreeShip = true;
         }
 
-        hasClaimedFreeShips[msg.sender] = true;
+        // Record the timestamp of this claim
+        lastClaimTimestamp[msg.sender] = currentTime;
     }
 
     /**
      * @dev VIEW
      */
 
-    function getCurrentCostsVersion() public view returns (uint16) {
-        return config.shipAttributes.getCurrentCostsVersion();
-    }
-
-    function getShip(uint _id) public view returns (Ship memory) {
+    function getShip(uint _id) external view returns (Ship memory) {
         return ships[_id];
     }
 
+    // Used by game contract
     function isShipDestroyed(uint _id) public view returns (bool) {
         return ships[_id].shipData.timestampDestroyed != 0;
     }
@@ -520,7 +617,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     }
 
     function getPurchaseInfo()
-        public
+        external
         view
         returns (
             uint8[] memory _purchaseTiers,
@@ -537,7 +634,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
     function getShipIdsOwned(
         address _owner
-    ) public view returns (uint[] memory) {
+    ) external view returns (uint[] memory) {
         return shipsOwned[_owner].values();
     }
 
@@ -552,8 +649,8 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     // }
 
     function getShipsByIds(
-        uint[] memory _ids
-    ) public view returns (Ship[] memory) {
+        uint[] calldata _ids
+    ) external view returns (Ship[] memory) {
         Ship[] memory shipsFetched = new Ship[](_ids.length);
         for (uint i = 0; i < _ids.length; i++) {
             shipsFetched[i] = ships[_ids[i]];
@@ -567,16 +664,10 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
     // TODO: Do tiers need to be adjustable?
     function getTierOfTrait(uint _trait) public pure returns (uint8) {
-        if (_trait < 50) {
-            return 0;
-        } else if (_trait < 80) {
-            return 1;
-        } else {
-            return 2;
-        }
+        return _trait < 50 ? 0 : (_trait < 80 ? 1 : 2);
     }
 
-    function shipBreaker(uint[] calldata _shipIds) public nonReentrant {
+    function shipBreaker(uint[] calldata _shipIds) external nonReentrant {
         uint totalReward = 0;
 
         for (uint i = 0; i < _shipIds.length; i++) {
@@ -591,10 +682,15 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
                 revert NotYourShip(shipId);
             }
 
+            // Prevent recycling of free ships
+            if (s.shipData.isFreeShip) {
+                revert CannotRecycleFreeShip(shipId);
+            }
+
             // Determine recycle reward based on destruction state PRIOR to this call
             bool wasDestroyed = s.shipData.timestampDestroyed != 0;
             uint rewardForThisShip = wasDestroyed
-                ? (recycleReward / 2)
+                ? (recycleReward >> 1) // Division by 2
                 : recycleReward;
 
             // Mark ship as destroyed and burn it

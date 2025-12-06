@@ -39,21 +39,18 @@ contract DroneYard is ReentrancyGuard {
      * @dev Calculate the cost to modify a ship
      * @param _shipId The ID of the ship to modify
      * @param _newShip The new ship configuration
-     * @param _rerollName If true, reroll the ship's name (counts as 1 modification)
      * @return The cost in UTC tokens
      */
     function calculateCostToModify(
         uint _shipId,
-        Ship memory _newShip,
-        bool _rerollName
+        Ship memory _newShip
     ) public view returns (uint) {
         Ship memory currentShip = ships.getShip(_shipId);
         if (currentShip.id == 0) revert InvalidModification();
 
         uint totalModifications = _calculateTotalModifications(
             currentShip,
-            _newShip,
-            _rerollName
+            _newShip
         );
 
         // Base cost is 1/5 of tier 0 price
@@ -112,12 +109,10 @@ contract DroneYard is ReentrancyGuard {
      * @dev Modify a ship owned by the caller
      * @param _shipId The ID of the ship to modify
      * @param _newShip The new ship configuration
-     * @param _rerollName If true, reroll the ship's name (counts as 1 modification)
      */
     function modifyShip(
         uint _shipId,
-        Ship memory _newShip,
-        bool _rerollName
+        Ship memory _newShip
     ) public nonReentrant {
         Ship memory currentShip = ships.getShip(_shipId);
         if (currentShip.id == 0) revert InvalidModification();
@@ -141,7 +136,7 @@ contract DroneYard is ReentrancyGuard {
         validateShip(_shipId, _newShip);
 
         // Calculate cost
-        uint cost = calculateCostToModify(_shipId, _newShip, _rerollName);
+        uint cost = calculateCostToModify(_shipId, _newShip);
 
         // Check balance
         uint balance = universalCredits.balanceOf(msg.sender);
@@ -159,27 +154,12 @@ contract DroneYard is ReentrancyGuard {
         // We need to preserve the serial number, colors, and other immutable traits
         _newShip.traits.serialNumber = currentShip.traits.serialNumber;
         _newShip.traits.colors = currentShip.traits.colors; // Preserve colors
+        _newShip.name = currentShip.name; // Preserve name
         _newShip.id = _shipId;
         _newShip.owner = currentShip.owner;
 
-        // Reroll name if requested
-        if (_rerollName) {
-            // Generate new name using serialNumber + block.timestamp + prevrandao
-            bytes32 seed = keccak256(
-                abi.encodePacked(
-                    currentShip.traits.serialNumber,
-                    block.timestamp,
-                    block.prevrandao
-                )
-            );
-            _newShip.name = shipNames.getRandomShipName(seed);
-        } else {
-            _newShip.name = currentShip.name; // Preserve name
-        }
-
         // Call customizeShip on Ships contract (it will calculate modifications internally)
-        // Pass _rerollName so it knows to count name reroll as 1 modification
-        ships.customizeShip(_shipId, _newShip, _rerollName);
+        ships.customizeShip(_shipId, _newShip);
     }
 
     /**
@@ -191,14 +171,12 @@ contract DroneYard is ReentrancyGuard {
      */
     function _calculateTotalModifications(
         Ship memory _currentShip,
-        Ship memory _newShip,
-        bool _rerollName
+        Ship memory _newShip
     ) internal pure returns (uint) {
         uint modifications = _currentShip.shipData.modified;
         modifications += _calculateNewModifications(
             _currentShip,
-            _newShip,
-            _rerollName
+            _newShip
         );
         return modifications;
     }
@@ -211,8 +189,7 @@ contract DroneYard is ReentrancyGuard {
      */
     function _calculateNewModifications(
         Ship memory _currentShip,
-        Ship memory _newShip,
-        bool _rerollName
+        Ship memory _newShip
     ) internal pure returns (uint) {
         uint modifications = 0;
 
@@ -250,11 +227,6 @@ contract DroneYard is ReentrancyGuard {
         // Count shiny status change as 3 modifications
         if (_currentShip.shipData.shiny != _newShip.shipData.shiny) {
             modifications += 3;
-        }
-
-        // Count name reroll as 1 modification
-        if (_rerollName) {
-            modifications++;
         }
 
         return modifications;

@@ -175,11 +175,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     // This allows players to predict which ships to overwrite
     // with special ships.
     // I don't think I care, but should I?
-    function customizeShip(
-        uint _id,
-        Ship calldata _ship,
-        bool _rerollName
-    ) external {
+    function customizeShip(uint _id, Ship calldata _ship) external {
         emit MetadataUpdate(_id);
 
         Ship storage ship = ships[_id];
@@ -197,12 +193,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         }
 
         // Calculate modifications by comparing old and new
-        // _rerollName flag indicates name was rerolled (counts as 1 modification)
-        uint16 amountModified = _calculateModifications(
-            ship,
-            _ship,
-            _rerollName
-        );
+        uint16 amountModified = _calculateModifications(ship, _ship);
 
         // Update ship properties (preserve immutable traits like serialNumber)
         ship.name = _ship.name;
@@ -234,8 +225,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
     function _calculateModifications(
         Ship storage _currentShip,
-        Ship memory _newShip,
-        bool _rerollName
+        Ship memory _newShip
     ) internal view returns (uint16) {
         uint16 modifications = 0;
 
@@ -272,15 +262,6 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         // Count shiny status change as 3 modifications
         if (_currentShip.shipData.shiny != _newShip.shipData.shiny) {
             modifications += 3;
-        }
-
-        // Count name change as 1 modification (either explicit reroll or if name changed)
-        if (
-            _rerollName ||
-            (keccak256(bytes(_currentShip.name)) !=
-                keccak256(bytes(_newShip.name)))
-        ) {
-            modifications++;
         }
 
         return modifications;

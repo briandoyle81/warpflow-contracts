@@ -934,7 +934,7 @@ describe("Ships", function () {
         owner: user1.account.address,
       };
 
-      await ships.write.customizeShip([1n, specificShip, true], {
+      await ships.write.customizeShip([1n, specificShip], {
         account: owner.account,
       });
 
@@ -1647,7 +1647,7 @@ describe("Ships", function () {
 
       // Try to construct the specific ship as unauthorized user2
       await expect(
-        ships.write.customizeShip([1n, specificShip, true], {
+        ships.write.customizeShip([1n, specificShip, true, false], {
           account: user2.account,
         })
       ).to.be.rejectedWith("NotAuthorized");
@@ -1737,7 +1737,7 @@ describe("Ships", function () {
       };
 
       // Customize the already constructed ship again
-      await ships.write.customizeShip([1n, updatedShipConfig, true], {
+      await ships.write.customizeShip([1n, updatedShipConfig, true, false], {
         account: user1.account,
       });
 
@@ -3212,7 +3212,6 @@ describe("Ships", function () {
       const cost = await user1DroneYard.read.calculateCostToModify([
         1n,
         modifiedShip,
-        false, // no name reroll
       ]);
 
       // Base cost is 1/5 of tier 0 price (4.99 / 5 = 0.998)
@@ -3261,7 +3260,6 @@ describe("Ships", function () {
       const cost = await user1DroneYard.read.calculateCostToModify([
         1n,
         modifiedShip,
-        false,
       ]);
 
       // Ensure user has enough UTC
@@ -3273,7 +3271,7 @@ describe("Ships", function () {
       }
 
       // Modify the ship
-      await user1DroneYard.write.modifyShip([1n, modifiedShip, false], {
+      await user1DroneYard.write.modifyShip([1n, modifiedShip], {
         account: user1.account,
       });
 
@@ -3323,7 +3321,6 @@ describe("Ships", function () {
       const cost = await user1DroneYard.read.calculateCostToModify([
         1n,
         modifiedShip,
-        false,
       ]);
 
       const balance = await universalCredits.read.balanceOf([
@@ -3333,7 +3330,7 @@ describe("Ships", function () {
         await universalCredits.write.mint([user1.account.address, cost]);
       }
 
-      await user1DroneYard.write.modifyShip([1n, modifiedShip, false], {
+      await user1DroneYard.write.modifyShip([1n, modifiedShip], {
         account: user1.account,
       });
 
@@ -3342,7 +3339,7 @@ describe("Ships", function () {
       expect(updatedShip.traits.accuracy).to.equal(2);
     });
 
-    it("Should reroll ship name and count as 1 modification", async function () {
+    it("Should preserve name when modifying ship", async function () {
       const {
         ships,
         user1,
@@ -3370,15 +3367,18 @@ describe("Ships", function () {
       const currentShip = tupleToShip(currentShipTuple);
       const originalName = currentShip.name;
 
-      // Calculate cost with name reroll
+      // Modify ship (name should be preserved)
       const modifiedShip: Ship = {
         ...currentShip,
+        traits: {
+          ...currentShip.traits,
+          accuracy: 1, // Change accuracy
+        },
       };
 
       const cost = await user1DroneYard.read.calculateCostToModify([
         1n,
         modifiedShip,
-        true, // reroll name
       ]);
 
       const balance = await universalCredits.read.balanceOf([
@@ -3388,16 +3388,16 @@ describe("Ships", function () {
         await universalCredits.write.mint([user1.account.address, cost]);
       }
 
-      // Modify with name reroll
-      await user1DroneYard.write.modifyShip([1n, modifiedShip, true], {
+      // Modify ship
+      await user1DroneYard.write.modifyShip([1n, modifiedShip], {
         account: user1.account,
       });
 
-      // Verify name reroll was processed (check modified count increased by 1)
+      // Verify name was preserved and accuracy changed
       const updatedShipTuple = (await ships.read.ships([1n])) as ShipTuple;
       const updatedShip = tupleToShip(updatedShipTuple);
-      // Name reroll counts as 1 modification
-      expect(updatedShip.shipData.modified).to.equal(1);
+      expect(updatedShip.name).to.equal(originalName);
+      expect(updatedShip.traits.accuracy).to.equal(1);
     });
 
     it("Should modify shiny status and count as 3 modifications", async function () {
@@ -3439,7 +3439,6 @@ describe("Ships", function () {
       const cost = await user1DroneYard.read.calculateCostToModify([
         1n,
         modifiedShip,
-        false,
       ]);
 
       // Cost should be baseCost * 2^3 (3 modifications for shiny)
@@ -3459,7 +3458,7 @@ describe("Ships", function () {
         await universalCredits.write.mint([user1.account.address, cost]);
       }
 
-      await user1DroneYard.write.modifyShip([1n, modifiedShip, false], {
+      await user1DroneYard.write.modifyShip([1n, modifiedShip], {
         account: user1.account,
       });
 
@@ -3498,7 +3497,7 @@ describe("Ships", function () {
 
       // user2 tries to modify user1's ship
       await expect(
-        user2DroneYard.write.modifyShip([1n, modifiedShip, false], {
+        user2DroneYard.write.modifyShip([1n, modifiedShip, false, false], {
           account: user2.account,
         })
       ).to.be.rejectedWith("NotShipOwner");
@@ -3527,7 +3526,7 @@ describe("Ships", function () {
       };
 
       await expect(
-        user1DroneYard.write.modifyShip([1n, modifiedShip, false], {
+        user1DroneYard.write.modifyShip([1n, modifiedShip, false, false], {
           account: user1.account,
         })
       ).to.be.rejectedWith("ShipNotConstructed");
@@ -3562,7 +3561,7 @@ describe("Ships", function () {
       };
 
       await expect(
-        user1DroneYard.write.modifyShip([1n, modifiedShip, false], {
+        user1DroneYard.write.modifyShip([1n, modifiedShip, false, false], {
           account: user1.account,
         })
       ).to.be.rejectedWith("InvalidTraitValue");
@@ -3598,13 +3597,13 @@ describe("Ships", function () {
       };
 
       await expect(
-        user1DroneYard.write.modifyShip([1n, modifiedShip, false], {
+        user1DroneYard.write.modifyShip([1n, modifiedShip, false, false], {
           account: user1.account,
         })
       ).to.be.rejectedWith("ArmorAndShieldsBothSet");
     });
 
-    it("Should preserve name and colors when not rerolling", async function () {
+    it("Should preserve name and colors when modifying ship", async function () {
       const {
         ships,
         user1,
@@ -3655,7 +3654,6 @@ describe("Ships", function () {
       const cost = await user1DroneYard.read.calculateCostToModify([
         1n,
         modifiedShip,
-        false, // no reroll
       ]);
 
       const balance = await universalCredits.read.balanceOf([
@@ -3665,7 +3663,7 @@ describe("Ships", function () {
         await universalCredits.write.mint([user1.account.address, cost]);
       }
 
-      await user1DroneYard.write.modifyShip([1n, modifiedShip, false], {
+      await user1DroneYard.write.modifyShip([1n, modifiedShip], {
         account: user1.account,
       });
 
@@ -3696,7 +3694,7 @@ describe("Ships", function () {
       const currentShipTuple = (await ships.read.ships([1n])) as ShipTuple;
       const currentShip = tupleToShip(currentShipTuple);
 
-      // Modify multiple things: equipment (1) + traits (accuracy change) + name reroll (1)
+      // Modify multiple things: equipment (1) + traits (accuracy change)
       // Need to check current accuracy value first
       const currentAccuracy = currentShip.traits.accuracy;
       const newAccuracy = currentAccuracy === 0 ? 2 : 0; // Change to opposite
@@ -3717,7 +3715,6 @@ describe("Ships", function () {
       const cost = await user1DroneYard.read.calculateCostToModify([
         1n,
         modifiedShip,
-        true, // name reroll = 1 modification
       ]);
 
       // Total modifications: existing (0) + equipment (1) + trait (accuracyChange) + name (1)

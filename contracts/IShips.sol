@@ -16,7 +16,6 @@ interface IShips {
 
     function customizeShip(
         uint _id,
-        Ship memory _ship,
-        bool _rerollName
+        Ship memory _ship
     ) external;
 }

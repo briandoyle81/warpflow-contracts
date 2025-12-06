@@ -3245,7 +3245,7 @@ describe("Game", function () {
       );
 
       // Construct the EMP ship
-      await ships.write.customizeShip([1n, empShip, true], {
+      await ships.write.customizeShip([1n, empShip], {
         account: owner.account,
       });
 
@@ -4140,7 +4140,7 @@ describe("Game", function () {
       );
 
       // Construct the repair ship
-      await ships.write.customizeShip([1n, repairShip, true], {
+      await ships.write.customizeShip([1n, repairShip], {
         account: owner.account,
       });
 
@@ -4278,7 +4278,7 @@ describe("Game", function () {
       );
 
       // Construct the EMP ship
-      await ships.write.customizeShip([1n, empShip, true], {
+      await ships.write.customizeShip([1n, empShip], {
         account: owner.account,
       });
 
@@ -4427,7 +4427,7 @@ describe("Game", function () {
       );
 
       // Create the FlakArray ship
-      await ships.write.customizeShip([1n, flakShip, true], {
+      await ships.write.customizeShip([1n, flakShip], {
         account: owner.account,
       });
 

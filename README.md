@@ -22,6 +22,7 @@ CRITICAL: Don't update maps. In the future, consider setting the map and creatin
 TODO:
 
 CRITICAL: Add guaranteed high tier and shiny ships to higher tiers
+CRITICAL: Add reroll shiny colors
 
 CRITICAL: Evaluate if I care that the firstPlayer goes first every round, even if they moved last in the previous round
 Consider charging UTC to start or join a game

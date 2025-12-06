@@ -181,11 +181,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -231,7 +231,7 @@ describe("Game", function () {
       ]);
 
       // Get the ship attributes
-      const attributes = await game.read.getShipAttributes([1n, 1n]);
+      const attributes = await game.read.getShipAttributes([1n, 1]);
 
       expect(attributes.hullPoints).to.equal(expectedHullPoints);
     });
@@ -249,11 +249,11 @@ describe("Game", function () {
 
       // Purchase and construct ships
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -292,7 +292,7 @@ describe("Game", function () {
       ]);
 
       // Get ship attributes for both players
-      const creatorAttributes = await game.read.getShipAttributes([1n, 1n]);
+      const creatorAttributes = await game.read.getShipAttributes([1n, 1]);
       const joinerAttributes = await game.read.getShipAttributes([1n, 6n]);
 
       // Verify movement calculations
@@ -319,11 +319,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -366,7 +366,7 @@ describe("Game", function () {
       ]);
 
       // Get the ship attributes
-      const attributes = await game.read.getShipAttributes([1n, 1n]);
+      const attributes = await game.read.getShipAttributes([1n, 1]);
 
       // Verify weapon attributes based on equipment
       const mainWeapon = constructedShip.equipment.mainWeapon;
@@ -405,11 +405,11 @@ describe("Game", function () {
 
       // Purchase and construct ships
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -448,7 +448,7 @@ describe("Game", function () {
       ]);
 
       // Get ship attributes for both players
-      const creatorAttributes = await game.read.getShipAttributes([1n, 1n]);
+      const creatorAttributes = await game.read.getShipAttributes([1n, 1]);
       const joinerAttributes = await game.read.getShipAttributes([1n, 6n]);
 
       // Movement should never be negative (clamped to 0)
@@ -469,11 +469,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -540,11 +540,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -625,7 +625,7 @@ describe("Game", function () {
     it("should revert when trying to get attributes for non-existent game", async function () {
       const { game } = await loadFixture(deployGameFixture);
 
-      await expect(game.read.getShipAttributes([999n, 1n])).to.be.rejectedWith(
+      await expect(game.read.getShipAttributes([999n, 1])).to.be.rejectedWith(
         "GameNotFound"
       );
     });
@@ -643,11 +643,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -706,11 +706,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -781,11 +781,11 @@ describe("Game", function () {
       // Alternate purchases: creator gets odd IDs (1,3,5...), joiner gets even IDs (2,4,6...)
       for (let i = 0; i < 12; i++) {
         await ships.write.purchaseWithFlow(
-          [creator.account.address, 0n, joiner.account.address],
+          [creator.account.address, 0n, joiner.account.address, 1],
           { value: parseEther("4.99") }
         );
         await ships.write.purchaseWithFlow(
-          [joiner.account.address, 0n, creator.account.address],
+          [joiner.account.address, 0n, creator.account.address, 1],
           { value: parseEther("4.99") }
         );
       }
@@ -948,11 +948,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -1014,11 +1014,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -1084,11 +1084,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -1127,7 +1127,7 @@ describe("Game", function () {
       ]);
 
       // Get creator's ship attributes to check movement range
-      const creatorAttributes = await game.read.getShipAttributes([1n, 1n]);
+      const creatorAttributes = await game.read.getShipAttributes([1n, 1]);
       const movementRange = creatorAttributes.movement;
 
       // Verify initial position
@@ -1183,11 +1183,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -1226,7 +1226,7 @@ describe("Game", function () {
       ]);
 
       // Get creator's ship attributes
-      const creatorAttributes = await game.read.getShipAttributes([1n, 1n]);
+      const creatorAttributes = await game.read.getShipAttributes([1n, 1]);
       const movementRange = creatorAttributes.movement;
 
       // Try to move beyond movement range
@@ -1253,11 +1253,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -1329,11 +1329,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -1405,11 +1405,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -1473,11 +1473,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -1557,11 +1557,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -1643,11 +1643,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -1771,11 +1771,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -1878,11 +1878,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -1941,11 +1941,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -2010,11 +2010,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -2108,11 +2108,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -2151,7 +2151,7 @@ describe("Game", function () {
       ]);
 
       // Destroy creator's ship
-      await (game.write as any).debugDestroyShip([1n, 1n], {
+      await (game.write as any).debugDestroyShip([1n, 1], {
         account: owner.account,
       });
 
@@ -2178,11 +2178,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -2229,7 +2229,7 @@ describe("Game", function () {
       ); // No winner yet
 
       // Destroy creator's only ship (this should end the game)
-      await (game.write as any).debugDestroyShip([gameId, 1n], {
+      await (game.write as any).debugDestroyShip([gameId, 1], {
         account: owner.account,
       });
 
@@ -2264,11 +2264,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -2307,7 +2307,7 @@ describe("Game", function () {
       ]);
 
       // Destroy one of creator's ships
-      await (game.write as any).debugDestroyShip([1n, 1n], {
+      await (game.write as any).debugDestroyShip([1n, 1], {
         account: owner.account,
       });
 
@@ -2346,11 +2346,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -2396,7 +2396,7 @@ describe("Game", function () {
       expect(shipAt00?.shipId).to.equal(1n);
 
       // Destroy the ship
-      await (game.write as any).debugDestroyShip([1n, 1n], {
+      await (game.write as any).debugDestroyShip([1n, 1], {
         account: owner.account,
       });
 
@@ -2422,11 +2422,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -2475,7 +2475,7 @@ describe("Game", function () {
 
       // First, let's verify that the contract correctly handles destroyed ships
       // We'll use the existing debug function to destroy a ship
-      await (game.write as any).debugDestroyShip([1n, 1n], {
+      await (game.write as any).debugDestroyShip([1n, 1], {
         account: owner.account,
       });
 
@@ -2541,11 +2541,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -2584,13 +2584,13 @@ describe("Game", function () {
       ]);
 
       // Destroy the ship once
-      await (game.write as any).debugDestroyShip([1n, 1n], {
+      await (game.write as any).debugDestroyShip([1n, 1], {
         account: owner.account,
       });
 
       // Try to destroy the same ship again
       await expect(
-        (game.write as any).debugDestroyShip([1n, 1n], {
+        (game.write as any).debugDestroyShip([1n, 1], {
           account: owner.account,
         })
       ).to.be.rejectedWith("ShipDestroyed");
@@ -2609,11 +2609,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -2728,11 +2728,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -2835,11 +2835,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -2881,7 +2881,7 @@ describe("Game", function () {
       let gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
       let creatorPos = findShipPosition(gameData, 1n);
       let joinerPos = findShipPosition(gameData, 6n);
-      let creatorAttrs = await game.read.getShipAttributes([1n, 1n]);
+      let creatorAttrs = await game.read.getShipAttributes([1n, 1]);
       let joinerAttrs = await game.read.getShipAttributes([1n, 6n]);
 
       const creatorRange = creatorAttrs.range;
@@ -2953,7 +2953,7 @@ describe("Game", function () {
             // Joiner's turn - try to shoot
             try {
               await game.write.moveShip(
-                [1n, 6n, joinerPos.row, joinerPos.col, ActionType.Shoot, 1n],
+                [1n, 6n, joinerPos.row, joinerPos.col, ActionType.Shoot, 1],
                 { account: joiner.account }
               );
               shootingSuccessful = true;
@@ -3037,7 +3037,7 @@ describe("Game", function () {
       expect(shootingSuccessful).to.be.true;
 
       // Verify that one ship took damage
-      const finalCreatorAttrs = await game.read.getShipAttributes([1n, 1n]);
+      const finalCreatorAttrs = await game.read.getShipAttributes([1n, 1]);
       const finalJoinerAttrs = await game.read.getShipAttributes([1n, 6n]);
 
       // At least one ship should have taken damage (hull points reduced)
@@ -3064,11 +3064,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -3126,7 +3126,7 @@ describe("Game", function () {
       let gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
       let creatorPos = findShipPosition(gameData, 1n);
       let joinerPos = findShipPosition(gameData, 6n);
-      let creatorAttrs = await game.read.getShipAttributes([1n, 1n]);
+      let creatorAttrs = await game.read.getShipAttributes([1n, 1]);
 
       // Verify ships are in range (Manhattan distance = 10, which should be within range)
       const manhattanDistance =
@@ -3171,11 +3171,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -3208,7 +3208,17 @@ describe("Game", function () {
         },
         traits: {
           serialNumber: 12345n,
-          colors: { h1: 0, s1: 0, l1: 0, h2: 0, s2: 0, l2: 0 },
+          colors: {
+            h1: 0,
+            s1: 0,
+            l1: 0,
+            h2: 0,
+            s2: 0,
+            l2: 0,
+            h3: 0,
+            s3: 0,
+            l3: 0,
+          },
           variant: 0,
           accuracy: 0,
           hull: 0,
@@ -3337,11 +3347,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -3386,12 +3396,12 @@ describe("Game", function () {
       expect(initialPositions.length).to.equal(4);
 
       // Use debug function to set ship 1's hull points to 0
-      await (game.write as any).debugSetHullPointsToZero([1n, 1n], {
+      await (game.write as any).debugSetHullPointsToZero([1n, 1], {
         account: owner.account,
       });
 
       // Verify ship 1 has 0 hull points
-      expect((await game.read.getShipAttributes([1n, 1n])).hullPoints).to.equal(
+      expect((await game.read.getShipAttributes([1n, 1])).hullPoints).to.equal(
         0
       );
 
@@ -3467,11 +3477,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -3582,11 +3592,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -3640,12 +3650,12 @@ describe("Game", function () {
       );
 
       // Now set player 1's ship HP to 0 (after round has ended)
-      await (game.write as any).debugSetHullPointsToZero([1n, 1n], {
+      await (game.write as any).debugSetHullPointsToZero([1n, 1], {
         account: owner.account,
       });
 
       // Verify ship 1 has 0 HP and 0 reactor critical timer
-      const ship1Attrs = await game.read.getShipAttributes([1n, 1n]);
+      const ship1Attrs = await game.read.getShipAttributes([1n, 1]);
       expect(ship1Attrs.hullPoints).to.equal(0);
       expect(ship1Attrs.reactorCriticalTimer).to.equal(0);
 
@@ -3669,7 +3679,7 @@ describe("Game", function () {
       );
 
       // Verify reactor critical timer was incremented at the beginning of the new round
-      const ship1AttrsAfter = await game.read.getShipAttributes([1n, 1n]);
+      const ship1AttrsAfter = await game.read.getShipAttributes([1n, 1]);
       expect(ship1AttrsAfter.reactorCriticalTimer).to.equal(1);
     });
 
@@ -3687,11 +3697,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -3730,7 +3740,7 @@ describe("Game", function () {
       ]);
 
       // Use debug to set player 1's first ship's HP to zero
-      await (game.write as any).debugSetHullPointsToZero([1n, 1n], {
+      await (game.write as any).debugSetHullPointsToZero([1n, 1], {
         account: owner.account,
       });
 
@@ -3765,7 +3775,7 @@ describe("Game", function () {
       }
 
       // Verify ship 1's reactor critical timer is 3
-      const ship1Attrs = await game.read.getShipAttributes([1n, 1n]);
+      const ship1Attrs = await game.read.getShipAttributes([1n, 1]);
       expect(ship1Attrs.reactorCriticalTimer).to.equal(3);
 
       // Complete one more round to trigger destruction
@@ -3848,11 +3858,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -3960,11 +3970,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -4008,18 +4018,18 @@ describe("Game", function () {
       const creatorPos2 = findShipPosition(gameData, 2n);
 
       // Set ship 1's HP to 0 using debug function
-      await (game.write as any).debugSetHullPointsToZero([1n, 1n], {
+      await (game.write as any).debugSetHullPointsToZero([1n, 1], {
         account: owner.account,
       });
 
       // Verify ship 1 has 0 HP
-      const ship1Attrs = await game.read.getShipAttributes([1n, 1n]);
+      const ship1Attrs = await game.read.getShipAttributes([1n, 1]);
       expect(ship1Attrs.hullPoints).to.equal(0);
 
       // Move ship 2 adjacent to ship 1 and assist it
       // Ship 1 is at (0, 5), ship 2 is at (2, 5)
       // Move ship 2 to (1, 5) to be adjacent to ship 1
-      await game.write.moveShip([1n, 2n, 1, 0, ActionType.Assist, 1n], {
+      await game.write.moveShip([1n, 2n, 1, 0, ActionType.Assist, 1], {
         account: creator.account,
       });
 
@@ -4065,11 +4075,11 @@ describe("Game", function () {
 
       // Purchase ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -4093,7 +4103,17 @@ describe("Game", function () {
         },
         traits: {
           serialNumber: 12345n,
-          colors: { h1: 0, s1: 0, l1: 0, h2: 0, s2: 0, l2: 0 },
+          colors: {
+            h1: 0,
+            s1: 0,
+            l1: 0,
+            h2: 0,
+            s2: 0,
+            l2: 0,
+            h3: 0,
+            s3: 0,
+            l3: 0,
+          },
           variant: 0,
           accuracy: 0,
           hull: 0,
@@ -4193,11 +4213,11 @@ describe("Game", function () {
 
       // Purchase ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -4221,7 +4241,17 @@ describe("Game", function () {
         },
         traits: {
           serialNumber: 12345n,
-          colors: { h1: 0, s1: 0, l1: 0, h2: 0, s2: 0, l2: 0 },
+          colors: {
+            h1: 0,
+            s1: 0,
+            l1: 0,
+            h2: 0,
+            s2: 0,
+            l2: 0,
+            h3: 0,
+            s3: 0,
+            l3: 0,
+          },
           variant: 0,
           accuracy: 0,
           hull: 0,
@@ -4332,11 +4362,11 @@ describe("Game", function () {
 
       // 1. Purchase ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -4360,7 +4390,17 @@ describe("Game", function () {
         },
         traits: {
           serialNumber: 12345n,
-          colors: { h1: 0, s1: 0, l1: 0, h2: 0, s2: 0, l2: 0 },
+          colors: {
+            h1: 0,
+            s1: 0,
+            l1: 0,
+            h2: 0,
+            s2: 0,
+            l2: 0,
+            h3: 0,
+            s3: 0,
+            l3: 0,
+          },
           variant: 0,
           accuracy: 0,
           hull: 0,
@@ -4448,7 +4488,7 @@ describe("Game", function () {
       });
 
       // Get initial hull points of all ships
-      const ship1AttrsBefore = await game.read.getShipAttributes([1n, 1n]); // FlakArray ship
+      const ship1AttrsBefore = await game.read.getShipAttributes([1n, 1]); // FlakArray ship
       const ship2AttrsBefore = await game.read.getShipAttributes([1n, 2n]); // creator's second ship (in range)
       const ship3AttrsBefore = await game.read.getShipAttributes([1n, 3n]); // creator's third ship (out of range)
       const ship6AttrsBefore = await game.read.getShipAttributes([1n, 6n]); // joiner's first ship (in range)
@@ -4465,7 +4505,7 @@ describe("Game", function () {
       );
 
       // Get hull points after FlakArray attack
-      const ship1AttrsAfter = await game.read.getShipAttributes([1n, 1n]);
+      const ship1AttrsAfter = await game.read.getShipAttributes([1n, 1]);
       const ship2AttrsAfter = await game.read.getShipAttributes([1n, 2n]);
       const ship3AttrsAfter = await game.read.getShipAttributes([1n, 3n]);
       const ship6AttrsAfter = await game.read.getShipAttributes([1n, 6n]);
@@ -4523,11 +4563,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -4616,11 +4656,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -4716,11 +4756,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -4810,11 +4850,11 @@ describe("Game", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 

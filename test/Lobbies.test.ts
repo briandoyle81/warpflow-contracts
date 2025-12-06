@@ -112,11 +112,11 @@ describe("Lobbies", function () {
 
     // Purchase and construct ships for both players
     await ships.write.purchaseWithFlow(
-      [creator.account.address, 0n, joiner.account.address],
+      [creator.account.address, 0n, joiner.account.address, 1],
       { value: parseEther("4.99") }
     );
     await ships.write.purchaseWithFlow(
-      [joiner.account.address, 0n, creator.account.address],
+      [joiner.account.address, 0n, creator.account.address, 1],
       { value: parseEther("4.99") }
     );
     // Fulfill random requests for all ships
@@ -384,8 +384,8 @@ describe("Lobbies", function () {
       );
 
       // Both players claim their free ships
-      await ships.write.claimFreeShips({ account: creator.account });
-      await ships.write.claimFreeShips({ account: joiner.account });
+      await ships.write.claimFreeShips([1], { account: creator.account });
+      await ships.write.claimFreeShips([1], { account: joiner.account });
 
       const fulfillRandomnessForPlayer = async (accountAddress: string) => {
         const shipIds = await ships.read.getShipIdsOwned([accountAddress]);
@@ -841,11 +841,11 @@ describe("Lobbies", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -931,11 +931,11 @@ describe("Lobbies", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -995,11 +995,11 @@ describe("Lobbies", function () {
 
       // Purchase and construct ships for testing (following the pattern from other tests)
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -1048,7 +1048,7 @@ describe("Lobbies", function () {
 
       // Purchase and construct ships for testing
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -1092,11 +1092,11 @@ describe("Lobbies", function () {
 
       // Purchase and construct ships for testing
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -1343,11 +1343,11 @@ describe("Lobbies", function () {
 
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -1410,11 +1410,11 @@ describe("Lobbies", function () {
 
       // Purchase and construct ships
       await ships.write.purchaseWithFlow(
-        [creator.account.address, 0n, joiner.account.address],
+        [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
       );
       await ships.write.purchaseWithFlow(
-        [joiner.account.address, 0n, creator.account.address],
+        [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -1510,13 +1510,13 @@ describe("Lobbies", function () {
 
       // Check membership
       expect(
-        await creatorLobbies.read.isPlayerInLobby([creator.account.address, 1n])
+        await creatorLobbies.read.isPlayerInLobby([creator.account.address, 1])
       ).to.be.true;
       expect(
-        await joinerLobbies.read.isPlayerInLobby([joiner.account.address, 1n])
+        await joinerLobbies.read.isPlayerInLobby([joiner.account.address, 1])
       ).to.be.true;
       expect(
-        await otherLobbies.read.isPlayerInLobby([other.account.address, 1n])
+        await otherLobbies.read.isPlayerInLobby([other.account.address, 1])
       ).to.be.false;
 
       // Check lobby openness

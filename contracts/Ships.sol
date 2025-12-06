@@ -32,16 +32,9 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
     mapping(address => uint) public referralCount;
 
-    // Static - Contract with the world
-    uint8[] public referralPercentages = [0, 10, 20, 35, 50];
-    // Amount of Ships sold to reach each tier
-    uint32[] public referralStages = [
-        100, // 100 ships sold
-        1000, // 1000 ships sold
-        10000, // 10000 ships sold
-        50000, // 50000 ships sold
-        100000 // 100000 ships sold
-    ];
+    // Hardcoded referral tiers (saves bytecode size)
+    // Stages: 100, 1000, 10000, 50000, 100000 ships sold
+    // Percentages: 0%, 10%, 20%, 35%, 50%
 
     error InvalidReferral();
     error NotAuthorized(address);
@@ -447,21 +440,25 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     ) internal {
         referralCount[_referrer] += _shipsSold;
 
-        uint referralPercentage = 1; // For testing, maybe leave and see what happens
+        uint referralPercentage;
+        uint totalSold = referralCount[_referrer];
 
-        for (uint i = referralStages.length; i > 0; i--) {
-            if (referralCount[_referrer] >= referralStages[i - 1]) {
-                // If the matched percentage is 0, use the next tier's percentage
-                // This handles the case where referralPercentages[0] = 0
-                if (
-                    referralPercentages[i - 1] == 0 && i < referralStages.length
-                ) {
-                    referralPercentage = referralPercentages[i]; // Use next tier
-                } else {
-                    referralPercentage = referralPercentages[i - 1];
-                }
-                break;
-            }
+        // Hardcoded referral tiers (stages: 100, 1000, 10000, 50000, 100000)
+        // Percentages: 0%, 10%, 20%, 35%, 50%
+        if (totalSold >= 100000) {
+            referralPercentage = 50;
+        } else if (totalSold >= 50000) {
+            referralPercentage = 35;
+        } else if (totalSold >= 10000) {
+            referralPercentage = 20;
+        } else if (totalSold >= 1000) {
+            referralPercentage = 10;
+        } else if (totalSold >= 100) {
+            // Tier 0 has 0%, so use tier 1's percentage (10%)
+            referralPercentage = 10;
+        } else {
+            // Default to 1% for testing (below 100 ships)
+            referralPercentage = 1;
         }
 
         uint referralAmount = (_salePrice * referralPercentage) / 100;

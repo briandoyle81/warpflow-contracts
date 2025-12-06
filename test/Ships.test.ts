@@ -311,6 +311,7 @@ describe("Ships", function () {
         "0x0000000000000000000000000000000000000000", // randomManager
         "0x0000000000000000000000000000000000000000", // metadataRenderer
         "0x0000000000000000000000000000000000000000", // shipAttributes
+        "0x0000000000000000000000000000000000000000", // universalCredits
       ]);
 
       const config = await ships.read.config();
@@ -327,7 +328,7 @@ describe("Ships", function () {
       );
 
       const tx = await ships.write.purchaseWithFlow(
-        [user1.account.address, 0n, user2.account.address],
+        [user1.account.address, 0n, user2.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -358,7 +359,7 @@ describe("Ships", function () {
       );
 
       const tx = await ships.write.purchaseWithFlow(
-        [user1.account.address, 1n, user2.account.address],
+        [user1.account.address, 1n, user2.account.address, 1],
         { value: parseEther("9.99") }
       );
 
@@ -390,7 +391,7 @@ describe("Ships", function () {
 
       await expect(
         ships.write.purchaseWithFlow(
-          [user1.account.address, 0n, user2.account.address],
+          [user1.account.address, 0n, user2.account.address, 1],
           { value: invalidPayment }
         )
       ).to.be.rejectedWith("InvalidPurchase");
@@ -405,6 +406,7 @@ describe("Ships", function () {
             user1.account.address,
             0n,
             "0x0000000000000000000000000000000000000000",
+            1n,
           ],
           { value: parseEther("4.99") }
         )
@@ -416,7 +418,7 @@ describe("Ships", function () {
 
       await expect(
         ships.write.purchaseWithFlow(
-          [user1.account.address, 0n, user2.account.address],
+          [user1.account.address, 0n, user2.account.address, 1],
           { value: parseEther("0.5") }
         )
       ).to.be.rejectedWith("InvalidPurchase");
@@ -431,6 +433,7 @@ describe("Ships", function () {
             user1.account.address,
             0n,
             "0x0000000000000000000000000000000000000000",
+            1n,
           ],
           { value: parseEther("4.99") }
         )
@@ -489,6 +492,7 @@ describe("Ships", function () {
         "0x0000000000000000000000000000000000000000", // randomManager
         "0x0000000000000000000000000000000000000000", // metadataRenderer
         "0x0000000000000000000000000000000000000000", // shipAttributes
+        "0x0000000000000000000000000000000000000000", // universalCredits
       ]);
 
       const config = await ships.read.config();
@@ -517,7 +521,7 @@ describe("Ships", function () {
       });
 
       await ships.write.purchaseWithFlow(
-        [user1.account.address, 0n, user2.account.address],
+        [user1.account.address, 0n, user2.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -545,7 +549,7 @@ describe("Ships", function () {
       });
 
       await ships.write.purchaseWithFlow(
-        [user1.account.address, 0n, user2.account.address],
+        [user1.account.address, 0n, user2.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -569,7 +573,7 @@ describe("Ships", function () {
 
       // Purchase tier 1 (5 ships)
       await ships.write.purchaseWithFlow(
-        [user1.account.address, 0n, user2.account.address],
+        [user1.account.address, 0n, user2.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -581,7 +585,7 @@ describe("Ships", function () {
 
       // Purchase another tier 1
       await ships.write.purchaseWithFlow(
-        [user1.account.address, 0n, user2.account.address],
+        [user1.account.address, 0n, user2.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -598,7 +602,7 @@ describe("Ships", function () {
 
       // Mint a ship first
       await ships.write.purchaseWithFlow(
-        [user1.account.address, 0n, user2.account.address],
+        [user1.account.address, 0n, user2.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -632,7 +636,7 @@ describe("Ships", function () {
 
       // Purchase tier 5 (125 ships)
       await ships.write.purchaseWithFlow(
-        [user1.account.address, 4n, user2.account.address],
+        [user1.account.address, 4n, user2.account.address, 1],
         { value: parseEther("99.99") }
       );
 
@@ -666,7 +670,7 @@ describe("Ships", function () {
 
       // Purchase tier 1 (5 ships)
       await ships.write.purchaseWithFlow(
-        [user1.account.address, 0n, user2.account.address],
+        [user1.account.address, 0n, user2.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -702,7 +706,7 @@ describe("Ships", function () {
 
       // Mint a ship first
       await ships.write.purchaseWithFlow(
-        [user1.account.address, 0n, user2.account.address],
+        [user1.account.address, 0n, user2.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -729,7 +733,7 @@ describe("Ships", function () {
 
       // Mint a ship first
       await ships.write.purchaseWithFlow(
-        [user1.account.address, 0n, user2.account.address],
+        [user1.account.address, 0n, user2.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -762,7 +766,7 @@ describe("Ships", function () {
 
       // Mint and construct a ship
       await ships.write.purchaseWithFlow(
-        [user1.account.address, 0n, user2.account.address],
+        [user1.account.address, 0n, user2.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -885,7 +889,7 @@ describe("Ships", function () {
         { account: owner.account }
       );
 
-      await ships.write.createShips([user1.account.address, 1n], {
+      await ships.write.createShips([user1.account.address, 1, 1], {
         account: owner.account,
       });
 
@@ -900,7 +904,17 @@ describe("Ships", function () {
         },
         traits: {
           serialNumber: 999n,
-          colors: { h1: 10, s1: 20, l1: 30, h2: 40, s2: 50, l2: 60 },
+          colors: {
+            h1: 10,
+            s1: 20,
+            l1: 30,
+            h2: 40,
+            s2: 50,
+            l2: 60,
+            h3: 0,
+            s3: 0,
+            l3: 0,
+          },
           variant: 1,
           accuracy: 2,
           hull: 2,
@@ -968,7 +982,7 @@ describe("Ships", function () {
 
       // Mint ships to user1 using tier 1 (which gives 11 ships, enough to transfer)
       await ships.write.purchaseWithFlow(
-        [user1.account.address, 1n, user2.account.address],
+        [user1.account.address, 1n, user2.account.address, 1],
         { value: parseEther("9.99") }
       );
 
@@ -981,7 +995,7 @@ describe("Ships", function () {
       // Try to transfer without purchasing a tier for user3
       await expect(
         ships.write.transferFrom(
-          [user1.account.address, user3.account.address, 1n],
+          [user1.account.address, user3.account.address, 1],
           { account: user1.account }
         )
       ).to.be.rejectedWith("InsufficientPurchases");
@@ -993,13 +1007,13 @@ describe("Ships", function () {
 
       // First purchase tier 1 to enable trading (gives 11 ships, enough to transfer)
       await user1Ships.write.purchaseWithFlow(
-        [user1.account.address, 1n, user2.account.address],
+        [user1.account.address, 1n, user2.account.address, 1],
         { value: parseEther("9.99") }
       );
 
       // Mint tier 1 to user2 so they can transfer (gives 11 ships, enough to transfer)
       await user2Ships.write.purchaseWithFlow(
-        [user2.account.address, 1n, user2.account.address],
+        [user2.account.address, 1n, user2.account.address, 1],
         { value: parseEther("9.99") }
       );
 
@@ -1043,13 +1057,13 @@ describe("Ships", function () {
 
       // First purchase tier 1 to enable trading for user1 (the owner) - gives 11 ships
       await user1Ships.write.purchaseWithFlow(
-        [user1.account.address, 1n, user2.account.address],
+        [user1.account.address, 1n, user2.account.address, 1],
         { value: parseEther("9.99") }
       );
 
       // Purchase tier 1 for user3 (the receiver) - gives 11 ships
       await user3Ships.write.purchaseWithFlow(
-        [user3.account.address, 1n, user2.account.address],
+        [user3.account.address, 1n, user2.account.address, 1],
         { value: parseEther("9.99") }
       );
 
@@ -1066,7 +1080,7 @@ describe("Ships", function () {
       expect(Number(amountPurchased3)).to.be.greaterThanOrEqual(10);
 
       // User1 approves user2 to transfer their ship
-      await user1Ships.write.approve([user2.account.address, 1n]);
+      await user1Ships.write.approve([user2.account.address, 1]);
 
       // User2 transfers the ship to user3
       await user2Ships.write.transferFrom([
@@ -1096,13 +1110,13 @@ describe("Ships", function () {
 
       // First purchase tier 1 to enable trading for user1 (the owner) - gives 11 ships
       await user1Ships.write.purchaseWithFlow(
-        [user1.account.address, 1n, user2.account.address],
+        [user1.account.address, 1n, user2.account.address, 1],
         { value: parseEther("9.99") }
       );
 
       // Purchase tier 1 for user3 (the receiver) - gives 11 ships
       await user3Ships.write.purchaseWithFlow(
-        [user3.account.address, 1n, user2.account.address],
+        [user3.account.address, 1n, user2.account.address, 1],
         { value: parseEther("9.99") }
       );
 
@@ -1149,19 +1163,19 @@ describe("Ships", function () {
 
       // First purchase tier 1 to enable trading for user1 (the owner) - gives 11 ships
       await user1Ships.write.purchaseWithFlow(
-        [user1.account.address, 1n, user2.account.address],
+        [user1.account.address, 1n, user2.account.address, 1],
         { value: parseEther("9.99") }
       );
 
       // Purchase tier 1 for user2 (the non-owner) - gives 11 ships
       await user2Ships.write.purchaseWithFlow(
-        [user2.account.address, 1n, user1.account.address],
+        [user2.account.address, 1n, user1.account.address, 1],
         { value: parseEther("9.99") }
       );
 
       // Purchase tier 1 for user3 (the receiver) - gives 11 ships
       await user3Ships.write.purchaseWithFlow(
-        [user3.account.address, 1n, user2.account.address],
+        [user3.account.address, 1n, user2.account.address, 1],
         { value: parseEther("9.99") }
       );
 
@@ -1196,7 +1210,7 @@ describe("Ships", function () {
 
       // First purchase tier 1 to enable trading - gives 11 ships
       await ships.write.purchaseWithFlow(
-        [user1.account.address, 1n, user2.account.address],
+        [user1.account.address, 1n, user2.account.address, 1],
         { value: parseEther("9.99") }
       );
 
@@ -1210,10 +1224,10 @@ describe("Ships", function () {
       // Try to transfer destroyed ship
       await expect(
         ships.write.transferFrom(
-          [user1.account.address, user2.account.address, 1n],
+          [user1.account.address, user2.account.address, 1],
           { account: user1.account }
         )
-      ).to.be.rejectedWith("Ship destroyed");
+      ).to.be.rejectedWith("ShipDestroyed");
     });
 
     it("Should update shipsOwned mapping on transfer after tier purchase", async function () {
@@ -1222,13 +1236,13 @@ describe("Ships", function () {
 
       // First purchase tier 1 to enable trading for user1 (the owner) - gives 11 ships
       await user1Ships.write.purchaseWithFlow(
-        [user1.account.address, 1n, user2.account.address],
+        [user1.account.address, 1n, user2.account.address, 1],
         { value: parseEther("9.99") }
       );
 
       // Purchase tier 1 for user2 (the receiver) - gives 11 ships
       await user2Ships.write.purchaseWithFlow(
-        [user2.account.address, 1n, user1.account.address],
+        [user2.account.address, 1n, user1.account.address, 1],
         { value: parseEther("9.99") }
       );
 
@@ -1285,14 +1299,14 @@ describe("Ships", function () {
 
       // First purchase tier 1 to enable trading - gives 11 ships
       await ships.write.purchaseWithFlow(
-        [user1.account.address, 1n, user2.account.address],
+        [user1.account.address, 1n, user2.account.address, 1],
         { value: parseEther("9.99") }
       );
 
       // Note: The first purchase already gives 11 ships, no need for a second purchase
 
       // Approve user2
-      await ships.write.approve([user2.account.address, 1n], {
+      await ships.write.approve([user2.account.address, 1], {
         account: user1.account,
       });
 
@@ -1304,7 +1318,7 @@ describe("Ships", function () {
 
       // Revoke approval
       await ships.write.approve(
-        ["0x0000000000000000000000000000000000000000", 1n],
+        ["0x0000000000000000000000000000000000000000", 1],
         { account: user1.account }
       );
 
@@ -1322,7 +1336,7 @@ describe("Ships", function () {
 
       // First purchase tier 1 to enable trading - gives 11 ships
       await ships.write.purchaseWithFlow(
-        [user1.account.address, 1n, user2.account.address],
+        [user1.account.address, 1n, user2.account.address, 1],
         { value: parseEther("9.99") }
       );
 
@@ -1367,7 +1381,7 @@ describe("Ships", function () {
       );
 
       // Create 3 ships for user1
-      await ships.write.createShips([user1.account.address, 3n], {
+      await ships.write.createShips([user1.account.address, 3n, 1], {
         account: user1.account,
       });
 
@@ -1390,7 +1404,7 @@ describe("Ships", function () {
 
       // Try to create ships without authorization
       await expect(
-        ships.write.createShips([user1.account.address, 3n], {
+        ships.write.createShips([user1.account.address, 3n, 1], {
           account: user2.account,
         })
       ).to.be.rejectedWith("NotAuthorized");
@@ -1408,7 +1422,7 @@ describe("Ships", function () {
       );
 
       // Create 10 ships for user1
-      await ships.write.createShips([user1.account.address, 10n], {
+      await ships.write.createShips([user1.account.address, 10n, 1], {
         account: user1.account,
       });
 
@@ -1438,7 +1452,7 @@ describe("Ships", function () {
       );
 
       // Create 5 ships for user1 using owner account
-      await ships.write.createShips([user1.account.address, 5n], {
+      await ships.write.createShips([user1.account.address, 5n, 1], {
         account: user1.account,
       });
 
@@ -1468,7 +1482,7 @@ describe("Ships", function () {
       );
 
       // Create 3 ships for user1
-      await ships.write.createShips([user1.account.address, 3n], {
+      await ships.write.createShips([user1.account.address, 3n, 1], {
         account: user1.account,
       });
 
@@ -1496,7 +1510,7 @@ describe("Ships", function () {
       );
 
       // Create a ship first
-      await ships.write.createShips([user1.account.address, 1n], {
+      await ships.write.createShips([user1.account.address, 1, 1], {
         account: user1.account,
       });
 
@@ -1523,6 +1537,9 @@ describe("Ships", function () {
             h2: 180,
             s2: 50,
             l2: 60,
+            h3: 0,
+            s3: 0,
+            l3: 0,
           },
           variant: 1,
           accuracy: 2,
@@ -1582,7 +1599,7 @@ describe("Ships", function () {
       );
 
       // Create a ship first
-      await ships.write.createShips([user1.account.address, 1n], {
+      await ships.write.createShips([user1.account.address, 1, 1], {
         account: user1.account,
       });
 
@@ -1605,6 +1622,9 @@ describe("Ships", function () {
             h2: 180,
             s2: 50,
             l2: 60,
+            h3: 0,
+            s3: 0,
+            l3: 0,
           },
           variant: 1,
           accuracy: 2,
@@ -1645,7 +1665,7 @@ describe("Ships", function () {
       );
 
       // Create a ship first
-      await ships.write.createShips([user1.account.address, 1n], {
+      await ships.write.createShips([user1.account.address, 1, 1], {
         account: user1.account,
       });
 
@@ -1668,6 +1688,9 @@ describe("Ships", function () {
             h2: 180,
             s2: 50,
             l2: 60,
+            h3: 0,
+            s3: 0,
+            l3: 0,
           },
           variant: 1,
           accuracy: 2,
@@ -1742,7 +1765,7 @@ describe("Ships", function () {
       );
 
       // Create a ship first
-      await ships.write.createShips([user1.account.address, 1n], {
+      await ships.write.createShips([user1.account.address, 1, 1], {
         account: user1.account,
       });
 
@@ -1765,6 +1788,9 @@ describe("Ships", function () {
             h2: 180,
             s2: 50,
             l2: 60,
+            h3: 0,
+            s3: 0,
+            l3: 0,
           },
           variant: 1,
           accuracy: 2,
@@ -1816,6 +1842,7 @@ describe("Ships", function () {
         user1.account.address,
         0n,
         user2.account.address,
+        1,
       ]);
 
       const finalBalance = await universalCredits.read.balanceOf([
@@ -1856,6 +1883,7 @@ describe("Ships", function () {
         user1.account.address,
         0n,
         user2.account.address,
+        1,
       ]);
 
       const finalBalance = await universalCredits.read.balanceOf([
@@ -1890,6 +1918,7 @@ describe("Ships", function () {
           user1.account.address,
           0n,
           user2.account.address,
+          1,
         ])
       ).to.be.rejectedWith("InsufficientFunds");
     });
@@ -1902,6 +1931,7 @@ describe("Ships", function () {
           user1.account.address,
           0n,
           "0x0000000000000000000000000000000000000000",
+          1,
         ])
       ).to.be.rejectedWith("InvalidReferral");
     });
@@ -1965,7 +1995,7 @@ describe("Ships", function () {
       );
 
       await shipPurchaser.write.purchaseWithUC(
-        [user1.account.address, 0n, owner.account.address],
+        [user1.account.address, 0n, owner.account.address, 1],
         {
           account: user1.account,
         }
@@ -2030,7 +2060,7 @@ describe("Ships", function () {
       );
 
       await shipPurchaser.write.purchaseWithUC(
-        [user1.account.address, 1n, user2.account.address],
+        [user1.account.address, 1n, user2.account.address, 1],
         {
           account: user1.account,
         }
@@ -2065,19 +2095,38 @@ describe("Ships", function () {
     });
 
     it("Should not allow recycling ships that are in a fleet", async function () {
-      const { ships, universalCredits, user1, user2, shipPurchaser, owner } =
-        await loadFixture(deployShipsFixture);
+      const {
+        ships,
+        universalCredits,
+        user1,
+        user2,
+        shipPurchaser,
+        owner,
+        randomManager,
+        metadataRenderer,
+        shipAttributes,
+        generateNewShip,
+      } = await loadFixture(deployShipsFixture);
 
-      // Set up game address first
-      await ships.write.setConfig([
-        owner.account.address, // gameAddress
-        "0x0000000000000000000000000000000000000000", // lobbyAddress
-        "0x0000000000000000000000000000000000000000", // fleetsAddress
-        "0x0000000000000000000000000000000000000000", // shipGenerator
-        "0x0000000000000000000000000000000000000000", // randomManager
-        "0x0000000000000000000000000000000000000000", // metadataRenderer
-        "0x0000000000000000000000000000000000000000", // shipAttributes
-      ]);
+      // Set up game address first - use actual deployed contracts
+      // Note: The config should already be set by the deployment, but we're overriding it
+      // We need to use the actual contract addresses, not zero addresses
+      const currentConfig = await ships.read.config();
+      await ships.write.setConfig(
+        [
+          owner.account.address, // gameAddress
+          "0x0000000000000000000000000000000000000000", // lobbyAddress
+          "0x0000000000000000000000000000000000000000", // fleetsAddress
+          currentConfig[3], // shipGenerator - keep existing
+          randomManager.address, // randomManager - use actual
+          metadataRenderer.address, // metadataRenderer - use actual
+          shipAttributes.address, // shipAttributes - use actual
+          universalCredits.address, // universalCredits - use actual
+        ],
+        {
+          account: owner.account,
+        }
+      );
 
       // Purchase some ships for user1 using tier 1 (gives 11 ships, enough to recycle)
       await universalCredits.write.approve(
@@ -2088,7 +2137,7 @@ describe("Ships", function () {
       );
 
       await shipPurchaser.write.purchaseWithUC(
-        [user1.account.address, 1n, user2.account.address],
+        [user1.account.address, 1n, user2.account.address, 1],
         {
           account: user1.account,
         }
@@ -2123,7 +2172,7 @@ describe("Ships", function () {
       );
 
       await shipPurchaser.write.purchaseWithUC(
-        [user1.account.address, 1n, user2.account.address],
+        [user1.account.address, 1n, user2.account.address, 1],
         {
           account: user1.account,
         }
@@ -2146,7 +2195,7 @@ describe("Ships", function () {
       );
 
       // Claim free ships
-      await ships.write.claimFreeShips({ account: user1.account });
+      await ships.write.claimFreeShips([1], { account: user1.account });
 
       // Get ship IDs owned by user1 (these are free ships)
       const shipIds = await ships.read.getShipIdsOwned([user1.account.address]);
@@ -2171,7 +2220,7 @@ describe("Ships", function () {
         await loadFixture(deployShipsFixture);
 
       // Claim free ships first
-      await ships.write.claimFreeShips({ account: user1.account });
+      await ships.write.claimFreeShips([1], { account: user1.account });
       const freeShipIds = await ships.read.getShipIdsOwned([
         user1.account.address,
       ]);
@@ -2185,7 +2234,7 @@ describe("Ships", function () {
       );
 
       await shipPurchaser.write.purchaseWithUC(
-        [user1.account.address, 1n, user2.account.address],
+        [user1.account.address, 1n, user2.account.address, 1],
         {
           account: user1.account,
         }
@@ -2248,7 +2297,7 @@ describe("Ships", function () {
       const initialShipCount = await ships.read.shipCount();
 
       // Claim free ships
-      await ships.write.claimFreeShips({ account: user1.account });
+      await ships.write.claimFreeShips([1], { account: user1.account });
 
       // Verify ship count increased by 10
       const finalShipCount = await ships.read.shipCount();
@@ -2276,12 +2325,12 @@ describe("Ships", function () {
       const { ships, user1 } = await loadFixture(deployShipsFixture);
 
       // Claim free ships first time
-      await ships.write.claimFreeShips({ account: user1.account });
+      await ships.write.claimFreeShips([1], { account: user1.account });
 
       // Try to claim again immediately - should fail
       await expect(
-        ships.write.claimFreeShips({ account: user1.account })
-      ).to.be.rejectedWith("Claim cooldown period not yet passed");
+        ships.write.claimFreeShips([1], { account: user1.account })
+      ).to.be.rejectedWith("ClaimCooldownNotPassed");
     });
 
     it("Should allow claiming again after cooldown period", async function () {
@@ -2290,7 +2339,7 @@ describe("Ships", function () {
       );
 
       // Claim free ships first time
-      const firstTx = await ships.write.claimFreeShips({
+      const firstTx = await ships.write.claimFreeShips([1], {
         account: user1.account,
       });
       const firstReceipt = await publicClient.getTransactionReceipt({
@@ -2330,7 +2379,7 @@ describe("Ships", function () {
       );
 
       // Claim again - should succeed
-      await ships.write.claimFreeShips({ account: user1.account });
+      await ships.write.claimFreeShips([1], { account: user1.account });
       const secondClaimCount = await ships.read.shipCount();
 
       // Verify ship count increased by another 10
@@ -2396,7 +2445,9 @@ describe("Ships", function () {
       expect(initialClaim).to.equal(0n);
 
       // Claim free ships
-      const tx = await ships.write.claimFreeShips({ account: user1.account });
+      const tx = await ships.write.claimFreeShips([1], {
+        account: user1.account,
+      });
       const receipt = await publicClient.getTransactionReceipt({ hash: tx });
 
       // Get the block to access its timestamp
@@ -2429,7 +2480,7 @@ describe("Ships", function () {
       );
 
       await shipPurchaser.write.purchaseWithUC(
-        [user1.account.address, 1n, user2.account.address],
+        [user1.account.address, 1n, user2.account.address, 1],
         {
           account: user1.account,
         }
@@ -2457,7 +2508,7 @@ describe("Ships", function () {
 
       // Non-owner (user1) purchases tier 1 with Flow using their contract instance
       await user1Ships.write.purchaseWithFlow(
-        [user1.account.address, 1n, user2.account.address],
+        [user1.account.address, 1n, user2.account.address, 1],
         { value: parseEther("9.99") }
       );
 
@@ -2524,7 +2575,7 @@ describe("Ships", function () {
       ]);
 
       await shipPurchaser.write.purchaseUTCWithFlow(
-        [user1.account.address, 1n],
+        [user1.account.address, 1],
         { value: parseEther("9.99"), account: user1.account }
       );
 
@@ -2692,7 +2743,7 @@ describe("Ships", function () {
 
       // Purchase ships with FLOW
       const txHash = await ships.write.purchaseWithFlow(
-        [user1.account.address, 4n, user2.account.address],
+        [user1.account.address, 4n, user2.account.address, 1],
         { value: parseEther("99.99"), account: user1.account }
       );
 
@@ -3133,7 +3184,7 @@ describe("Ships", function () {
 
       // Purchase and construct a ship
       await ships.write.purchaseWithFlow(
-        [user1.account.address, 0n, user2.account.address],
+        [user1.account.address, 0n, user2.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -3183,7 +3234,7 @@ describe("Ships", function () {
 
       // Purchase and construct a ship
       await ships.write.purchaseWithFlow(
-        [user1.account.address, 0n, user2.account.address],
+        [user1.account.address, 0n, user2.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -3245,7 +3296,7 @@ describe("Ships", function () {
 
       // Purchase and construct a ship
       await ships.write.purchaseWithFlow(
-        [user1.account.address, 0n, user2.account.address],
+        [user1.account.address, 0n, user2.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -3303,7 +3354,7 @@ describe("Ships", function () {
 
       // Purchase and construct a ship
       await ships.write.purchaseWithFlow(
-        [user1.account.address, 0n, user2.account.address],
+        [user1.account.address, 0n, user2.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -3361,7 +3412,7 @@ describe("Ships", function () {
 
       // Purchase and construct a ship
       await ships.write.purchaseWithFlow(
-        [user1.account.address, 0n, user2.account.address],
+        [user1.account.address, 0n, user2.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -3423,7 +3474,7 @@ describe("Ships", function () {
 
       // Purchase and construct a ship for user1
       await ships.write.purchaseWithFlow(
-        [user1.account.address, 0n, user2.account.address],
+        [user1.account.address, 0n, user2.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -3460,7 +3511,7 @@ describe("Ships", function () {
 
       // Purchase but don't construct
       await ships.write.purchaseWithFlow(
-        [user1.account.address, 0n, user2.account.address],
+        [user1.account.address, 0n, user2.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -3487,7 +3538,7 @@ describe("Ships", function () {
         await loadFixture(deployShipsFixture);
 
       await ships.write.purchaseWithFlow(
-        [user1.account.address, 0n, user2.account.address],
+        [user1.account.address, 0n, user2.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -3522,7 +3573,7 @@ describe("Ships", function () {
         await loadFixture(deployShipsFixture);
 
       await ships.write.purchaseWithFlow(
-        [user1.account.address, 0n, user2.account.address],
+        [user1.account.address, 0n, user2.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -3564,7 +3615,7 @@ describe("Ships", function () {
       } = await loadFixture(deployShipsFixture);
 
       await ships.write.purchaseWithFlow(
-        [user1.account.address, 0n, user2.account.address],
+        [user1.account.address, 0n, user2.account.address, 1],
         { value: parseEther("4.99") }
       );
 
@@ -3593,6 +3644,9 @@ describe("Ships", function () {
             h2: 200,
             s2: 60,
             l2: 60,
+            h3: currentShip.traits.colors.h3,
+            s3: currentShip.traits.colors.s3,
+            l3: currentShip.traits.colors.l3,
           },
           accuracy: 1, // This should change
         },
@@ -3628,7 +3682,7 @@ describe("Ships", function () {
         await loadFixture(deployShipsFixture);
 
       await ships.write.purchaseWithFlow(
-        [user1.account.address, 0n, user2.account.address],
+        [user1.account.address, 0n, user2.account.address, 1],
         { value: parseEther("4.99") }
       );
 

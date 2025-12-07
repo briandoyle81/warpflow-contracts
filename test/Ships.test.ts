@@ -1561,7 +1561,7 @@ describe("Ships", function () {
       };
 
       // Construct the specific ship
-      await ships.write.customizeShip([1n, specificShip, true], {
+      await ships.write.customizeShip([1n, specificShip], {
         account: user1.account,
       });
 
@@ -1647,7 +1647,7 @@ describe("Ships", function () {
 
       // Try to construct the specific ship as unauthorized user2
       await expect(
-        ships.write.customizeShip([1n, specificShip, true, false], {
+        ships.write.customizeShip([1n, specificShip], {
           account: user2.account,
         })
       ).to.be.rejectedWith("NotAuthorized");
@@ -1712,7 +1712,7 @@ describe("Ships", function () {
       };
 
       // Construct the specific ship
-      await ships.write.customizeShip([1n, specificShip, true], {
+      await ships.write.customizeShip([1n, specificShip], {
         account: user1.account,
       });
 
@@ -1737,7 +1737,7 @@ describe("Ships", function () {
       };
 
       // Customize the already constructed ship again
-      await ships.write.customizeShip([1n, updatedShipConfig, true, false], {
+      await ships.write.customizeShip([1n, updatedShipConfig], {
         account: user1.account,
       });
 
@@ -1812,7 +1812,7 @@ describe("Ships", function () {
       };
 
       // Construct the specific ship
-      await ships.write.customizeShip([1n, specificShip, true], {
+      await ships.write.customizeShip([1n, specificShip], {
         account: user1.account,
       });
 
@@ -3497,7 +3497,7 @@ describe("Ships", function () {
 
       // user2 tries to modify user1's ship
       await expect(
-        user2DroneYard.write.modifyShip([1n, modifiedShip, false, false], {
+        user2DroneYard.write.modifyShip([1n, modifiedShip], {
           account: user2.account,
         })
       ).to.be.rejectedWith("NotShipOwner");
@@ -3526,7 +3526,7 @@ describe("Ships", function () {
       };
 
       await expect(
-        user1DroneYard.write.modifyShip([1n, modifiedShip, false, false], {
+        user1DroneYard.write.modifyShip([1n, modifiedShip], {
           account: user1.account,
         })
       ).to.be.rejectedWith("ShipNotConstructed");
@@ -3561,7 +3561,7 @@ describe("Ships", function () {
       };
 
       await expect(
-        user1DroneYard.write.modifyShip([1n, modifiedShip, false, false], {
+        user1DroneYard.write.modifyShip([1n, modifiedShip], {
           account: user1.account,
         })
       ).to.be.rejectedWith("InvalidTraitValue");
@@ -3597,7 +3597,7 @@ describe("Ships", function () {
       };
 
       await expect(
-        user1DroneYard.write.modifyShip([1n, modifiedShip, false, false], {
+        user1DroneYard.write.modifyShip([1n, modifiedShip], {
           account: user1.account,
         })
       ).to.be.rejectedWith("ArmorAndShieldsBothSet");
@@ -3717,8 +3717,8 @@ describe("Ships", function () {
         modifiedShip,
       ]);
 
-      // Total modifications: existing (0) + equipment (1) + trait (accuracyChange) + name (1)
-      const totalMods = 0 + 1 + accuracyChange + 1; // existing + equipment + trait + name
+      // Total modifications: existing (0) + equipment (1) + trait (accuracyChange)
+      const totalMods = 0 + 1 + accuracyChange; // existing + equipment + trait
       // Cost = baseCost * 2^totalMods
       const baseCost = parseEther("4.99") / 5n;
       let expectedCost = baseCost;

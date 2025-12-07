@@ -115,31 +115,32 @@ contract GenerateNewShip {
         }
 
         // Generated a weighted random number to determine the starting number of enemies destroyed
-        // 75% chance that the number is between 1 and 5
-        // 15% chance that the number is between 6 and 10
-        // 5% chance that the number is between 11 and 50
-        // 4% chance that the number is between 51 and 100
-        // 1% chance that the number is between 101 and 150
+        // Distribution maintains similar probabilities to original but with new rank thresholds:
+        // 75% chance: Rank 1 (1-9 kills)
+        // 15% chance: Rank 2 (10-29 kills)
+        // 5% chance: Rank 3 (30-99 kills)
+        // 4% chance: Rank 4 (100-299 kills)
+        // 1% chance: Rank 5 (300-999 kills)
+        // Rank 6 (1000+) cannot be created, must be earned through gameplay
 
         randomBase++;
         uint shipsDestroyed = uint(keccak256(abi.encodePacked(randomBase))) %
             100;
         if (shipsDestroyed < 75) {
-            newShip.shipData.shipsDestroyed = uint16(1 + (shipsDestroyed % 5));
+            // 75% chance: Rank 1 (1-9 kills)
+            newShip.shipData.shipsDestroyed = uint16(1 + (shipsDestroyed % 9));
         } else if (shipsDestroyed < 90) {
-            newShip.shipData.shipsDestroyed = uint16(6 + (shipsDestroyed % 5));
+            // 15% chance: Rank 2 (10-29 kills)
+            newShip.shipData.shipsDestroyed = uint16(10 + (shipsDestroyed % 20));
         } else if (shipsDestroyed < 95) {
-            newShip.shipData.shipsDestroyed = uint16(
-                11 + (shipsDestroyed % 40)
-            );
+            // 5% chance: Rank 3 (30-99 kills)
+            newShip.shipData.shipsDestroyed = uint16(30 + (shipsDestroyed % 70));
         } else if (shipsDestroyed < 99) {
-            newShip.shipData.shipsDestroyed = uint16(
-                51 + (shipsDestroyed % 50)
-            );
+            // 4% chance: Rank 4 (100-299 kills)
+            newShip.shipData.shipsDestroyed = uint16(100 + (shipsDestroyed % 200));
         } else {
-            newShip.shipData.shipsDestroyed = uint16(
-                101 + (shipsDestroyed % 50)
-            );
+            // 1% chance: Rank 5 (300-999 kills)
+            newShip.shipData.shipsDestroyed = uint16(300 + (shipsDestroyed % 700));
         }
 
         return newShip;

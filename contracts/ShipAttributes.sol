@@ -155,19 +155,25 @@ contract ShipAttributes is IShipAttributes, Ownable {
     }
 
     function getRank(uint _shipsDestroyed) public pure returns (uint8) {
-        // Rank is the number of digits in the number of ships destroyed
-        return uint8(countDigits(_shipsDestroyed));
-    }
-
-    function countDigits(uint num) public pure returns (uint) {
-        if (num == 0) return 1;
-
-        uint digits = 0;
-        while (num != 0) {
-            digits++;
-            num /= 10;
+        // Rank 1: 0-9 kills (0% bonus)
+        // Rank 2: 10-29 kills (10% bonus)
+        // Rank 3: 30-99 kills (20% bonus)
+        // Rank 4: 100-299 kills (30% bonus)
+        // Rank 5: 300-999 kills (40% bonus)
+        // Rank 6: 1000+ kills (50% bonus)
+        if (_shipsDestroyed >= 1000) {
+            return 6;
+        } else if (_shipsDestroyed >= 300) {
+            return 5;
+        } else if (_shipsDestroyed >= 100) {
+            return 4;
+        } else if (_shipsDestroyed >= 30) {
+            return 3;
+        } else if (_shipsDestroyed >= 10) {
+            return 2;
+        } else {
+            return 1;
         }
-        return digits;
     }
 
     // Calculate attributes for a ship by ID

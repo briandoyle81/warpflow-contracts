@@ -116,13 +116,24 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     // For purchases with ERC20s such as Universal Credits
     // or anything else I think of
 
-    function createShips(address _to, uint _amount, uint16 _variant) public {
+    function createShips(
+        address _to,
+        uint _amount,
+        uint16 _variant,
+        uint8 _tier
+    ) external {
         if (!isAllowedToCreateShips[msg.sender]) {
             revert NotAuthorized(msg.sender);
         }
 
+        uint8 tierRankCount = _tier;
         for (uint i = 0; i < _amount; i++) {
-            _mintShip(_to, _variant);
+            if (i < tierRankCount) {
+                uint8 rank = _tier + 1 - uint8(i);
+                _mintShip(_to, _variant, _getKillsForRank(rank));
+            } else {
+                _mintShip(_to, _variant, 0);
+            }
         }
 
         // TODO: CRITICAL -> Evaluate side effects of this
@@ -132,10 +143,10 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
     function purchaseWithFlow(
         address _to,
-        uint _tier,
+        uint8 _tier,
         address _referral,
         uint16 _variant
-    ) public payable nonReentrant {
+    ) external payable nonReentrant {
         if (msg.value != tierPrices[_tier]) {
             revert InvalidPurchase(_tier, msg.value);
         }
@@ -145,9 +156,15 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         }
 
         uint totalShips = tierShips[_tier];
+        uint8 tierRankCount = _tier;
 
         for (uint i = 0; i < totalShips; i++) {
-            _mintShip(_to, _variant);
+            if (i < tierRankCount) {
+                uint8 rank = uint8(_tier + 1 - i);
+                _mintShip(_to, _variant, _getKillsForRank(rank));
+            } else {
+                _mintShip(_to, _variant, 0);
+            }
         }
 
         _processReferral(_referral, totalShips, tierPrices[_tier]);
@@ -298,7 +315,12 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         newShip.traits = generatedShip.traits;
         newShip.equipment = generatedShip.equipment;
         newShip.shipData.shiny = generatedShip.shipData.shiny;
-        newShip.shipData.shipsDestroyed = generatedShip.shipData.shipsDestroyed;
+        // Preserve existing kills if already set (tier-based purchases)
+        if (newShip.shipData.shipsDestroyed == 0) {
+            newShip.shipData.shipsDestroyed = generatedShip
+                .shipData
+                .shipsDestroyed;
+        }
         newShip.shipData.costsVersion = config
             .shipAttributes
             .getCurrentCostsVersion();
@@ -308,7 +330,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         _setCostOfShip(_id);
     }
 
-    function setCostOfShip(uint _id) public {
+    function setCostOfShip(uint _id) external {
         if (msg.sender != owner() && msg.sender != config.gameAddress) {
             revert NotAuthorized(msg.sender);
         }
@@ -325,7 +347,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
      * @dev Lobby and GameFunctions
      */
 
-    function setInFleet(uint _id, bool _inFleet) public {
+    function setInFleet(uint _id, bool _inFleet) external {
         if (
             msg.sender != config.lobbyAddress &&
             msg.sender != config.gameAddress &&
@@ -389,7 +411,20 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         return super._update(to, tokenId, auth);
     }
 
-    function _mintShip(address _to, uint16 _variant) internal {
+    function _getKillsForRank(uint8 rank) internal pure returns (uint16) {
+        if (rank >= 6) return 1000;
+        if (rank == 5) return 300;
+        if (rank == 4) return 100;
+        if (rank == 3) return 30;
+        if (rank == 2) return 10;
+        return 1;
+    }
+
+    function _mintShip(
+        address _to,
+        uint16 _variant,
+        uint16 _shipsDestroyed
+    ) internal {
         if (paused) {
             revert MintPaused();
         }
@@ -404,6 +439,9 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
         newShip.traits.serialNumber = config.randomManager.requestRandomness();
         newShip.traits.variant = _variant;
+        if (_shipsDestroyed > 0) {
+            newShip.shipData.shipsDestroyed = _shipsDestroyed;
+        }
 
         _safeMint(_to, shipCount);
 
@@ -434,12 +472,8 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
             referralPercentage = 20;
         } else if (totalSold >= 1000) {
             referralPercentage = 10;
-        } else if (totalSold >= 100) {
-            // Tier 0 has 0%, so use tier 1's percentage (10%)
-            referralPercentage = 10;
         } else {
-            // Default to 1% for testing (below 100 ships)
-            referralPercentage = 1;
+            referralPercentage = 0;
         }
 
         uint referralAmount = (_salePrice * referralPercentage) / 100;
@@ -459,7 +493,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         isAllowedToCreateShips[_address] = _isAllowed;
     }
 
-    function setTimestampDestroyed(uint _id, uint _destroyerId) public {
+    function setTimestampDestroyed(uint _id, uint _destroyerId) external {
         if (msg.sender != owner() && msg.sender != config.gameAddress) {
             revert NotAuthorized(msg.sender);
         }
@@ -518,22 +552,22 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         universalCredits = IUniversalCredits(_universalCredits);
     }
 
-    function setPaused(bool _paused) public onlyOwner {
+    function setPaused(bool _paused) external onlyOwner {
         paused = _paused;
     }
 
-    function withdraw() public onlyOwner {
+    function withdraw() external onlyOwner {
         (bool success, ) = payable(owner()).call{value: address(this).balance}(
             ""
         );
         if (!success) revert WithdrawalFailed();
     }
 
-    function setMaxVariant(uint16 _maxVariant) public onlyOwner {
+    function setMaxVariant(uint16 _maxVariant) external onlyOwner {
         maxVariant = _maxVariant;
     }
 
-    function setRecycleReward(uint _newReward) public onlyOwner {
+    function setRecycleReward(uint _newReward) external onlyOwner {
         recycleReward = _newReward;
     }
 
@@ -556,16 +590,16 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         uint256 lastClaim = lastClaimTimestamp[msg.sender];
         uint256 currentTime = block.timestamp;
 
-        // Check if 4 weeks have passed since last claim (or if never claimed)
-        if (lastClaim > 0) {
-            if (currentTime < lastClaim + claimCooldownPeriod) {
-                revert ClaimCooldownNotPassed();
-            }
+        // Check if 4 weeks have passed since last claim
+        // Note: When lastClaim == 0 (first claim), currentTime (block.timestamp) will always be
+        // much larger than claimCooldownPeriod (28 days), so the check won't revert for new users
+        if (currentTime < lastClaim + claimCooldownPeriod) {
+            revert ClaimCooldownNotPassed();
         }
 
         // Grant 10 free ships
         for (uint i = 0; i < 10; i++) {
-            _mintShip(msg.sender, _variant);
+            _mintShip(msg.sender, _variant, 0);
             // Mark the ship as free (shipCount was incremented in _mintShip, so it's the ID of the ship just minted)
             ships[shipCount].shipData.isFreeShip = true;
         }
@@ -583,16 +617,17 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     }
 
     // Used by game contract
-    function isShipDestroyed(uint _id) public view returns (bool) {
+    function isShipDestroyed(uint _id) external view returns (bool) {
         return ships[_id].shipData.timestampDestroyed != 0;
     }
 
     // ERC-5192: minimal interface view - derived from existing state
-    function locked(uint256 tokenId) external view returns (bool) {
-        Ship storage s = ships[tokenId];
-        if (s.shipData.timestampDestroyed != 0) return true;
-        return s.shipData.inFleet;
-    }
+    // Not used by Opensea and other marketplaces, I don't think it's necessary to keep it.
+    // function locked(uint256 tokenId) external view returns (bool) {
+    //     Ship storage s = ships[tokenId];
+    //     if (s.shipData.timestampDestroyed != 0) return true;
+    //     return s.shipData.inFleet;
+    // }
 
     function getPurchaseInfo()
         external
@@ -641,7 +676,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
      */
 
     // TODO: Do tiers need to be adjustable?
-    function getTierOfTrait(uint _trait) public pure returns (uint8) {
+    function getTierOfTrait(uint _trait) external pure returns (uint8) {
         return _trait < 50 ? 0 : (_trait < 80 ? 1 : 2);
     }
 

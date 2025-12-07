@@ -19,10 +19,11 @@ contract ShipPurchaser is Ownable, ReentrancyGuard {
     IUniversalCredits public immutable universalCreditsMintable;
 
     // Static - Contract with the world
+    // Hardcoded referral tiers (stages: 1000, 10000, 50000, 100000)
+    // Percentages: 0%, 10%, 20%, 35%, 50%
     uint8[] public referralPercentages = [0, 10, 20, 35, 50];
     // Amount of Ships sold to reach each tier
     uint32[] public referralStages = [
-        100, // 100 ships sold
         1000, // 1000 ships sold
         10000, // 10000 ships sold
         50000, // 50000 ships sold
@@ -55,7 +56,7 @@ contract ShipPurchaser is Ownable, ReentrancyGuard {
 
     function purchaseWithUC(
         address _to,
-        uint _tier,
+        uint8 _tier,
         address _referral,
         uint16 _variant
     ) public nonReentrant {
@@ -79,7 +80,7 @@ contract ShipPurchaser is Ownable, ReentrancyGuard {
         );
 
         // Create ships for the buyer
-        ships.createShips(_to, totalShips, _variant);
+        ships.createShips(_to, totalShips, _variant, _tier);
 
         // Process referral
         _processReferral(_referral, totalShips, price);
@@ -132,7 +133,7 @@ contract ShipPurchaser is Ownable, ReentrancyGuard {
     ) internal {
         referralCount[_referrer] += _shipsSold;
 
-        uint referralPercentage = 1; // For testing, maybe leave and see what happens
+        uint referralPercentage = 0; // Default 0% for < 1000 ships
 
         for (uint i = referralStages.length; i > 0; i--) {
             if (referralCount[_referrer] >= referralStages[i - 1]) {

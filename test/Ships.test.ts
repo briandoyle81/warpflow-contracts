@@ -529,8 +529,8 @@ describe("Ships", function () {
         address: user2.account.address,
       });
 
-      // Check that referral received 1% (first tier)
-      expect(finalBalance - initialBalance).to.equal(parseEther("0.0499"));
+      // Check that referral received 0% (below 1000 ships threshold)
+      expect(finalBalance - initialBalance).to.equal(0n);
 
       // Check that referral count increased by 5 ships
       const referralCount = await ships.read.referralCount([
@@ -557,9 +557,8 @@ describe("Ships", function () {
         address: user2.account.address,
       });
 
-      // Check that referral received 1% of tier 1 price (4.99 Flow)
-      // For 4.99 Flow, 1% is 0.0499 Flow
-      expect(finalBalance - initialBalance).to.equal(parseEther("0.0499"));
+      // Check that referral received 0% (below 1000 ships threshold)
+      expect(finalBalance - initialBalance).to.equal(0n);
 
       // Check that referral count increased by 5 ships
       const referralCount = await ships.read.referralCount([
@@ -889,7 +888,7 @@ describe("Ships", function () {
         { account: owner.account }
       );
 
-      await ships.write.createShips([user1.account.address, 1, 1], {
+      await ships.write.createShips([user1.account.address, 1, 1, 0], {
         account: owner.account,
       });
 
@@ -1381,7 +1380,7 @@ describe("Ships", function () {
       );
 
       // Create 3 ships for user1
-      await ships.write.createShips([user1.account.address, 3n, 1], {
+      await ships.write.createShips([user1.account.address, 3n, 1, 0], {
         account: user1.account,
       });
 
@@ -1404,7 +1403,7 @@ describe("Ships", function () {
 
       // Try to create ships without authorization
       await expect(
-        ships.write.createShips([user1.account.address, 3n, 1], {
+        ships.write.createShips([user1.account.address, 3n, 1, 0], {
           account: user2.account,
         })
       ).to.be.rejectedWith("NotAuthorized");
@@ -1422,7 +1421,7 @@ describe("Ships", function () {
       );
 
       // Create 10 ships for user1
-      await ships.write.createShips([user1.account.address, 10n, 1], {
+      await ships.write.createShips([user1.account.address, 10n, 1, 0], {
         account: user1.account,
       });
 
@@ -1452,7 +1451,7 @@ describe("Ships", function () {
       );
 
       // Create 5 ships for user1 using owner account
-      await ships.write.createShips([user1.account.address, 5n, 1], {
+      await ships.write.createShips([user1.account.address, 5n, 1, 0], {
         account: user1.account,
       });
 
@@ -1482,7 +1481,7 @@ describe("Ships", function () {
       );
 
       // Create 3 ships for user1
-      await ships.write.createShips([user1.account.address, 3n, 1], {
+      await ships.write.createShips([user1.account.address, 3n, 1, 0], {
         account: user1.account,
       });
 
@@ -1510,7 +1509,7 @@ describe("Ships", function () {
       );
 
       // Create a ship first
-      await ships.write.createShips([user1.account.address, 1, 1], {
+      await ships.write.createShips([user1.account.address, 1, 1, 0], {
         account: user1.account,
       });
 
@@ -1599,7 +1598,7 @@ describe("Ships", function () {
       );
 
       // Create a ship first
-      await ships.write.createShips([user1.account.address, 1, 1], {
+      await ships.write.createShips([user1.account.address, 1, 1, 0], {
         account: user1.account,
       });
 
@@ -1665,7 +1664,7 @@ describe("Ships", function () {
       );
 
       // Create a ship first
-      await ships.write.createShips([user1.account.address, 1, 1], {
+      await ships.write.createShips([user1.account.address, 1, 1, 0], {
         account: user1.account,
       });
 
@@ -1765,7 +1764,7 @@ describe("Ships", function () {
       );
 
       // Create a ship first
-      await ships.write.createShips([user1.account.address, 1, 1], {
+      await ships.write.createShips([user1.account.address, 1, 1, 0], {
         account: user1.account,
       });
 
@@ -1890,9 +1889,8 @@ describe("Ships", function () {
         user2.account.address,
       ]);
 
-      // Check that referral received 1% of tier 1 price (4.99 UC)
-      // For 4.99 UC, 1% is 0.0499 UC
-      expect(finalBalance - initialBalance).to.equal(parseEther("0.0499"));
+      // Check that referral received 0% (below 1000 ships threshold)
+      expect(finalBalance - initialBalance).to.equal(0n);
 
       // Check referral count
       const referralCount = await shipPurchaser.read.referralCount([
@@ -2714,27 +2712,24 @@ describe("Ships", function () {
 
       // Calculate expected referral percentage based on NEW count (after increment)
       // The referral count is incremented BEFORE checking the percentage in _processReferral
-      // So if initialReferralCount is 0, new count is 125, which triggers 10% tier (>= 100)
+      // So if initialReferralCount is 0, new count is 125, which is still < 1000 (0%)
       const newReferralCount = initialReferralCount + 125n;
 
       // Determine expected referral percentage based on new count
-      // Known stages from contract: [100, 1000, 10000, 100000]
-      // Known percentages from contract: [0, 10, 20, 35, 50]
-      // Contract logic: starts with 1% default, then checks stages in reverse order
-      // If newReferralCount >= 100, use 10% (referralPercentages[1])
-      // If newReferralCount >= 1000, use 20% (referralPercentages[2])
-      // etc.
-      let expectedReferralPercentage = 1n; // Default 1% for testing (hardcoded in contract)
+      // Known stages from contract: [1000, 10000, 50000, 100000]
+      // Known percentages from contract: [0%, 10%, 20%, 35%, 50%]
+      // Contract logic: 0% for < 1000, then checks stages
+      let expectedReferralPercentage = 0n; // Default 0% for < 1000 ships
       if (newReferralCount >= 100000n) {
         expectedReferralPercentage = 50n;
-      } else if (newReferralCount >= 10000n) {
+      } else if (newReferralCount >= 50000n) {
         expectedReferralPercentage = 35n;
-      } else if (newReferralCount >= 1000n) {
+      } else if (newReferralCount >= 10000n) {
         expectedReferralPercentage = 20n;
-      } else if (newReferralCount >= 100n) {
+      } else if (newReferralCount >= 1000n) {
         expectedReferralPercentage = 10n;
       } else {
-        expectedReferralPercentage = 1n; // Default for testing (< 100 ships)
+        expectedReferralPercentage = 0n; // < 1000 ships
       }
 
       // Calculate expected referral amount based on the correct percentage
@@ -2813,12 +2808,17 @@ describe("Ships", function () {
 
       // Ship purchase: referrer gets commission, Ships contract retains the rest
       // We've already verified:
-      // - Referrer received exactly expectedReferralAmount (0.9999 FLOW)
-      // - Ships contract retained exactly expectedShipsRetention (98.9901 FLOW)
+      // - Referrer received exactly expectedReferralAmount (0 FLOW for < 1000 ships)
+      // - Ships contract retained exactly expectedShipsRetention (99.99 FLOW)
       // Now verify the comparison:
       // Direct purchase: 99.99 FLOW (no referral paid)
-      // Ship purchase: 98.9901 FLOW (after 1% referral = 0.9999 FLOW paid out)
-      expect(flowReceivedRecycle < flowReceivedDirect).to.be.true;
+      // Ship purchase: 99.99 FLOW (after 0% referral = 0 FLOW paid out)
+      // With 0% referral, both should be equal
+      if (expectedReferralPercentage > 0n) {
+        expect(flowReceivedRecycle < flowReceivedDirect).to.be.true;
+      } else {
+        expect(flowReceivedRecycle).to.equal(flowReceivedDirect);
+      }
     });
 
     it("Should revert with incorrect payment amount", async function () {

@@ -215,6 +215,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -276,6 +277,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -350,6 +352,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -432,6 +435,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -496,6 +500,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -567,6 +572,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -670,6 +676,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -733,6 +740,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -809,6 +817,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -975,6 +984,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -1041,6 +1051,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -1111,6 +1122,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -1210,6 +1222,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -1280,6 +1293,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -1356,6 +1370,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -1432,6 +1447,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -1500,6 +1516,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -1584,6 +1601,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -1670,6 +1688,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -1798,6 +1817,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -1905,6 +1925,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -1968,6 +1989,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -2037,6 +2059,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -2135,6 +2158,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -2205,6 +2229,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -2291,6 +2316,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -2373,6 +2399,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -2449,6 +2476,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -2568,6 +2596,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -2636,6 +2665,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -2755,6 +2785,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -2862,6 +2893,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -3091,6 +3123,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -3259,6 +3292,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -3374,6 +3408,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -3504,6 +3539,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -3619,6 +3655,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -3724,6 +3761,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -3885,6 +3923,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -3997,6 +4036,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -4157,6 +4197,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -4295,6 +4336,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -4444,6 +4486,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -4591,6 +4634,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
 
       const lobbyId = 1n;
@@ -4684,6 +4728,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
 
       const lobbyId = 1n;
@@ -4783,6 +4828,7 @@ describe("Game", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       const lobbyId = 1n;
       await joinerLobbies.write.joinLobby([lobbyId]);
@@ -4889,6 +4935,7 @@ describe("Game", function () {
         true,
         mapId, // Use the preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       const lobbyId = 1n;
       await joinerLobbies.write.joinLobby([lobbyId]);

@@ -157,6 +157,9 @@ const DeployModule = buildModule("DeployModule", (m) => {
   // Set Maps address in Lobbies contract
   m.call(lobbies, "setMapsAddress", [maps]);
 
+  // Set UniversalCredits address in Lobbies contract
+  m.call(lobbies, "setUniversalCreditsAddress", [universalCredits]);
+
   // Set Lobbies address in Fleets contract
   m.call(fleets, "setLobbiesAddress", [lobbies]);
 

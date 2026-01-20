@@ -21,14 +21,11 @@ CRITICAL: Don't update maps. In the future, consider setting the map and creatin
 
 TODO:
 
-CRITICAL: Add guaranteed high tier and shiny ships to higher tiers
-
 CRITICAL: Evaluate if I care that the firstPlayer goes first every round, even if they moved last in the previous round
 Consider charging UTC to start or join a game
 
 Skipping a player's turn when you have no ships left to move should make it your turn and not the first player's turn for the new round
 
-Add buying UTC at the same price as recycling a ship to avoid people having to buy and recycle ships for it.
 Add wagers in UTC only.
 CRITICAL: Update maps creation to set horizontal or vertical deployment
 Consider allowing more custom deployments like diagonals, etc.
@@ -47,7 +44,8 @@ Decide if players should be able to cancel fleet before other submits
 The creator should probably be allowed to set their fleet without a joiner
 
 Done:
-
+Add buying UTC at the same price as recycling a ship to avoid people having to buy and recycle ships for it.
+CRITICAL: Add guaranteed high tier ships to higher tiers
 Players should be able to pay to join a lobby if they are in one already
 CRITICAL: Don't allow lobbies to be created for map ids that don't exist
 CRITICAL: Make sure I have a path to upgrade ships and add new collections
@@ -69,3 +67,4 @@ Not Doing:
 Is there any value in getting a ship's metadata without the image? I could use a local renderer but I'm not sure what i gain.
 Not doing reroll colors or name. Too easy to exploit and too hard to do another commit reveal
 CRITICAL: Add reroll shiny colors
+CRITICAL: Add guaranteed shiny ships to higher tiers

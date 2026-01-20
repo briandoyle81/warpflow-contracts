@@ -271,6 +271,7 @@ struct LobbyBasic {
 // Player and fleet information
 struct LobbyPlayers {
     address joiner;
+    address reservedJoiner; // Address of player this lobby is reserved for (if any)
     uint creatorFleetId;
     uint joinerFleetId;
     uint joinedAt;

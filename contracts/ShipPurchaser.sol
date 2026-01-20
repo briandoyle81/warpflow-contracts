@@ -30,7 +30,6 @@ contract ShipPurchaser is Ownable, ReentrancyGuard {
         100000 // 100000 ships sold
     ];
 
-    uint8[] public purchaseTiers;
     uint8[] public tierShips;
     uint[] public tierPrices;
 
@@ -42,7 +41,6 @@ contract ShipPurchaser is Ownable, ReentrancyGuard {
         universalCredits = IERC20(_universalCredits);
         universalCreditsMintable = IUniversalCredits(_universalCredits);
 
-        purchaseTiers = [1, 2, 3, 4, 5];
         tierShips = [5, 11, 28, 60, 125];
         // Using same tier structure but with UC tokens instead of ether
         tierPrices = [
@@ -87,21 +85,17 @@ contract ShipPurchaser is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Direct UTC Purchase - Matches ship purchase + recycle economics
+     * @dev Direct UTC Purchase - 1:1 with tier prices
      *
-     * This function allows players to purchase UTC directly for FLOW at the same
-     * effective rate they would get by purchasing ships and recycling them.
+     * This function allows players to purchase UTC directly for FLOW at a 1:1 rate.
+     * The UTC amount matches the FLOW price for each tier.
      *
      * For each tier:
-     * - Tier 0: 0.5 UC for 4.99 FLOW (5 ships × 0.1 UC)
-     * - Tier 1: 1.1 UC for 9.99 FLOW (11 ships × 0.1 UC)
-     * - Tier 2: 2.8 UC for 24.99 FLOW (28 ships × 0.1 UC)
-     * - Tier 3: 6.0 UC for 49.99 FLOW (60 ships × 0.1 UC)
-     * - Tier 4: 12.5 UC for 99.99 FLOW (125 ships × 0.1 UC)
-     *
-     * This matches the gross cost (full purchase price) that players would pay
-     * if they purchased ships and recycled them, giving the owner the full FLOW
-     * amount instead of 50% after referral.
+     * - Tier 0: 4.99 UTC for 4.99 FLOW
+     * - Tier 1: 9.99 UTC for 9.99 FLOW
+     * - Tier 2: 24.99 UTC for 24.99 FLOW
+     * - Tier 3: 49.99 UTC for 49.99 FLOW
+     * - Tier 4: 99.99 UTC for 99.99 FLOW
      */
     function purchaseUTCWithFlow(
         address _to,
@@ -116,14 +110,8 @@ contract ShipPurchaser is Ownable, ReentrancyGuard {
             revert InvalidPurchase(_tier, msg.value);
         }
 
-        // Calculate UTC amount based on recycling reward
-        // recycleReward = 0.1 UC per ship
-        // UTC amount = tierShips[_tier] × 0.1 UC
-        uint shipsInTier = tierShips[_tier];
-        uint utcAmount = shipsInTier * 0.1 ether; // 0.1 UC per ship
-
-        // Mint UTC directly to the buyer
-        universalCreditsMintable.mint(_to, utcAmount);
+        // Mint UTC 1:1 with the price paid
+        universalCreditsMintable.mint(_to, price);
     }
 
     function _processReferral(
@@ -156,17 +144,12 @@ contract ShipPurchaser is Ownable, ReentrancyGuard {
      */
 
     function setPurchaseInfo(
-        uint8[] memory _purchaseTiers,
         uint8[] memory _tierShips,
         uint[] memory _tierPrices
     ) public onlyOwner {
-        if (
-            _purchaseTiers.length != _tierShips.length ||
-            _tierShips.length != _tierPrices.length
-        ) {
+        if (_tierShips.length != _tierPrices.length) {
             revert ArrayLengthMismatch();
         }
-        purchaseTiers = _purchaseTiers;
         tierShips = _tierShips;
         tierPrices = _tierPrices;
     }
@@ -174,9 +157,9 @@ contract ShipPurchaser is Ownable, ReentrancyGuard {
     function getPurchaseInfo()
         external
         view
-        returns (uint8[] memory, uint8[] memory, uint[] memory)
+        returns (uint8[] memory, uint[] memory)
     {
-        return (purchaseTiers, tierShips, tierPrices);
+        return (tierShips, tierPrices);
     }
 
     function withdrawUC() public onlyOwner {

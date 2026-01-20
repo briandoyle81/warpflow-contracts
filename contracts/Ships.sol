@@ -65,7 +65,6 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
     ContractConfig public config;
 
-    uint8[] public purchaseTiers;
     uint8[] public tierShips;
     uint[] public tierPrices;
 
@@ -97,7 +96,6 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
         // Variant 0 has no modifiers, already exists as zeroes
 
-        purchaseTiers = [1, 2, 3, 4, 5];
         tierShips = [5, 11, 28, 60, 125];
         //              0%, 10%, 15%, 20%, 25%
         tierPrices = [
@@ -126,7 +124,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
             revert NotAuthorized(msg.sender);
         }
 
-        uint8 tierRankCount = _tier;
+        uint8 tierRankCount = _tier + 1;
         for (uint i = 0; i < _amount; i++) {
             if (i < tierRankCount) {
                 uint8 rank = _tier + 1 - uint8(i);
@@ -156,7 +154,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         }
 
         uint totalShips = tierShips[_tier];
-        uint8 tierRankCount = _tier;
+        uint8 tierRankCount = _tier + 1;
 
         for (uint i = 0; i < totalShips; i++) {
             if (i < tierRankCount) {
@@ -517,17 +515,12 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     }
 
     function setPurchaseInfo(
-        uint8[] calldata _purchaseTiers,
         uint8[] calldata _tierShips,
         uint[] calldata _tierPrices
     ) external onlyOwner {
-        if (
-            _purchaseTiers.length != _tierShips.length ||
-            _tierShips.length != _tierPrices.length
-        ) {
+        if (_tierShips.length != _tierPrices.length) {
             revert ArrayLengthMismatch();
         }
-        purchaseTiers = _purchaseTiers;
         tierShips = _tierShips;
         tierPrices = _tierPrices;
     }
@@ -632,13 +625,9 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     function getPurchaseInfo()
         external
         view
-        returns (
-            uint8[] memory _purchaseTiers,
-            uint8[] memory _tierShips,
-            uint[] memory _tierPrices
-        )
+        returns (uint8[] memory _tierShips, uint[] memory _tierPrices)
     {
-        return (purchaseTiers, tierShips, tierPrices);
+        return (tierShips, tierPrices);
     }
 
     function tokenURI(uint _id) public view override returns (string memory) {

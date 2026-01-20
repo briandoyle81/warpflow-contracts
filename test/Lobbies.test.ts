@@ -71,6 +71,8 @@ describe("Lobbies", function () {
       ships: deployed.ships,
       game: deployed.game,
       randomManager: deployed.randomManager,
+      universalCredits: deployed.universalCredits,
+      shipPurchaser: deployed.shipPurchaser,
       owner,
       creator,
       joiner,
@@ -139,6 +141,7 @@ describe("Lobbies", function () {
       creatorGoesFirst,
       0n, // selectedMapId - no preset map,
       100n, // maxScore
+      zeroAddress, // reservedJoiner - no reservation
     ]);
     await joinerLobbies.write.joinLobby([1n]);
 
@@ -190,6 +193,7 @@ describe("Lobbies", function () {
         creatorGoesFirst,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       const receipt = await publicClient.getTransactionReceipt({ hash: tx });
 
@@ -228,6 +232,7 @@ describe("Lobbies", function () {
           creatorGoesFirst,
           0n, // selectedMapId - no preset map,
           100n, // maxScore
+          zeroAddress, // reservedJoiner - no reservation
         ])
       ).to.be.rejectedWith("InvalidTurnTime");
     });
@@ -247,6 +252,7 @@ describe("Lobbies", function () {
         creatorGoesFirst,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
 
       // Second lobby should require fee
@@ -257,13 +263,14 @@ describe("Lobbies", function () {
           creatorGoesFirst,
           0n, // selectedMapId - no preset map,
           100n, // maxScore
+          zeroAddress, // reservedJoiner - no reservation
         ])
       ).to.be.rejectedWith("InsufficientFee");
 
       // Should work with correct fee
       await expect(
         creatorLobbies.write.createLobby(
-          [costLimit, turnTime, creatorGoesFirst, 0n, 100n], // selectedMapId - no preset map, maxScore
+          [costLimit, turnTime, creatorGoesFirst, 0n, 100n, zeroAddress], // selectedMapId - no preset map, maxScore, reservedJoiner
           {
             value: parseEther("1"),
           }
@@ -313,6 +320,7 @@ describe("Lobbies", function () {
         creatorGoesFirst,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
 
       // Check initial state
@@ -345,6 +353,7 @@ describe("Lobbies", function () {
         creatorGoesFirst,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -354,7 +363,7 @@ describe("Lobbies", function () {
 
       // Create new lobby
       await creatorLobbies.write.createLobby(
-        [costLimit, turnTime, creatorGoesFirst, 0n, 100n], // selectedMapId - no preset map, maxScore
+        [costLimit, turnTime, creatorGoesFirst, 0n, 100n, zeroAddress], // selectedMapId - no preset map, maxScore, reservedJoiner
         { value: parseEther("1") }
       );
 
@@ -476,6 +485,7 @@ describe("Lobbies", function () {
         creatorGoesFirst,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
 
       const tx = await joinerLobbies.write.joinLobby([1n]);
@@ -512,6 +522,7 @@ describe("Lobbies", function () {
         creatorGoesFirst,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
 
       // First player joins
@@ -524,6 +535,7 @@ describe("Lobbies", function () {
         creatorGoesFirst,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
 
       // Try to join first lobby while it's in FleetSelection state
@@ -547,6 +559,7 @@ describe("Lobbies", function () {
         creatorGoesFirst,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -556,7 +569,7 @@ describe("Lobbies", function () {
 
       // Create new lobby
       await creatorLobbies.write.createLobby(
-        [costLimit, turnTime, creatorGoesFirst, 0n, 100n], // selectedMapId - no preset map, maxScore
+        [costLimit, turnTime, creatorGoesFirst, 0n, 100n, zeroAddress], // selectedMapId - no preset map, maxScore, reservedJoiner
         { value: parseEther("1") }
       );
 
@@ -578,6 +591,7 @@ describe("Lobbies", function () {
         creatorGoesFirst,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
 
       await expect(creatorLobbies.write.joinLobby([1n])).to.be.rejectedWith(
@@ -604,6 +618,7 @@ describe("Lobbies", function () {
         creatorGoesFirst,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -614,6 +629,7 @@ describe("Lobbies", function () {
         creatorGoesFirst,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
 
       // Try to join second lobby without paying fee (should fail)
@@ -654,6 +670,7 @@ describe("Lobbies", function () {
         creatorGoesFirst,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
 
       // First player joins
@@ -681,6 +698,7 @@ describe("Lobbies", function () {
         creatorGoesFirst,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -721,6 +739,7 @@ describe("Lobbies", function () {
         creatorGoesFirst,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
 
       // Creator leaves
@@ -751,6 +770,7 @@ describe("Lobbies", function () {
         creatorGoesFirst,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -787,6 +807,7 @@ describe("Lobbies", function () {
         creatorGoesFirst,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -836,6 +857,7 @@ describe("Lobbies", function () {
         creatorGoesFirst,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -958,6 +980,7 @@ describe("Lobbies", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -1021,6 +1044,7 @@ describe("Lobbies", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -1067,6 +1091,7 @@ describe("Lobbies", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -1118,6 +1143,7 @@ describe("Lobbies", function () {
         true,
         0n, // selectedMapId - no preset map,
         100n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -1148,7 +1174,14 @@ describe("Lobbies", function () {
       expect(joinerLobbyIds.length).to.equal(0);
 
       // Creator creates a lobby
-      await creatorLobbies.write.createLobby([1000n, 300n, true, 0n, 100n]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n,
+        100n,
+        zeroAddress,
+      ]);
 
       // Check creator has the lobby
       creatorLobbyIds = await creatorLobbies.read.getPlayerLobbies([
@@ -1189,7 +1222,14 @@ describe("Lobbies", function () {
       expect(openLobbyIds.length).to.equal(0);
 
       // Creator creates a lobby
-      await creatorLobbies.write.createLobby([1000n, 300n, true, 0n, 100n]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n,
+        100n,
+        zeroAddress,
+      ]);
 
       // Check lobby is open
       openLobbyIds = await creatorLobbies.read.getOpenLobbies();
@@ -1204,7 +1244,14 @@ describe("Lobbies", function () {
       expect(openLobbyIds.length).to.equal(0);
 
       // Create another lobby
-      await otherLobbies.write.createLobby([2000n, 300n, true, 0n, 100n]);
+      await otherLobbies.write.createLobby([
+        2000n,
+        300n,
+        true,
+        0n,
+        100n,
+        zeroAddress,
+      ]);
 
       // Check new lobby is open
       openLobbyIds = await creatorLobbies.read.getOpenLobbies();
@@ -1217,7 +1264,14 @@ describe("Lobbies", function () {
         await loadFixture(deployLobbiesFixture);
 
       // Create and join lobby
-      await creatorLobbies.write.createLobby([1000n, 300n, true, 0n, 100n]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n,
+        100n,
+        zeroAddress,
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Creator leaves lobby
@@ -1252,7 +1306,14 @@ describe("Lobbies", function () {
       );
 
       // Create lobby
-      await creatorLobbies.write.createLobby([1000n, 300n, true, 0n, 100n]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n,
+        100n,
+        zeroAddress,
+      ]);
 
       // Creator leaves lobby
       await creatorLobbies.write.leaveLobby([1n]);
@@ -1272,7 +1333,14 @@ describe("Lobbies", function () {
         await loadFixture(deployLobbiesFixture);
 
       // Create and join lobby
-      await creatorLobbies.write.createLobby([1000n, 300n, true, 0n, 100n]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n,
+        100n,
+        zeroAddress,
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Joiner leaves lobby
@@ -1303,7 +1371,14 @@ describe("Lobbies", function () {
         await loadFixture(deployLobbiesFixture);
 
       // Create and join lobby
-      await creatorLobbies.write.createLobby([1000n, 300n, true, 0n, 100n]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n,
+        100n,
+        zeroAddress,
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Wait for timeout and timeout joiner
@@ -1363,7 +1438,14 @@ describe("Lobbies", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create and join lobby
-      await creatorLobbies.write.createLobby([1000n, 300n, true, 0n, 100n]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n,
+        100n,
+        zeroAddress,
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleet for joiner
@@ -1430,7 +1512,14 @@ describe("Lobbies", function () {
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       // Create and join lobby
-      await creatorLobbies.write.createLobby([1000n, 300n, true, 0n, 100n]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n,
+        100n,
+        zeroAddress,
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Create fleets to start game
@@ -1470,7 +1559,14 @@ describe("Lobbies", function () {
       expect(await creatorLobbies.read.getOpenLobbyCount()).to.equal(0n);
 
       // Create first lobby
-      await creatorLobbies.write.createLobby([1000n, 300n, true, 0n, 100n]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n,
+        100n,
+        zeroAddress,
+      ]);
 
       expect(
         await creatorLobbies.read.getPlayerLobbyCount([creator.account.address])
@@ -1489,7 +1585,14 @@ describe("Lobbies", function () {
       expect(await creatorLobbies.read.getOpenLobbyCount()).to.equal(0n);
 
       // Create second lobby
-      await otherLobbies.write.createLobby([2000n, 300n, true, 0n, 100n]);
+      await otherLobbies.write.createLobby([
+        2000n,
+        300n,
+        true,
+        0n,
+        100n,
+        zeroAddress,
+      ]);
 
       expect(await creatorLobbies.read.getOpenLobbyCount()).to.equal(1n);
     });
@@ -1505,7 +1608,14 @@ describe("Lobbies", function () {
       } = await loadFixture(deployLobbiesFixture);
 
       // Create and join lobby
-      await creatorLobbies.write.createLobby([1000n, 300n, true, 0n, 100n]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n,
+        100n,
+        zeroAddress,
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Check membership
@@ -1523,7 +1633,14 @@ describe("Lobbies", function () {
       expect(await creatorLobbies.read.isLobbyOpen([1n])).to.be.false;
 
       // Create another lobby
-      await otherLobbies.write.createLobby([2000n, 300n, true, 0n, 100n]);
+      await otherLobbies.write.createLobby([
+        2000n,
+        300n,
+        true,
+        0n,
+        100n,
+        zeroAddress,
+      ]);
 
       expect(await creatorLobbies.read.isLobbyOpen([2n])).to.be.true;
     });
@@ -1534,8 +1651,22 @@ describe("Lobbies", function () {
       );
 
       // Create multiple lobbies
-      await creatorLobbies.write.createLobby([1000n, 300n, true, 0n, 100n]);
-      await otherLobbies.write.createLobby([2000n, 300n, true, 0n, 100n]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n,
+        100n,
+        zeroAddress,
+      ]);
+      await otherLobbies.write.createLobby([
+        2000n,
+        300n,
+        true,
+        0n,
+        100n,
+        zeroAddress,
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
 
       // Get lobbies by IDs
@@ -1546,6 +1677,364 @@ describe("Lobbies", function () {
       expect(lobbies[0].basic.costLimit).to.equal(1000n);
       expect(lobbies[1].basic.id).to.equal(2n);
       expect(lobbies[1].basic.costLimit).to.equal(2000n);
+    });
+  });
+
+  describe("Game Reservation", function () {
+    it("should create a reserved lobby and charge 1 UTC", async function () {
+      const {
+        creatorLobbies,
+        joiner,
+        universalCredits,
+        shipPurchaser,
+        creator,
+        lobbies,
+        owner,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Set universalCredits address in Lobbies (owner only)
+      const ownerLobbies = await hre.viem.getContractAt(
+        "Lobbies",
+        lobbies.address,
+        { client: { wallet: owner } }
+      );
+      await ownerLobbies.write.setUniversalCreditsAddress([
+        universalCredits.address,
+      ]);
+
+      // Give creator some UTC by purchasing directly (tier 1 = 9.99 UTC, enough for 1 UTC reservation)
+      await shipPurchaser.write.purchaseUTCWithFlow(
+        [creator.account.address, 1n],
+        { value: parseEther("9.99"), account: creator.account }
+      );
+
+      const initialBalance = await universalCredits.read.balanceOf([
+        creator.account.address,
+      ]);
+      const initialContractBalance = await universalCredits.read.balanceOf([
+        lobbies.address,
+      ]);
+
+      // Create reserved lobby
+      const costLimit = 1000n;
+      const turnTime = 300n;
+      const creatorGoesFirst = true;
+
+      // Approve UTC transfer
+      await universalCredits.write.approve([lobbies.address, parseEther("1")], {
+        account: creator.account,
+      });
+
+      const tx = await creatorLobbies.write.createLobby([
+        costLimit,
+        turnTime,
+        creatorGoesFirst,
+        0n, // selectedMapId
+        100n, // maxScore
+        joiner.account.address, // reservedJoiner
+      ]);
+
+      const finalBalance = await universalCredits.read.balanceOf([
+        creator.account.address,
+      ]);
+      const finalContractBalance = await universalCredits.read.balanceOf([
+        lobbies.address,
+      ]);
+
+      // Check that 1 UTC was transferred
+      expect(initialBalance - finalBalance).to.equal(parseEther("1"));
+      expect(finalContractBalance - initialContractBalance).to.equal(
+        parseEther("1")
+      );
+
+      // Check lobby is reserved
+      const lobby = await creatorLobbies.read.getLobby([1n]);
+      expect(lobby.players.reservedJoiner.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
+      );
+    });
+
+    it("should not allow non-reserved player to join reserved lobby", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        otherLobbies,
+        joiner,
+        other,
+        universalCredits,
+        shipPurchaser,
+        creator,
+        lobbies,
+        owner,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Set universalCredits address (owner only)
+      const ownerLobbies = await hre.viem.getContractAt(
+        "Lobbies",
+        lobbies.address,
+        { client: { wallet: owner } }
+      );
+      await ownerLobbies.write.setUniversalCreditsAddress([
+        universalCredits.address,
+      ]);
+
+      // Give creator UTC
+      await shipPurchaser.write.purchaseUTCWithFlow(
+        [creator.account.address, 1n],
+        { value: parseEther("9.99"), account: creator.account }
+      );
+
+      // Approve and create reserved lobby
+      await universalCredits.write.approve([lobbies.address, parseEther("1")], {
+        account: creator.account,
+      });
+
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n,
+        100n,
+        joiner.account.address, // reserved for joiner
+      ]);
+
+      // Other player should not be able to join
+      await expect(otherLobbies.write.joinLobby([1n])).to.be.rejectedWith(
+        "NotReservedJoiner"
+      );
+    });
+
+    it("should allow reserved player to accept game", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        joiner,
+        universalCredits,
+        shipPurchaser,
+        creator,
+        lobbies,
+        owner,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Set universalCredits address (owner only)
+      const ownerLobbies = await hre.viem.getContractAt(
+        "Lobbies",
+        lobbies.address,
+        { client: { wallet: owner } }
+      );
+      await ownerLobbies.write.setUniversalCreditsAddress([
+        universalCredits.address,
+      ]);
+
+      // Give creator UTC
+      await shipPurchaser.write.purchaseUTCWithFlow(
+        [creator.account.address, 1n],
+        { value: parseEther("9.99"), account: creator.account }
+      );
+
+      // Approve and create reserved lobby
+      await universalCredits.write.approve([lobbies.address, parseEther("1")], {
+        account: creator.account,
+      });
+
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n,
+        100n,
+        joiner.account.address,
+      ]);
+
+      // Reserved player accepts
+      await joinerLobbies.write.acceptGame([1n]);
+
+      const lobby = await creatorLobbies.read.getLobby([1n]);
+      expect(lobby.players.joiner.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
+      );
+      expect(lobby.players.reservedJoiner).to.equal(zeroAddress);
+      expect(lobby.state.status).to.equal(LobbyStatus.FleetSelection);
+    });
+
+    it("should allow reserved player to reject game", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        otherLobbies,
+        joiner,
+        universalCredits,
+        shipPurchaser,
+        creator,
+        lobbies,
+        owner,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Set universalCredits address (owner only)
+      const ownerLobbies = await hre.viem.getContractAt(
+        "Lobbies",
+        lobbies.address,
+        { client: { wallet: owner } }
+      );
+      await ownerLobbies.write.setUniversalCreditsAddress([
+        universalCredits.address,
+      ]);
+
+      // Give creator UTC
+      await shipPurchaser.write.purchaseUTCWithFlow(
+        [creator.account.address, 1n],
+        { value: parseEther("9.99"), account: creator.account }
+      );
+
+      // Approve and create reserved lobby
+      await universalCredits.write.approve([lobbies.address, parseEther("1")], {
+        account: creator.account,
+      });
+
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n,
+        100n,
+        joiner.account.address,
+      ]);
+
+      // Reserved player rejects
+      await joinerLobbies.write.rejectGame([1n]);
+
+      const lobby = await creatorLobbies.read.getLobby([1n]);
+      expect(lobby.players.reservedJoiner).to.equal(zeroAddress);
+      expect(lobby.players.joiner).to.equal(zeroAddress);
+      expect(lobby.state.status).to.equal(LobbyStatus.Open);
+
+      // Now anyone can join
+      await otherLobbies.write.joinLobby([1n]);
+    });
+
+    it("should not allow non-reserved player to accept or reject", async function () {
+      const {
+        creatorLobbies,
+        otherLobbies,
+        joiner,
+        other,
+        universalCredits,
+        shipPurchaser,
+        creator,
+        lobbies,
+        owner,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Set universalCredits address (owner only)
+      const ownerLobbies = await hre.viem.getContractAt(
+        "Lobbies",
+        lobbies.address,
+        { client: { wallet: owner } }
+      );
+      await ownerLobbies.write.setUniversalCreditsAddress([
+        universalCredits.address,
+      ]);
+
+      // Give creator UTC
+      await shipPurchaser.write.purchaseUTCWithFlow(
+        [creator.account.address, 1n],
+        { value: parseEther("9.99"), account: creator.account }
+      );
+
+      // Approve and create reserved lobby
+      await universalCredits.write.approve([lobbies.address, parseEther("1")], {
+        account: creator.account,
+      });
+
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n,
+        100n,
+        joiner.account.address,
+      ]);
+
+      // Other player should not be able to accept
+      await expect(otherLobbies.write.acceptGame([1n])).to.be.rejectedWith(
+        "NotReservedJoiner"
+      );
+
+      // Other player should not be able to reject
+      await expect(otherLobbies.write.rejectGame([1n])).to.be.rejectedWith(
+        "NotReservedJoiner"
+      );
+    });
+
+    it("should revert if creator tries to reserve for themselves", async function () {
+      const {
+        creatorLobbies,
+        creator,
+        universalCredits,
+        shipPurchaser,
+        lobbies,
+        owner,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Set universalCredits address (owner only)
+      const ownerLobbies = await hre.viem.getContractAt(
+        "Lobbies",
+        lobbies.address,
+        { client: { wallet: owner } }
+      );
+      await ownerLobbies.write.setUniversalCreditsAddress([
+        universalCredits.address,
+      ]);
+
+      // Give creator UTC
+      await shipPurchaser.write.purchaseUTCWithFlow(
+        [creator.account.address, 1n],
+        { value: parseEther("9.99"), account: creator.account }
+      );
+
+      // Approve
+      await universalCredits.write.approve([lobbies.address, parseEther("1")], {
+        account: creator.account,
+      });
+
+      // Should revert when trying to reserve for self
+      await expect(
+        creatorLobbies.write.createLobby([
+          1000n,
+          300n,
+          true,
+          0n,
+          100n,
+          creator.account.address, // reserved for self
+        ])
+      ).to.be.rejectedWith("PlayerAlreadyInLobby");
+    });
+
+    it("should revert if insufficient UTC balance", async function () {
+      const { creatorLobbies, joiner, lobbies, owner, universalCredits } =
+        await loadFixture(deployLobbiesFixture);
+
+      // Set universalCredits address (owner only)
+      const ownerLobbies = await hre.viem.getContractAt(
+        "Lobbies",
+        lobbies.address,
+        { client: { wallet: owner } }
+      );
+      await ownerLobbies.write.setUniversalCreditsAddress([
+        universalCredits.address,
+      ]);
+
+      // Try to create reserved lobby without UTC
+      await expect(
+        creatorLobbies.write.createLobby([
+          1000n,
+          300n,
+          true,
+          0n,
+          100n,
+          joiner.account.address,
+        ])
+      ).to.be.rejected;
     });
   });
 });

@@ -4,6 +4,7 @@ pragma solidity ^0.8.28;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./Types.sol";
 import "./Ships.sol";
 import "./Game.sol";
@@ -17,6 +18,7 @@ contract Lobbies is Ownable, ReentrancyGuard {
     Game public game;
     IFleets public fleets;
     IMaps public maps;
+    IERC20 public universalCredits;
 
     uint public lobbyCount;
     uint public freeGamesPerAddress = 1;
@@ -51,6 +53,9 @@ contract Lobbies is Ownable, ReentrancyGuard {
         uint fleetId
     );
     event MaxFleetCostLimitUpdated(uint newLimit);
+    event GameReserved(uint indexed lobbyId, address indexed reservedJoiner);
+    event GameAccepted(uint indexed lobbyId, address indexed joiner);
+    event GameRejected(uint indexed lobbyId, address indexed joiner);
 
     error LobbyNotFound();
     error LobbyFull();
@@ -75,6 +80,10 @@ contract Lobbies is Ownable, ReentrancyGuard {
     error CreatorTimeoutNotReached();
     error InvalidMapId();
     error MaxFleetCostExceeded();
+    error NotReservedJoiner();
+    error LobbyNotReserved();
+    error InsufficientUTC();
+    error UTCTransferFailed();
 
     uint public constant MIN_TURN_TIME = 60; // 1 minute in seconds
     uint public constant MAX_TURN_TIME = 86400; // 24 hours in seconds
@@ -83,6 +92,10 @@ contract Lobbies is Ownable, ReentrancyGuard {
 
     constructor(address _ships) Ownable(msg.sender) {
         ships = Ships(_ships);
+    }
+
+    function setUniversalCreditsAddress(address _universalCredits) public onlyOwner {
+        universalCredits = IERC20(_universalCredits);
     }
 
     function setGameAddress(address _gameAddress) public onlyOwner {
@@ -211,12 +224,14 @@ contract Lobbies is Ownable, ReentrancyGuard {
         uint _turnTime,
         bool _creatorGoesFirst,
         uint _selectedMapId,
-        uint _maxScore
+        uint _maxScore,
+        address _reservedJoiner
     ) public payable nonReentrant {
         if (paused) revert LobbyCreationPaused();
         if (_turnTime < MIN_TIMEOUT || _turnTime > MAX_TURN_TIME)
             revert InvalidTurnTime();
         if (_costLimit > maxFleetCostLimit) revert MaxFleetCostExceeded();
+        if (_reservedJoiner == msg.sender) revert PlayerAlreadyInLobby();
 
         // Validate mapId: 0 means no preset map (valid), otherwise must exist
         if (_selectedMapId > 0) {
@@ -232,9 +247,21 @@ contract Lobbies is Ownable, ReentrancyGuard {
             if (block.timestamp < timeoutEnd) revert PlayerInTimeout();
         }
 
-        // Check if player needs to pay for additional lobbies
-        if (state.activeLobbiesCount >= freeGamesPerAddress) {
-            if (msg.value < additionalLobbyFee) revert InsufficientFee();
+        // If reserving for a specific player, charge 1 UTC
+        if (_reservedJoiner != address(0)) {
+            if (address(universalCredits) == address(0)) revert UTCTransferFailed();
+            uint reservationFee = 1 ether; // 1 UTC
+            uint balance = universalCredits.balanceOf(msg.sender);
+            if (balance < reservationFee) revert InsufficientUTC();
+            require(
+                universalCredits.transferFrom(msg.sender, address(this), reservationFee),
+                "UTC transfer failed"
+            );
+        } else {
+            // Check if player needs to pay for additional lobbies (FLOW payment)
+            if (state.activeLobbiesCount >= freeGamesPerAddress) {
+                if (msg.value < additionalLobbyFee) revert InsufficientFee();
+            }
         }
 
         lobbyCount++;
@@ -248,6 +275,12 @@ contract Lobbies is Ownable, ReentrancyGuard {
         newLobby.gameConfig.turnTime = _turnTime;
         newLobby.gameConfig.selectedMapId = _selectedMapId;
         newLobby.gameConfig.maxScore = _maxScore;
+
+        // Set reserved joiner if provided
+        if (_reservedJoiner != address(0)) {
+            newLobby.players.reservedJoiner = _reservedJoiner;
+            emit GameReserved(lobbyCount, _reservedJoiner);
+        }
 
         state.hasActiveLobby = true;
         state.activeLobbyId = lobbyCount;
@@ -275,6 +308,13 @@ contract Lobbies is Ownable, ReentrancyGuard {
         if (lobby.basic.creator == msg.sender) revert PlayerAlreadyInLobby();
         if (lobby.players.joiner != address(0)) revert LobbyFull();
 
+        // Check if lobby is reserved for a specific player
+        if (lobby.players.reservedJoiner != address(0)) {
+            if (msg.sender != lobby.players.reservedJoiner) {
+                revert NotReservedJoiner();
+            }
+        }
+
         PlayerLobbyState storage state = playerStates[msg.sender];
 
         // Check if player is in timeout
@@ -284,9 +324,11 @@ contract Lobbies is Ownable, ReentrancyGuard {
             if (block.timestamp < timeoutEnd) revert PlayerInTimeout();
         }
 
-        // Check if player needs to pay for additional lobbies
-        if (state.activeLobbiesCount >= freeGamesPerAddress) {
-            if (msg.value < additionalLobbyFee) revert InsufficientFee();
+        // Check if player needs to pay for additional lobbies (only for non-reserved lobbies)
+        if (lobby.players.reservedJoiner == address(0)) {
+            if (state.activeLobbiesCount >= freeGamesPerAddress) {
+                if (msg.value < additionalLobbyFee) revert InsufficientFee();
+            }
         }
 
         lobby.players.joiner = msg.sender;
@@ -305,6 +347,58 @@ contract Lobbies is Ownable, ReentrancyGuard {
         _removeLobbyFromOpenSet(_lobbyId);
 
         emit PlayerJoinedLobby(_lobbyId, msg.sender);
+    }
+
+    function acceptGame(uint _lobbyId) public nonReentrant {
+        Lobby storage lobby = lobbies[_lobbyId];
+        if (lobby.basic.id == 0) revert LobbyNotFound();
+        if (lobby.players.reservedJoiner == address(0)) revert LobbyNotReserved();
+        if (msg.sender != lobby.players.reservedJoiner) revert NotReservedJoiner();
+        if (lobby.state.status != LobbyStatus.Open) revert LobbyNotOpen();
+        if (lobby.players.joiner != address(0)) revert LobbyFull();
+
+        PlayerLobbyState storage state = playerStates[msg.sender];
+
+        // Check if player is in timeout
+        if (state.kickCount > 0) {
+            uint timeoutEnd = state.lastKickTime +
+                (state.kickCount * KICK_PENALTY_PER_HOUR);
+            if (block.timestamp < timeoutEnd) revert PlayerInTimeout();
+        }
+
+        lobby.players.joiner = msg.sender;
+        lobby.state.status = LobbyStatus.FleetSelection;
+        lobby.players.joinedAt = block.timestamp;
+        // Clear reserved joiner since they've accepted
+        lobby.players.reservedJoiner = address(0);
+
+        // Update player state - allow multiple active lobbies
+        if (!state.hasActiveLobby) {
+            state.hasActiveLobby = true;
+            state.activeLobbyId = _lobbyId;
+        }
+        state.activeLobbiesCount++;
+
+        // Add joiner to lobby tracking and remove from open set
+        _addPlayerToLobby(msg.sender, _lobbyId);
+        _removeLobbyFromOpenSet(_lobbyId);
+
+        emit GameAccepted(_lobbyId, msg.sender);
+        emit PlayerJoinedLobby(_lobbyId, msg.sender);
+    }
+
+    function rejectGame(uint _lobbyId) public nonReentrant {
+        Lobby storage lobby = lobbies[_lobbyId];
+        if (lobby.basic.id == 0) revert LobbyNotFound();
+        if (lobby.players.reservedJoiner == address(0)) revert LobbyNotReserved();
+        if (msg.sender != lobby.players.reservedJoiner) revert NotReservedJoiner();
+        if (lobby.state.status != LobbyStatus.Open) revert LobbyNotOpen();
+        if (lobby.players.joiner != address(0)) revert LobbyFull();
+
+        // Clear reserved joiner, making lobby open to anyone
+        lobby.players.reservedJoiner = address(0);
+
+        emit GameRejected(_lobbyId, msg.sender);
     }
 
     function timeoutJoiner(uint _lobbyId) public nonReentrant {

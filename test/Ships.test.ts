@@ -233,30 +233,25 @@ describe("Ships", function () {
 
     it("Should set the correct initial tier prices", async function () {
       const { ships } = await loadFixture(deployShipsFixture);
-      const [tiers, shipsPerTier, prices] = await ships.read.getPurchaseInfo();
+      const [shipsPerTier, prices] = await ships.read.getPurchaseInfo();
 
-      // Check tier 1 (5 ships for 4.99 Flow)
-      expect(tiers[0]).to.equal(1);
+      // Check tier 0 (5 ships for 4.99 Flow)
       expect(shipsPerTier[0]).to.equal(5);
       expect(prices[0]).to.equal(parseEther("4.99"));
 
-      // Check tier 2 (11 ships for 9.99 Flow)
-      expect(tiers[1]).to.equal(2);
+      // Check tier 1 (11 ships for 9.99 Flow)
       expect(shipsPerTier[1]).to.equal(11);
       expect(prices[1]).to.equal(parseEther("9.99"));
 
-      // Check tier 3 (28 ships for 24.99 Flow)
-      expect(tiers[2]).to.equal(3);
+      // Check tier 2 (28 ships for 24.99 Flow)
       expect(shipsPerTier[2]).to.equal(28);
       expect(prices[2]).to.equal(parseEther("24.99"));
 
-      // Check tier 4 (60 ships for 49.99 Flow)
-      expect(tiers[3]).to.equal(4);
+      // Check tier 3 (60 ships for 49.99 Flow)
       expect(shipsPerTier[3]).to.equal(60);
       expect(prices[3]).to.equal(parseEther("49.99"));
 
-      // Check tier 5 (125 ships for 99.99 Flow)
-      expect(tiers[4]).to.equal(5);
+      // Check tier 4 (125 ships for 99.99 Flow)
       expect(shipsPerTier[4]).to.equal(125);
       expect(prices[4]).to.equal(parseEther("99.99"));
     });
@@ -264,7 +259,6 @@ describe("Ships", function () {
     it("Should allow owner to set purchase info", async function () {
       const { ships, owner } = await loadFixture(deployShipsFixture);
 
-      const newTiers = [1, 2, 3];
       const newShipsPerTier = [5, 10, 15];
       const newPrices = [
         parseEther("5.99"),
@@ -272,10 +266,9 @@ describe("Ships", function () {
         parseEther("15.99"),
       ];
 
-      await ships.write.setPurchaseInfo([newTiers, newShipsPerTier, newPrices]);
+      await ships.write.setPurchaseInfo([newShipsPerTier, newPrices]);
 
-      const [tiers, shipsPerTier, prices] = await ships.read.getPurchaseInfo();
-      expect(tiers).to.deep.equal(newTiers);
+      const [shipsPerTier, prices] = await ships.read.getPurchaseInfo();
       expect(shipsPerTier).to.deep.equal(newShipsPerTier);
       expect(prices).to.deep.equal(newPrices);
     });
@@ -283,7 +276,6 @@ describe("Ships", function () {
     it("Should not allow non-owner to set purchase info", async function () {
       const { ships, user1 } = await loadFixture(deployShipsFixture);
 
-      const newTiers = [1, 2, 3];
       const newShipsPerTier = [5, 10, 15];
       const newPrices = [
         parseEther("5.99"),
@@ -292,7 +284,7 @@ describe("Ships", function () {
       ];
 
       await expect(
-        ships.write.setPurchaseInfo([newTiers, newShipsPerTier, newPrices], {
+        ships.write.setPurchaseInfo([newShipsPerTier, newPrices], {
           account: user1.account,
         })
       ).to.be.rejectedWith(
@@ -322,7 +314,7 @@ describe("Ships", function () {
   });
 
   describe("Minting", function () {
-    it("Should tier 1 with correct payment", async function () {
+    it("Should purchase tier 0 with correct payment", async function () {
       const { ships, user1, user2, publicClient } = await loadFixture(
         deployShipsFixture
       );
@@ -353,7 +345,7 @@ describe("Ships", function () {
       expect(referralCount).to.equal(5n);
     });
 
-    it("Should tier 2 with correct payment", async function () {
+    it("Should purchase tier 1 with correct payment", async function () {
       const { ships, user1, user2, publicClient } = await loadFixture(
         deployShipsFixture
       );
@@ -384,7 +376,7 @@ describe("Ships", function () {
       expect(referralCount).to.equal(11n);
     });
 
-    it("Should revert tier 1 with invalid payment", async function () {
+    it("Should revert tier 0 with invalid payment", async function () {
       const { ships, user1, user2 } = await loadFixture(deployShipsFixture);
 
       const invalidPayment = parseEther("3.99"); // Pay 1 Flow less than required
@@ -397,7 +389,7 @@ describe("Ships", function () {
       ).to.be.rejectedWith("InvalidPurchase");
     });
 
-    it("Should revert tier 1 with zero address referral", async function () {
+    it("Should revert tier 0 with zero address referral", async function () {
       const { ships, user1 } = await loadFixture(deployShipsFixture);
 
       await expect(
@@ -445,7 +437,6 @@ describe("Ships", function () {
     it("Should allow owner to set purchase info", async function () {
       const { ships, owner } = await loadFixture(deployShipsFixture);
 
-      const newTiers = [1, 2, 3];
       const newShipsPerTier = [5, 10, 15];
       const newPrices = [
         parseEther("5.99"),
@@ -453,10 +444,9 @@ describe("Ships", function () {
         parseEther("15.99"),
       ];
 
-      await ships.write.setPurchaseInfo([newTiers, newShipsPerTier, newPrices]);
+      await ships.write.setPurchaseInfo([newShipsPerTier, newPrices]);
 
-      const [tiers, shipsPerTier, prices] = await ships.read.getPurchaseInfo();
-      expect(tiers).to.deep.equal(newTiers);
+      const [shipsPerTier, prices] = await ships.read.getPurchaseInfo();
       expect(shipsPerTier).to.deep.equal(newShipsPerTier);
       expect(prices).to.deep.equal(newPrices);
     });
@@ -464,7 +454,6 @@ describe("Ships", function () {
     it("Should not allow non-owner to set purchase info", async function () {
       const { ships, user1 } = await loadFixture(deployShipsFixture);
 
-      const newTiers = [1, 2, 3];
       const newShipsPerTier = [5, 10, 15];
       const newPrices = [
         parseEther("5.99"),
@@ -473,7 +462,7 @@ describe("Ships", function () {
       ];
 
       await expect(
-        ships.write.setPurchaseInfo([newTiers, newShipsPerTier, newPrices], {
+        ships.write.setPurchaseInfo([newShipsPerTier, newPrices], {
           account: user1.account,
         })
       ).to.be.rejectedWith(
@@ -539,7 +528,7 @@ describe("Ships", function () {
       expect(referralCount).to.equal(5n);
     });
 
-    it("Should process referral payment correctly for tier 1", async function () {
+    it("Should process referral payment correctly for tier 0", async function () {
       const { ships, user1, user2, publicClient } = await loadFixture(
         deployShipsFixture
       );
@@ -629,11 +618,11 @@ describe("Ships", function () {
       expect(constructedShip.shipData.cost).to.be.greaterThan(0); // shipData.cost
     });
 
-    it("Should allow owner to construct all tier 5 ships at once", async function () {
+    it("Should allow owner to construct all tier 4 ships at once", async function () {
       const { ships, user1, user2, publicClient, randomManager } =
         await loadFixture(deployShipsFixture);
 
-      // Purchase tier 5 (125 ships)
+      // Purchase tier 4 (125 ships)
       await ships.write.purchaseWithFlow(
         [user1.account.address, 4n, user2.account.address, 1],
         { value: parseEther("99.99") }
@@ -1823,7 +1812,7 @@ describe("Ships", function () {
   });
 
   describe("Token-based Purchasing", function () {
-    it("Should purchase tier 1 with UC tokens", async function () {
+    it("Should purchase tier 0 with UC tokens", async function () {
       const {
         ships,
         user1,
@@ -1937,7 +1926,6 @@ describe("Ships", function () {
     it("Should allow owner to update purchase info", async function () {
       const { shipPurchaser, owner } = await loadFixture(deployShipsFixture);
 
-      const newTiers = [1, 2, 3];
       const newShipsPerTier = [5, 10, 15];
       const newPrices = [
         parseEther("5.99"),
@@ -1945,16 +1933,11 @@ describe("Ships", function () {
         parseEther("15.99"),
       ];
 
-      await shipPurchaser.write.setPurchaseInfo(
-        [newTiers, newShipsPerTier, newPrices],
-        {
-          account: owner.account,
-        }
-      );
+      await shipPurchaser.write.setPurchaseInfo([newShipsPerTier, newPrices], {
+        account: owner.account,
+      });
 
-      const [tiers, shipsPerTier, prices] =
-        await shipPurchaser.read.getPurchaseInfo();
-      expect(tiers).to.deep.equal(newTiers);
+      const [shipsPerTier, prices] = await shipPurchaser.read.getPurchaseInfo();
       expect(shipsPerTier).to.deep.equal(newShipsPerTier);
       expect(prices).to.deep.equal(newPrices);
     });
@@ -1962,7 +1945,6 @@ describe("Ships", function () {
     it("Should not allow non-owner to update purchase info", async function () {
       const { shipPurchaser, user1 } = await loadFixture(deployShipsFixture);
 
-      const updatedTiers = [1, 2, 3];
       const updatedShipsPerTier = [5, 10, 15];
       const updatedPrices = [
         parseEther("5.99"),
@@ -1972,7 +1954,7 @@ describe("Ships", function () {
 
       await expect(
         shipPurchaser.write.setPurchaseInfo(
-          [updatedTiers, updatedShipsPerTier, updatedPrices],
+          [updatedShipsPerTier, updatedPrices],
           {
             account: user1.account,
           }
@@ -2532,7 +2514,7 @@ describe("Ships", function () {
   });
 
   describe("Direct UTC Purchase with Flow", function () {
-    it("Should purchase UTC for tier 0 (0.5 UC for 4.99 FLOW)", async function () {
+    it("Should purchase UTC for tier 0 (4.99 UC for 4.99 FLOW)", async function () {
       const { shipPurchaser, universalCredits, user1, publicClient } =
         await loadFixture(deployShipsFixture);
 
@@ -2555,15 +2537,15 @@ describe("Ships", function () {
         address: shipPurchaser.address,
       });
 
-      // Check that 0.5 UC was minted (5 ships × 0.1 UC)
-      expect(finalBalance - initialBalance).to.equal(parseEther("0.5"));
+      // Check that 4.99 UC was minted (1:1 with FLOW price)
+      expect(finalBalance - initialBalance).to.equal(parseEther("4.99"));
       // Check that FLOW was received by contract
       expect(finalContractBalance - initialContractBalance).to.equal(
         parseEther("4.99")
       );
     });
 
-    it("Should purchase UTC for tier 1 (1.1 UC for 9.99 FLOW)", async function () {
+    it("Should purchase UTC for tier 1 (9.99 UC for 9.99 FLOW)", async function () {
       const { shipPurchaser, universalCredits, user1 } = await loadFixture(
         deployShipsFixture
       );
@@ -2581,11 +2563,11 @@ describe("Ships", function () {
         user1.account.address,
       ]);
 
-      // Check that 1.1 UC was minted (11 ships × 0.1 UC)
-      expect(finalBalance - initialBalance).to.equal(parseEther("1.1"));
+      // Check that 9.99 UC was minted (1:1 with FLOW price)
+      expect(finalBalance - initialBalance).to.equal(parseEther("9.99"));
     });
 
-    it("Should purchase UTC for tier 2 (2.8 UC for 24.99 FLOW)", async function () {
+    it("Should purchase UTC for tier 2 (24.99 UC for 24.99 FLOW)", async function () {
       const { shipPurchaser, universalCredits, user1 } = await loadFixture(
         deployShipsFixture
       );
@@ -2603,11 +2585,11 @@ describe("Ships", function () {
         user1.account.address,
       ]);
 
-      // Check that 2.8 UC was minted (28 ships × 0.1 UC)
-      expect(finalBalance - initialBalance).to.equal(parseEther("2.8"));
+      // Check that 24.99 UC was minted (1:1 with FLOW price)
+      expect(finalBalance - initialBalance).to.equal(parseEther("24.99"));
     });
 
-    it("Should purchase UTC for tier 3 (6.0 UC for 49.99 FLOW)", async function () {
+    it("Should purchase UTC for tier 3 (49.99 UC for 49.99 FLOW)", async function () {
       const { shipPurchaser, universalCredits, user1 } = await loadFixture(
         deployShipsFixture
       );
@@ -2625,11 +2607,11 @@ describe("Ships", function () {
         user1.account.address,
       ]);
 
-      // Check that 6.0 UC was minted (60 ships × 0.1 UC)
-      expect(finalBalance - initialBalance).to.equal(parseEther("6.0"));
+      // Check that 49.99 UC was minted (1:1 with FLOW price)
+      expect(finalBalance - initialBalance).to.equal(parseEther("49.99"));
     });
 
-    it("Should purchase UTC for tier 4 (12.5 UC for 99.99 FLOW)", async function () {
+    it("Should purchase UTC for tier 4 (99.99 UC for 99.99 FLOW)", async function () {
       const { shipPurchaser, universalCredits, user1 } = await loadFixture(
         deployShipsFixture
       );
@@ -2647,11 +2629,11 @@ describe("Ships", function () {
         user1.account.address,
       ]);
 
-      // Check that 12.5 UC was minted (125 ships × 0.1 UC)
-      expect(finalBalance - initialBalance).to.equal(parseEther("12.5"));
+      // Check that 99.99 UC was minted (1:1 with FLOW price)
+      expect(finalBalance - initialBalance).to.equal(parseEther("99.99"));
     });
 
-    it("Should match ship purchase + recycle economics (tier 4)", async function () {
+    it("Should compare direct UTC purchase vs ship purchase + recycle (tier 4)", async function () {
       const {
         ships,
         shipPurchaser,
@@ -2758,7 +2740,7 @@ describe("Ships", function () {
       const finalReferralCount = await ships.read.referralCount([
         user2.account.address,
       ]);
-      expect(finalReferralCount - initialReferralCount).to.equal(125n); // 125 ships for tier 4
+      expect(finalReferralCount - initialReferralCount).to.equal(125n); // 125 ships for tier 4 (index 4)
 
       // Calculate what referrer actually received
       const referrerReceived = finalReferrerBalance - initialReferrerBalance;
@@ -2799,9 +2781,10 @@ describe("Ships", function () {
       ]);
       const utcReceivedRecycle = finalBalanceRecycle - initialBalanceRecycle;
 
-      // Both methods should give the same UTC amount
-      expect(utcReceivedDirect).to.equal(utcReceivedRecycle);
-      expect(utcReceivedDirect).to.equal(parseEther("12.5"));
+      // Direct purchase gives 1:1 UTC (99.99 UTC for 99.99 FLOW)
+      expect(utcReceivedDirect).to.equal(parseEther("99.99"));
+      // Recycle gives 12.5 UTC (125 ships × 0.1 UC recycle reward)
+      expect(utcReceivedRecycle).to.equal(parseEther("12.5"));
 
       // Direct purchase gives owner full FLOW (99.99 FLOW)
       expect(flowReceivedDirect).to.equal(parseEther("99.99"));
@@ -2836,7 +2819,7 @@ describe("Ships", function () {
     it("Should revert with invalid tier", async function () {
       const { shipPurchaser, user1 } = await loadFixture(deployShipsFixture);
 
-      // Try to purchase with invalid tier (tier 5 doesn't exist, only 0-4)
+      // Try to purchase with invalid tier (tier index 5 doesn't exist, only 0-4)
       await expect(
         shipPurchaser.write.purchaseUTCWithFlow([user1.account.address, 5n], {
           value: parseEther("100"),
@@ -2911,8 +2894,8 @@ describe("Ships", function () {
         user1.account.address,
       ]);
 
-      // Should have 1.0 UC total (0.5 + 0.5)
-      expect(finalBalance - initialBalance).to.equal(parseEther("1.0"));
+      // Should have 9.98 UC total (4.99 + 4.99)
+      expect(finalBalance - initialBalance).to.equal(parseEther("9.98"));
     });
 
     it("Should mint UTC to correct address", async function () {
@@ -2933,9 +2916,9 @@ describe("Ships", function () {
         user2.account.address,
       ]);
 
-      // User2 should receive the UTC
+      // User2 should receive the UTC (99.99 UC for tier 4, 1:1 with FLOW price)
       expect(finalBalanceUser2 - initialBalanceUser2).to.equal(
-        parseEther("12.5")
+        parseEther("99.99")
       );
     });
   });
@@ -3199,12 +3182,14 @@ describe("Ships", function () {
       const currentShipTuple = (await ships.read.ships([1n])) as ShipTuple;
       const currentShip = tupleToShip(currentShipTuple);
 
-      // Create modified ship (change equipment)
+      // Create modified ship (change equipment to a different value)
+      // Ensure we actually make a change by using a different mainWeapon
+      const newMainWeapon = currentShip.equipment.mainWeapon === 0 ? 1 : 0;
       const modifiedShip: Ship = {
         ...currentShip,
         equipment: {
           ...currentShip.equipment,
-          mainWeapon: 1, // Change from current
+          mainWeapon: newMainWeapon, // Change from current
         },
       };
 
@@ -3249,11 +3234,13 @@ describe("Ships", function () {
       const currentShip = tupleToShip(currentShipTuple);
 
       // Calculate cost and ensure user has enough UTC
+      // Ensure we actually make a change by using a different mainWeapon
+      const newMainWeapon = currentShip.equipment.mainWeapon === 0 ? 1 : 0;
       const modifiedShip: Ship = {
         ...currentShip,
         equipment: {
           ...currentShip.equipment,
-          mainWeapon: 1,
+          mainWeapon: newMainWeapon,
         },
       };
 
@@ -3278,7 +3265,7 @@ describe("Ships", function () {
       // Verify the ship was modified
       const updatedShipTuple = (await ships.read.ships([1n])) as ShipTuple;
       const updatedShip = tupleToShip(updatedShipTuple);
-      expect(updatedShip.equipment.mainWeapon).to.equal(1);
+      expect(updatedShip.equipment.mainWeapon).to.equal(newMainWeapon);
       expect(updatedShip.shipData.modified).to.not.equal(0);
     });
 

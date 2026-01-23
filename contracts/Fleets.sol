@@ -69,15 +69,15 @@ contract Fleets is Ownable, IFleets {
             Position memory pos = _startingPositions[i];
 
             if (_isCreator) {
-                // Creator ships must be in columns 0-4 (first 5 columns)
-                if (pos.col < 0 || pos.col > 4) revert InvalidPosition();
+                // Creator ships must be in columns 0-3 (first 4 columns)
+                if (pos.col < 0 || pos.col > 3) revert InvalidPosition();
             } else {
-                // Joiner ships must be in columns 20-24 (last 5 columns)
-                if (pos.col < 20 || pos.col > 24) revert InvalidPosition();
+                // Joiner ships must be in columns 13-16 (last 4 columns)
+                if (pos.col < 13 || pos.col > 16) revert InvalidPosition();
             }
 
-            // Validate row bounds (0-12 for 13 rows)
-            if (pos.row < 0 || pos.row > 12) revert InvalidPosition();
+            // Validate row bounds (0-10 for 11 rows)
+            if (pos.row < 0 || pos.row > 10) revert InvalidPosition();
         }
 
         uint totalCost = 0;
@@ -123,15 +123,15 @@ contract Fleets is Ownable, IFleets {
 
         // Validate that no positions are duplicated anywhere in the array
         // O(n), all in memory, no storage writes
-        // Use bitset for 25×13 grid (325 positions max)
-        uint256[2] memory positionBitset; // 2 * 256 = 512 bits > 325 positions
+        // Use bitset for 17×11 grid (187 positions max)
+        uint256[2] memory positionBitset; // 2 * 256 = 512 bits > 187 positions
 
         for (uint i = 0; i < _startingPositions.length; i++) {
             Position memory pos = _startingPositions[i];
 
             // Convert position to single key: row * GRID_WIDTH + col
             uint256 key = uint256(int256(pos.row)) *
-                25 +
+                17 +
                 uint256(int256(pos.col));
 
             // Check if position already seen

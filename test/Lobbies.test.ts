@@ -16,11 +16,11 @@ function generateStartingPositions(shipIds: bigint[], isCreator: boolean) {
   const positions = [];
   for (let i = 0; i < shipIds.length; i++) {
     if (isCreator) {
-      // Creator starts in top-left, each ship 1 down, in columns 0-4
-      positions.push({ row: i, col: i % 5 }); // Use columns 0-4
+      // Creator starts in top-left, each ship 1 down, in columns 0-3
+      positions.push({ row: i, col: i % 4 }); // Use columns 0-3
     } else {
-      // Joiner starts in bottom-right, each ship 1 up, in columns 20-24
-      positions.push({ row: 12 - i, col: 20 + (i % 5) }); // Use columns 20-24
+      // Joiner starts in bottom-right, each ship 1 up, in columns 13-16
+      positions.push({ row: 10 - i, col: 13 + (i % 4) }); // Use columns 13-16
     }
   }
   return positions;
@@ -1097,7 +1097,7 @@ describe("Lobbies", function () {
 
       // Try to create a fleet with creator ship in joiner column (should fail)
       const invalidPositions = [
-        { row: 0, col: 20 }, // Creator ship in joiner column - INVALID!
+        { row: 0, col: 17 }, // Creator ship in invalid column (>= 17) - INVALID!
       ];
 
       await expect(

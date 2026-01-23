@@ -67,7 +67,7 @@ const config: HardhatUserConfig = {
     // L1Etherscan: process.env.ETHERSCAN_API_KEY,
     // L2Etherscan: process.env.BASESCAN_API_KEY,
     // coinmarketcap: process.env.COINMARKETCAP_API_KEY,
-    enabled: false,
+    enabled: true,
   },
 };
 

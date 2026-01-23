@@ -96,14 +96,14 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
         // Variant 0 has no modifiers, already exists as zeroes
 
-        tierShips = [5, 11, 28, 60, 125];
+        tierShips = [5, 11, 22, 40, 60];
         //              0%, 10%, 15%, 20%, 25%
         tierPrices = [
             4.99 ether,
             9.99 ether,
-            24.99 ether,
-            49.99 ether,
-            99.99 ether
+            19.99 ether,
+            34.99 ether,
+            49.99 ether
         ];
     }
 
@@ -371,19 +371,21 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         uint256 tokenId,
         address auth
     ) internal override(ERC721) returns (address) {
+        // Cache storage reference to avoid repeated SLOADs
+        Ship storage ship = ships[tokenId];
+        address oldOwner = ship.owner;
+
         // Skip destroyed check for burning (when to is address(0))
         if (to != address(0)) {
-            if (ships[tokenId].shipData.timestampDestroyed != 0) {
+            if (ship.shipData.timestampDestroyed != 0) {
                 revert ShipDestroyed();
             }
         }
 
         // Always check if ship is in fleet
-        if (ships[tokenId].shipData.inFleet) {
+        if (ship.shipData.inFleet) {
             revert ShipInFleet(tokenId);
         }
-
-        address oldOwner = ships[tokenId].owner;
 
         // Skip transfer check for minting (when oldOwner is address(0))
         if (oldOwner != address(0)) {
@@ -400,7 +402,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         // Only add to shipsOwned if not burning
         if (to != address(0)) {
             shipsOwned[to].add(tokenId);
-            ships[tokenId].owner = to;
+            ship.owner = to;
         }
 
         // ERC-5192: if burning (to == address(0)) emit Locked for final state

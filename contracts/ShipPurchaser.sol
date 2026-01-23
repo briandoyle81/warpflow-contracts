@@ -41,14 +41,14 @@ contract ShipPurchaser is Ownable, ReentrancyGuard {
         universalCredits = IERC20(_universalCredits);
         universalCreditsMintable = IUniversalCredits(_universalCredits);
 
-        tierShips = [5, 11, 28, 60, 125];
+        tierShips = [5, 11, 22, 40, 60];
         // Using same tier structure but with UC tokens instead of ether
         tierPrices = [
             4.99 ether, // 4.99 UC
             9.99 ether, // 9.99 UC
-            24.99 ether, // 24.99 UC
-            49.99 ether, // 49.99 UC
-            99.99 ether // 99.99 UC
+            19.99 ether, // 19.99 UC
+            34.99 ether, // 34.99 UC
+            49.99 ether // 49.99 UC
         ];
     }
 

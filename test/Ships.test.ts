@@ -243,17 +243,17 @@ describe("Ships", function () {
       expect(shipsPerTier[1]).to.equal(11);
       expect(prices[1]).to.equal(parseEther("9.99"));
 
-      // Check tier 2 (28 ships for 24.99 Flow)
-      expect(shipsPerTier[2]).to.equal(28);
-      expect(prices[2]).to.equal(parseEther("24.99"));
+      // Check tier 2 (22 ships for 19.99 Flow)
+      expect(shipsPerTier[2]).to.equal(22);
+      expect(prices[2]).to.equal(parseEther("19.99"));
 
-      // Check tier 3 (60 ships for 49.99 Flow)
-      expect(shipsPerTier[3]).to.equal(60);
-      expect(prices[3]).to.equal(parseEther("49.99"));
+      // Check tier 3 (40 ships for 34.99 Flow)
+      expect(shipsPerTier[3]).to.equal(40);
+      expect(prices[3]).to.equal(parseEther("34.99"));
 
-      // Check tier 4 (125 ships for 99.99 Flow)
-      expect(shipsPerTier[4]).to.equal(125);
-      expect(prices[4]).to.equal(parseEther("99.99"));
+      // Check tier 4 (60 ships for 49.99 Flow)
+      expect(shipsPerTier[4]).to.equal(60);
+      expect(prices[4]).to.equal(parseEther("49.99"));
     });
 
     it("Should allow owner to set purchase info", async function () {
@@ -430,6 +430,96 @@ describe("Ships", function () {
           { value: parseEther("4.99") }
         )
       ).to.be.rejectedWith("InvalidReferral");
+    });
+
+    it("Should purchase 10,000 ships", async function () {
+      const { ships, user1, user2, publicClient } = await loadFixture(
+        deployShipsFixture
+      );
+
+      const targetShipCount = 10000n;
+      const tier4ShipsPerPurchase = 60n; // Tier 4 gives 60 ships per purchase
+      const tier4Price = parseEther("49.99");
+      const purchasesNeeded = targetShipCount / tier4ShipsPerPurchase; // 80 purchases
+
+      const initialShipCount = await ships.read.shipCount();
+
+      // Purchase tier 4 ships until we reach 10,000 ships
+      for (let i = 0; i < Number(purchasesNeeded); i++) {
+        const tx = await ships.write.purchaseWithFlow(
+          [user1.account.address, 4n, user2.account.address, 1],
+          { value: tier4Price }
+        );
+        await publicClient.waitForTransactionReceipt({ hash: tx });
+      }
+
+      const finalShipCount = await ships.read.shipCount();
+      const expectedShipCount = initialShipCount + targetShipCount;
+
+      expect(finalShipCount).to.equal(expectedShipCount);
+
+      // Verify the user owns all the ships
+      const shipsOwned = await ships.read.getShipIdsOwned([
+        owner.account.address,
+      ]);
+      expect(shipsOwned.length).to.be.greaterThanOrEqual(
+        Number(targetShipCount)
+      );
+
+      // Verify amountPurchased is correct
+      const amountPurchased = await ships.read.amountPurchased([
+        owner.account.address,
+      ]);
+      expect(Number(amountPurchased)).to.be.greaterThanOrEqual(
+        Number(targetShipCount)
+      );
+    });
+
+    it("Should purchase 100,000 ships", async function () {
+      const [owner, user1, user2] = await hre.viem.getWalletClients();
+      const { ships, publicClient } = await loadFixture(deployShipsFixture);
+
+      // Use owner account which has more funds (default Hardhat account has 10000 ETH)
+      const ownerShips = await hre.viem.getContractAt("Ships", ships.address, {
+        client: { wallet: owner },
+      });
+
+      const targetShipCount = 100000n;
+      const tier4ShipsPerPurchase = 60n; // Tier 4 gives 60 ships per purchase
+      const tier4Price = parseEther("49.99");
+      const purchasesNeeded = targetShipCount / tier4ShipsPerPurchase; // 800 purchases
+
+      const initialShipCount = await ships.read.shipCount();
+
+      // Purchase tier 4 ships until we reach 100,000 ships
+      for (let i = 0; i < Number(purchasesNeeded); i++) {
+        const tx = await ownerShips.write.purchaseWithFlow(
+          [owner.account.address, 4n, user2.account.address, 1],
+          { value: tier4Price }
+        );
+        await publicClient.waitForTransactionReceipt({ hash: tx });
+      }
+
+      const finalShipCount = await ships.read.shipCount();
+      const expectedShipCount = initialShipCount + targetShipCount;
+
+      expect(finalShipCount).to.equal(expectedShipCount);
+
+      // Verify the user owns all the ships
+      const shipsOwned = await ships.read.getShipIdsOwned([
+        owner.account.address,
+      ]);
+      expect(shipsOwned.length).to.be.greaterThanOrEqual(
+        Number(targetShipCount)
+      );
+
+      // Verify amountPurchased is correct
+      const amountPurchased = await ships.read.amountPurchased([
+        owner.account.address,
+      ]);
+      expect(Number(amountPurchased)).to.be.greaterThanOrEqual(
+        Number(targetShipCount)
+      );
     });
   });
 
@@ -622,14 +712,14 @@ describe("Ships", function () {
       const { ships, user1, user2, publicClient, randomManager } =
         await loadFixture(deployShipsFixture);
 
-      // Purchase tier 4 (125 ships)
+      // Purchase tier 4 (60 ships)
       await ships.write.purchaseWithFlow(
         [user1.account.address, 4n, user2.account.address, 1],
-        { value: parseEther("99.99") }
+        { value: parseEther("49.99") }
       );
 
       // Get all ships' serial numbers and fulfill random requests
-      for (let i = 1; i <= 125; i++) {
+      for (let i = 1; i <= 60; i++) {
         const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
         const ship = tupleToShip(shipTuple);
         const serialNumber = ship.traits.serialNumber; // traits is at index 3
@@ -642,7 +732,7 @@ describe("Ships", function () {
       });
 
       // Verify all ships are constructed
-      for (let i = 1; i <= 125; i++) {
+      for (let i = 1; i <= 60; i++) {
         const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
         const ship = tupleToShip(shipTuple);
         expect(ship.shipData.constructed).to.be.true; // shipData is at index 5
@@ -2567,7 +2657,7 @@ describe("Ships", function () {
       expect(finalBalance - initialBalance).to.equal(parseEther("9.99"));
     });
 
-    it("Should purchase UTC for tier 2 (24.99 UC for 24.99 FLOW)", async function () {
+    it("Should purchase UTC for tier 2 (19.99 UC for 19.99 FLOW)", async function () {
       const { shipPurchaser, universalCredits, user1 } = await loadFixture(
         deployShipsFixture
       );
@@ -2578,18 +2668,18 @@ describe("Ships", function () {
 
       await shipPurchaser.write.purchaseUTCWithFlow(
         [user1.account.address, 2n],
-        { value: parseEther("24.99"), account: user1.account }
+        { value: parseEther("19.99"), account: user1.account }
       );
 
       const finalBalance = await universalCredits.read.balanceOf([
         user1.account.address,
       ]);
 
-      // Check that 24.99 UC was minted (1:1 with FLOW price)
-      expect(finalBalance - initialBalance).to.equal(parseEther("24.99"));
+      // Check that 19.99 UC was minted (1:1 with FLOW price)
+      expect(finalBalance - initialBalance).to.equal(parseEther("19.99"));
     });
 
-    it("Should purchase UTC for tier 3 (49.99 UC for 49.99 FLOW)", async function () {
+    it("Should purchase UTC for tier 3 (34.99 UC for 34.99 FLOW)", async function () {
       const { shipPurchaser, universalCredits, user1 } = await loadFixture(
         deployShipsFixture
       );
@@ -2600,18 +2690,18 @@ describe("Ships", function () {
 
       await shipPurchaser.write.purchaseUTCWithFlow(
         [user1.account.address, 3n],
-        { value: parseEther("49.99"), account: user1.account }
+        { value: parseEther("34.99"), account: user1.account }
       );
 
       const finalBalance = await universalCredits.read.balanceOf([
         user1.account.address,
       ]);
 
-      // Check that 49.99 UC was minted (1:1 with FLOW price)
-      expect(finalBalance - initialBalance).to.equal(parseEther("49.99"));
+      // Check that 34.99 UC was minted (1:1 with FLOW price)
+      expect(finalBalance - initialBalance).to.equal(parseEther("34.99"));
     });
 
-    it("Should purchase UTC for tier 4 (99.99 UC for 99.99 FLOW)", async function () {
+    it("Should purchase UTC for tier 4 (49.99 UC for 49.99 FLOW)", async function () {
       const { shipPurchaser, universalCredits, user1 } = await loadFixture(
         deployShipsFixture
       );
@@ -2622,15 +2712,15 @@ describe("Ships", function () {
 
       await shipPurchaser.write.purchaseUTCWithFlow(
         [user1.account.address, 4n],
-        { value: parseEther("99.99"), account: user1.account }
+        { value: parseEther("49.99"), account: user1.account }
       );
 
       const finalBalance = await universalCredits.read.balanceOf([
         user1.account.address,
       ]);
 
-      // Check that 99.99 UC was minted (1:1 with FLOW price)
-      expect(finalBalance - initialBalance).to.equal(parseEther("99.99"));
+      // Check that 49.99 UC was minted (1:1 with FLOW price)
+      expect(finalBalance - initialBalance).to.equal(parseEther("49.99"));
     });
 
     it("Should compare direct UTC purchase vs ship purchase + recycle (tier 4)", async function () {
@@ -2694,8 +2784,8 @@ describe("Ships", function () {
 
       // Calculate expected referral percentage based on NEW count (after increment)
       // The referral count is incremented BEFORE checking the percentage in _processReferral
-      // So if initialReferralCount is 0, new count is 125, which is still < 1000 (0%)
-      const newReferralCount = initialReferralCount + 125n;
+      // So if initialReferralCount is 0, new count is 60, which is still < 1000 (0%)
+      const newReferralCount = initialReferralCount + 60n;
 
       // Determine expected referral percentage based on new count
       // Known stages from contract: [1000, 10000, 50000, 100000]
@@ -2716,12 +2806,12 @@ describe("Ships", function () {
 
       // Calculate expected referral amount based on the correct percentage
       const expectedReferralAmount =
-        (parseEther("99.99") * expectedReferralPercentage) / 100n;
+        (parseEther("49.99") * expectedReferralPercentage) / 100n;
 
       // Purchase ships with FLOW
       const txHash = await ships.write.purchaseWithFlow(
         [user1.account.address, 4n, user2.account.address, 1],
-        { value: parseEther("99.99"), account: user1.account }
+        { value: parseEther("49.99"), account: user1.account }
       );
 
       // Wait for transaction to be mined and get receipt
@@ -2740,7 +2830,7 @@ describe("Ships", function () {
       const finalReferralCount = await ships.read.referralCount([
         user2.account.address,
       ]);
-      expect(finalReferralCount - initialReferralCount).to.equal(125n); // 125 ships for tier 4 (index 4)
+      expect(finalReferralCount - initialReferralCount).to.equal(60n); // 60 ships for tier 4 (index 4)
 
       // Calculate what referrer actually received
       const referrerReceived = finalReferrerBalance - initialReferrerBalance;
@@ -2749,11 +2839,11 @@ describe("Ships", function () {
       // This is a critical check - if this fails, the referral payment mechanism is broken
       expect(referrerReceived).to.equal(
         expectedReferralAmount,
-        `Referrer should receive ${expectedReferralAmount.toString()} FLOW (${expectedReferralPercentage}% of 99.99), but received ${referrerReceived.toString()}. Initial balance: ${initialReferrerBalance.toString()}, Final balance: ${finalReferrerBalance.toString()}, Initial referral count: ${initialReferralCount.toString()}, New count: ${newReferralCount.toString()}`
+        `Referrer should receive ${expectedReferralAmount.toString()} FLOW (${expectedReferralPercentage}% of 49.99), but received ${referrerReceived.toString()}. Initial balance: ${initialReferrerBalance.toString()}, Final balance: ${finalReferrerBalance.toString()}, Initial referral count: ${initialReferralCount.toString()}, New count: ${newReferralCount.toString()}`
       );
 
       // Check Ships contract balance after purchase (before recycling)
-      // Ships should receive 99.99 FLOW and pay out referral, so balance = 99.99 - referral
+      // Ships should receive 49.99 FLOW and pay out referral, so balance = 49.99 - referral
       const contractBalanceAfterPurchase = await publicClient.getBalance({
         address: ships.address,
         blockNumber: finalBlockNumber,
@@ -2762,14 +2852,14 @@ describe("Ships", function () {
         contractBalanceAfterPurchase - initialContractBalanceRecycle;
 
       // Verify Ships contract received the payment minus the referral
-      // Ships receives: 99.99 FLOW
+      // Ships receives: 49.99 FLOW
       // Ships pays out: expectedReferralAmount FLOW
-      // Ships should retain: 99.99 - expectedReferralAmount
+      // Ships should retain: 49.99 - expectedReferralAmount
       const expectedShipsRetention =
-        parseEther("99.99") - expectedReferralAmount;
+        parseEther("49.99") - expectedReferralAmount;
       expect(flowReceivedRecycle).to.equal(
         expectedShipsRetention,
-        `Ships contract should retain ${expectedShipsRetention.toString()} FLOW (99.99 - ${expectedReferralAmount.toString()}), but has ${flowReceivedRecycle.toString()}. Initial: ${initialContractBalanceRecycle.toString()}, Final: ${contractBalanceAfterPurchase.toString()}`
+        `Ships contract should retain ${expectedShipsRetention.toString()} FLOW (49.99 - ${expectedReferralAmount.toString()}), but has ${flowReceivedRecycle.toString()}. Initial: ${initialContractBalanceRecycle.toString()}, Final: ${contractBalanceAfterPurchase.toString()}`
       );
 
       // Get ship IDs and recycle them
@@ -2781,21 +2871,21 @@ describe("Ships", function () {
       ]);
       const utcReceivedRecycle = finalBalanceRecycle - initialBalanceRecycle;
 
-      // Direct purchase gives 1:1 UTC (99.99 UTC for 99.99 FLOW)
-      expect(utcReceivedDirect).to.equal(parseEther("99.99"));
-      // Recycle gives 12.5 UTC (125 ships × 0.1 UC recycle reward)
-      expect(utcReceivedRecycle).to.equal(parseEther("12.5"));
+      // Direct purchase gives 1:1 UTC (49.99 UTC for 49.99 FLOW)
+      expect(utcReceivedDirect).to.equal(parseEther("49.99"));
+      // Recycle gives 6 UTC (60 ships × 0.1 UC recycle reward)
+      expect(utcReceivedRecycle).to.equal(parseEther("6"));
 
-      // Direct purchase gives owner full FLOW (99.99 FLOW)
-      expect(flowReceivedDirect).to.equal(parseEther("99.99"));
+      // Direct purchase gives owner full FLOW (49.99 FLOW)
+      expect(flowReceivedDirect).to.equal(parseEther("49.99"));
 
       // Ship purchase: referrer gets commission, Ships contract retains the rest
       // We've already verified:
       // - Referrer received exactly expectedReferralAmount (0 FLOW for < 1000 ships)
-      // - Ships contract retained exactly expectedShipsRetention (99.99 FLOW)
+      // - Ships contract retained exactly expectedShipsRetention (49.99 FLOW)
       // Now verify the comparison:
-      // Direct purchase: 99.99 FLOW (no referral paid)
-      // Ship purchase: 99.99 FLOW (after 0% referral = 0 FLOW paid out)
+      // Direct purchase: 49.99 FLOW (no referral paid)
+      // Ship purchase: 49.99 FLOW (after 0% referral = 0 FLOW paid out)
       // With 0% referral, both should be equal
       if (expectedReferralPercentage > 0n) {
         expect(flowReceivedRecycle < flowReceivedDirect).to.be.true;
@@ -2835,7 +2925,7 @@ describe("Ships", function () {
       // Purchase UTC to send FLOW to contract
       await shipPurchaser.write.purchaseUTCWithFlow(
         [user1.account.address, 4n],
-        { value: parseEther("99.99"), account: user1.account }
+        { value: parseEther("49.99"), account: user1.account }
       );
 
       const initialOwnerBalance = await publicClient.getBalance({
@@ -2845,7 +2935,7 @@ describe("Ships", function () {
         address: shipPurchaser.address,
       });
 
-      expect(contractBalance).to.equal(parseEther("99.99"));
+      expect(contractBalance).to.equal(parseEther("49.99"));
 
       // Owner withdraws FLOW
       await shipPurchaser.write.withdrawFlow({ account: owner.account });
@@ -2909,16 +2999,16 @@ describe("Ships", function () {
       // User1 purchases but sends UTC to user2
       await shipPurchaser.write.purchaseUTCWithFlow(
         [user2.account.address, 4n],
-        { value: parseEther("99.99"), account: user1.account }
+        { value: parseEther("49.99"), account: user1.account }
       );
 
       const finalBalanceUser2 = await universalCredits.read.balanceOf([
         user2.account.address,
       ]);
 
-      // User2 should receive the UTC (99.99 UC for tier 4, 1:1 with FLOW price)
+      // User2 should receive the UTC (49.99 UC for tier 4, 1:1 with FLOW price)
       expect(finalBalanceUser2 - initialBalanceUser2).to.equal(
-        parseEther("99.99")
+        parseEther("49.99")
       );
     });
   });

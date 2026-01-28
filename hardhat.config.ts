@@ -45,6 +45,14 @@ const config: HardhatUserConfig = {
           browserURL: "https://evm-testnet.flowscan.io",
         },
       },
+      {
+        network: "ronin-saigon",
+        chainId: 2021,
+        urls: {
+          apiURL: "https://saigon-testnet.roninchain.com/rpc",
+          browserURL: "https://saigon-app.roninchain.com/",
+        },
+      },
     ],
   },
   networks: {

@@ -78,10 +78,10 @@ const DeployModule = buildModule("DeployModule", (m) => {
   const metadataRenderer = m.contract("RenderMetadata", [imageRenderer]);
 
   // Deploy mock ship names
-  const shipNames = m.contract("MockOnchainRandomShipNames");
+  // const shipNames = m.contract("MockOnchainRandomShipNames");
 
   // For testnet use
-  // const shipNames = "0x9E433A07D283d56E8243EA25b7358521b1922df5";
+  const shipNames = "0x9E433A07D283d56E8243EA25b7358521b1922df5";
 
   // Deploy GenerateNewShip with ship names
   const generateNewShip = m.contract("GenerateNewShip", [shipNames]);
@@ -202,6 +202,35 @@ const DeployModule = buildModule("DeployModule", (m) => {
   // );
 
   // m.call(ships, "constructAllMyShips");
+
+  // Set the tiers for different chains
+
+  // const tierUSDPrices = [4.99, 9.99, 19.99, 34.99, 49.99];
+  // const tierSHIPS = [5, 11, 22, 40, 60];
+
+  // // Base
+
+  // const TOKEN_PRICE_USD = 3000;
+
+  // // Calculate the price in native token (wei) for each tier.
+  // // Each tierUSDPrice is the desired total USD value for the tier.
+  // // Given 1 native token = TOKEN_PRICE_USD, priceInNative = usdPrice / TOKEN_PRICE_USD.
+  // const tierPrices = tierUSDPrices.map((usdPrice) =>
+  //   parseEther((usdPrice / TOKEN_PRICE_USD).toString()),
+  // );
+
+  // // Set the tiers for different chains
+  // m.call(ships, "setTiers", [tierSHIPS, tierPrices]);
+
+  // RONIN SAIGON - Reduce price due to token scarcity
+  const tierDefaultPrices = [4.99, 9.99, 19.99, 34.99, 49.99];
+  const tierSHIPS = [5, 11, 22, 40, 60];
+
+  // Divide prices by 1000 for lower prices for testing to save tokens
+  const tierPrices = tierDefaultPrices.map((price) => price / 1000);
+
+  // Set the tiers for different chains
+  m.call(ships, "setTiers", [tierSHIPS, tierPrices]);
 
   return {
     randomManager,

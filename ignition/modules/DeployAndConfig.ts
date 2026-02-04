@@ -80,8 +80,11 @@ const DeployModule = buildModule("DeployModule", (m) => {
   // Deploy mock ship names
   // const shipNames = m.contract("MockOnchainRandomShipNames");
 
-  // For testnet use
-  const shipNames = "0x9E433A07D283d56E8243EA25b7358521b1922df5";
+  // For Flow testnet use
+  // const shipNames = "0x9E433A07D283d56E8243EA25b7358521b1922df5";
+
+  // For Ronin Saigon testnet use
+  const shipNames = "0x3866a81241Ec61414a3A7A99486f6652fFd0743C";
 
   // Deploy GenerateNewShip with ship names
   const generateNewShip = m.contract("GenerateNewShip", [shipNames]);
@@ -222,15 +225,15 @@ const DeployModule = buildModule("DeployModule", (m) => {
   // // Set the tiers for different chains
   // m.call(ships, "setTiers", [tierSHIPS, tierPrices]);
 
-  // RONIN SAIGON - Reduce price due to token scarcity
-  const tierDefaultPrices = [4.99, 9.99, 19.99, 34.99, 49.99];
-  const tierSHIPS = [5, 11, 22, 40, 60];
+  // RONIN SAIGON - Reduce price due to testnet token scarcity
+  // const tierDefaultPrices = [4.99, 9.99, 19.99, 34.99, 49.99];
+  // const tierSHIPS = [5, 11, 22, 40, 60];
 
-  // Divide prices by 1000 for lower prices for testing to save tokens
-  const tierPrices = tierDefaultPrices.map((price) => price / 1000);
+  // // Divide prices by 1000 for lower prices for testing to save tokens
+  // const tierPrices = tierDefaultPrices.map((price) => price / 1000);
 
-  // Set the tiers for different chains
-  m.call(ships, "setTiers", [tierSHIPS, tierPrices]);
+  // // Set the tiers for different chains
+  // m.call(ships, "setPurchaseInfo", [tierSHIPS, tierPrices]);
 
   return {
     randomManager,

@@ -66,6 +66,10 @@ const config: HardhatUserConfig = {
       accounts: [process.env.METAMASK_WALLET_1 as string],
       gas: 500000,
     },
+    "ronin-saigon": {
+      url: "https://saigon-testnet.roninchain.com/rpc",
+      accounts: [process.env.METAMASK_WALLET_1 as string],
+    },
     // CRITICAL: CHANGE NAMES CONTRACT ADDRESS BEFORE ADDING AND DEPLOYING ON MAINNET
   },
   gasReporter: {

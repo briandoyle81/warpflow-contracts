@@ -1720,12 +1720,20 @@ describe("Game", function () {
       const maxCol = 16; // GRID_WIDTH - 1
       const newCol = Math.min(startCol + movement, maxCol);
 
-      // Switch back to creator's turn by having joiner move
+      // Joiner move completes round 1; round 2 starts with second player (joiner when creatorGoesFirst)
       await game.write.moveShip([1n, 6n, 10, newCol, ActionType.Pass, 0n], {
         account: joiner.account,
       });
 
-      // Second move: from (0, 1) to (0, 2)
+      // Round 2: joiner goes first (alternating), so joiner moves again before creator
+      const gameDataRound2 = (await game.read.getGame([1n])) as unknown as GameDataView;
+      const joinerPosRound2 = findShipPosition(gameDataRound2, 6n);
+      await game.write.moveShip(
+        [1n, 6n, joinerPosRound2.row, joinerPosRound2.col, ActionType.Pass, 0n],
+        { account: joiner.account }
+      );
+
+      // Second move: creator from (0, 1) to (0, 2)
       const secondMoveTx = await game.write.moveShip(
         [1n, 1n, 0, 2, ActionType.Pass, 0n],
         {
@@ -1868,13 +1876,18 @@ describe("Game", function () {
       // Joiner moves second ship (completing the round)
       await moveShipWithinMovement(game, 1n, 7n, joiner.account);
 
-      // Verify turn is back to creator and round has incremented
+      // Round 2 starts with second player (joiner when creatorGoesFirst)
+      gameData = (await game.read.getGame([1n])) as any;
+      expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
+      );
+
+      // Joiner moves in round 2, then creator
+      await moveShipWithinMovement(game, 1n, 6n, joiner.account);
       gameData = (await game.read.getGame([1n])) as any;
       expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
         creator.account.address.toLowerCase()
       );
-
-      // Verify ships can move again in new round
       await game.write.moveShip([1n, 1n, 0, 2, ActionType.Pass, 0n], {
         account: creator.account,
       });
@@ -2100,13 +2113,15 @@ describe("Game", function () {
       // Round 1: Joiner moves fifth ship (completing the round)
       await moveShipWithinMovement(game, 1n, 10n, joiner.account);
 
-      // Verify turn is back to creator and round has incremented
+      // Round 2 starts with second player (joiner when creatorGoesFirst)
       let gameData = (await game.read.getGame([1n])) as any;
       expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
+      );
+      await moveShipWithinMovement(game, 1n, 6n, joiner.account);
+      expect((await game.read.getGame([1n]) as any).turnState.currentTurn.toLowerCase()).to.equal(
         creator.account.address.toLowerCase()
       );
-
-      // Verify ships can move again in new round
       await game.write.moveShip([1n, 1n, 0, 2, ActionType.Pass, 0n], {
         account: creator.account,
       });
@@ -2341,13 +2356,15 @@ describe("Game", function () {
       await moveShipWithinMovement(game, 1n, 6n, joiner.account);
       await moveShipWithinMovement(game, 1n, 7n, joiner.account);
 
-      // Verify turn is back to creator and round has incremented
+      // Round 2 starts with joiner (alternating first player)
       const gameData = (await game.read.getGame([1n])) as any;
       expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
+      );
+      await moveShipWithinMovement(game, 1n, 6n, joiner.account);
+      expect((await game.read.getGame([1n]) as any).turnState.currentTurn.toLowerCase()).to.equal(
         creator.account.address.toLowerCase()
       );
-
-      // Verify ships can move again in new round
       await game.write.moveShip([1n, 2n, 2, 2, ActionType.Pass, 0n], {
         account: creator.account,
       });
@@ -2538,13 +2555,15 @@ describe("Game", function () {
         true
       );
 
-      // Verify turn is back to creator and round has incremented
+      // Round 2 starts with joiner (alternating)
       const gameData = (await game.read.getGame([1n])) as any;
       expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
+      );
+      await moveShipWithinMovement(game, 1n, 6n, joiner.account);
+      expect((await game.read.getGame([1n]) as any).turnState.currentTurn.toLowerCase()).to.equal(
         creator.account.address.toLowerCase()
       );
-
-      // Verify ships can move again in new round
       await game.write.moveShip([1n, 2n, 2, 3, ActionType.Pass, 0n], {
         account: creator.account,
       });
@@ -2727,13 +2746,15 @@ describe("Game", function () {
       // Round 1: Joiner moves third ship (completing the round)
       await moveShipWithinMovement(game, 1n, 8n, joiner.account);
 
-      // Verify turn is back to creator and round has incremented
+      // Round 2 starts with joiner (alternating)
       gameData = (await game.read.getGame([1n])) as any;
       expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
+      );
+      await moveShipWithinMovement(game, 1n, 6n, joiner.account);
+      expect((await game.read.getGame([1n]) as any).turnState.currentTurn.toLowerCase()).to.equal(
         creator.account.address.toLowerCase()
       );
-
-      // Verify ships can move again in new round
       await game.write.moveShip([1n, 1n, 0, 2, ActionType.Pass, 0n], {
         account: creator.account,
       });
@@ -2834,13 +2855,15 @@ describe("Game", function () {
       // Round 1: Joiner moves third ship (completing the round)
       await moveShipWithinMovement(game, 1n, 8n, joiner.account);
 
-      // Now, round should increment and turn should go back to creator
+      // Round 2 starts with joiner (alternating)
       gameData = (await game.read.getGame([1n])) as any;
       expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
+      );
+      await moveShipWithinMovement(game, 1n, 6n, joiner.account);
+      expect((await game.read.getGame([1n]) as any).turnState.currentTurn.toLowerCase()).to.equal(
         creator.account.address.toLowerCase()
       );
-
-      // Verify ships can move again in new round
       await game.write.moveShip([1n, 1n, 0, 2, ActionType.Pass, 0n], {
         account: creator.account,
       });
@@ -3479,13 +3502,15 @@ describe("Game", function () {
         true
       );
 
-      // Verify turn is back to creator and round has incremented
+      // Round 2 starts with joiner (alternating)
       const gameData = (await game.read.getGame([1n])) as any;
       expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
+      );
+      await moveShipWithinMovement(game, 1n, 6n, joiner.account);
+      expect((await game.read.getGame([1n]) as any).turnState.currentTurn.toLowerCase()).to.equal(
         creator.account.address.toLowerCase()
       );
-
-      // Verify ships can move again in new round
       await game.write.moveShip([1n, 2n, 2, 3, ActionType.Pass, 0n], {
         account: creator.account,
       });
@@ -3654,11 +3679,11 @@ describe("Game", function () {
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
-      // Create fleets with one ship each
+      // Create fleets with two creator ships so creator can move one while the other has 0 HP
       await creatorLobbies.write.createFleet([
         1n,
-        [1n],
-        generateStartingPositions([1n], true),
+        [1n, 2n],
+        generateStartingPositions([1n, 2n], true),
       ]);
       await joinerLobbies.write.createFleet([
         1n,
@@ -3666,51 +3691,49 @@ describe("Game", function () {
         generateStartingPositions([6n], false),
       ]);
 
-      // Complete the first round
+      // Complete the first round (turn order: creator, joiner, creator)
       let gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
-      const creatorPos = findShipPosition(gameData, 1n);
+      const creatorPos1 = findShipPosition(gameData, 1n);
       await game.write.moveShip(
-        [1n, 1n, creatorPos.row, creatorPos.col, ActionType.Pass, 0n],
+        [1n, 1n, creatorPos1.row, creatorPos1.col, ActionType.Pass, 0n],
         { account: creator.account }
       );
-
       gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
       const joinerPos = findShipPosition(gameData, 6n);
       await game.write.moveShip(
         [1n, 6n, joinerPos.row, joinerPos.col, ActionType.Pass, 0n],
         { account: joiner.account }
       );
+      gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
+      const creatorPos2 = findShipPosition(gameData, 2n);
+      await game.write.moveShip(
+        [1n, 2n, creatorPos2.row, creatorPos2.col, ActionType.Pass, 0n],
+        { account: creator.account }
+      );
 
-      // Now set player 1's ship HP to 0 (after round has ended)
+      // Now set creator's ship 1 HP to 0 (after round has ended)
       await (game.write as any).debugSetHullPointsToZero([1n, 1], {
         account: owner.account,
       });
 
-      // Verify ship 1 has 0 HP and 0 reactor critical timer
       const ship1Attrs = await game.read.getShipAttributes([1n, 1]);
       expect(ship1Attrs.hullPoints).to.equal(0);
       expect(ship1Attrs.reactorCriticalTimer).to.equal(0);
 
-      // Start a new round by having both players move again
-      // Since ship 1 has 0 HP, it can't move, but the round should complete when ship 6 moves
+      // Round 2 starts with joiner (alternating); joiner moves first, then creator moves ship 2
       gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
-
-      // Since it's the creator's turn but creator's ship has 0 HP,
-      // the creator can't move. Use debug function to auto-pass the creator's turn
-      await (game.write as any).debugAutoPassTurn([1n], {
-        account: owner.account,
-      });
-
-      // Now it should be joiner's turn
-      gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
-
       const joinerPos2 = findShipPosition(gameData, 6n);
       await game.write.moveShip(
         [1n, 6n, joinerPos2.row, joinerPos2.col, ActionType.Pass, 0n],
         { account: joiner.account }
       );
+      gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
+      const creatorPos2Again = findShipPosition(gameData, 2n);
+      await game.write.moveShip(
+        [1n, 2n, creatorPos2Again.row, creatorPos2Again.col, ActionType.Pass, 0n],
+        { account: creator.account }
+      );
 
-      // Verify reactor critical timer was incremented at the beginning of the new round
       const ship1AttrsAfter = await game.read.getShipAttributes([1n, 1]);
       expect(ship1AttrsAfter.reactorCriticalTimer).to.equal(1);
     });
@@ -3778,9 +3801,9 @@ describe("Game", function () {
       });
 
       // Have all players use no-op moves until ship 1's reactor critical timer is 3
+      // Odd game rounds (1, 3): creator first. Even (2): joiner first.
       let round = 0;
       while (round < 3) {
-        // Get current positions for no-op moves
         const gameData = (await game.read.getGame([
           1n,
         ])) as unknown as GameDataView;
@@ -3788,49 +3811,39 @@ describe("Game", function () {
         const joinerPos1 = findShipPosition(gameData, 6n);
         const joinerPos2 = findShipPosition(gameData, 7n);
 
-        // Creator moves ship 2 in place (skip ship 1 since it has 0 HP)
-        await game.write.moveShip(
-          [1n, 2n, creatorPos2.row, creatorPos2.col, ActionType.Pass, 0n],
-          { account: creator.account }
-        );
-
-        // Joiner moves both ships in place
-        await game.write.moveShip(
-          [1n, 6n, joinerPos1.row, joinerPos1.col, ActionType.Pass, 0n],
-          { account: joiner.account }
-        );
-        await game.write.moveShip(
-          [1n, 7n, joinerPos2.row, joinerPos2.col, ActionType.Pass, 0n],
-          { account: joiner.account }
-        );
-
+        if (round % 2 === 0) {
+          // Round 1, 3: creator first
+          await game.write.moveShip(
+            [1n, 2n, creatorPos2.row, creatorPos2.col, ActionType.Pass, 0n],
+            { account: creator.account }
+          );
+          await game.write.moveShip(
+            [1n, 6n, joinerPos1.row, joinerPos1.col, ActionType.Pass, 0n],
+            { account: joiner.account }
+          );
+          await game.write.moveShip(
+            [1n, 7n, joinerPos2.row, joinerPos2.col, ActionType.Pass, 0n],
+            { account: joiner.account }
+          );
+        } else {
+          // Round 2: joiner first; order joiner 6, creator 2, joiner 7
+          await game.write.moveShip(
+            [1n, 6n, joinerPos1.row, joinerPos1.col, ActionType.Pass, 0n],
+            { account: joiner.account }
+          );
+          await game.write.moveShip(
+            [1n, 2n, creatorPos2.row, creatorPos2.col, ActionType.Pass, 0n],
+            { account: creator.account }
+          );
+          await game.write.moveShip(
+            [1n, 7n, joinerPos2.row, joinerPos2.col, ActionType.Pass, 0n],
+            { account: joiner.account }
+          );
+        }
         round++;
       }
 
-      // Verify ship 1's reactor critical timer is 3
-      const ship1Attrs = await game.read.getShipAttributes([1n, 1]);
-      expect(ship1Attrs.reactorCriticalTimer).to.equal(3);
-
-      // Complete one more round to trigger destruction
-      let gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
-      const creatorPos2 = findShipPosition(gameData, 2n);
-      const joinerPos1 = findShipPosition(gameData, 6n);
-      const joinerPos2 = findShipPosition(gameData, 7n);
-
-      // Creator moves ship 2 in place (skip ship 1 since it has 0 HP)
-      await game.write.moveShip(
-        [1n, 2n, creatorPos2.row, creatorPos2.col, ActionType.Pass, 0n],
-        { account: creator.account }
-      );
-      await game.write.moveShip(
-        [1n, 6n, joinerPos1.row, joinerPos1.col, ActionType.Pass, 0n],
-        { account: joiner.account }
-      );
-      await game.write.moveShip(
-        [1n, 7n, joinerPos2.row, joinerPos2.col, ActionType.Pass, 0n],
-        { account: joiner.account }
-      );
-
+      // Ship 1 reaches timer 3 at start of round 3 and is destroyed instantly (no longer at end of round)
       // Verify ship 1 was destroyed due to critical reactor timer
       const ship1Tuple = await ships.read.ships([1n]);
       const ship1 = tupleToShip(ship1Tuple);
@@ -3847,18 +3860,34 @@ describe("Game", function () {
       expect(remainingShipIds).to.include(7n); // Joiner's ship 7
       expect(remainingShipIds).to.not.include(1n); // Ship 1 should be destroyed
 
-      // Confirm that players can continue to play by having them move their remaining ships
-      gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
-      const creatorPos2After = findShipPosition(gameData, 2n);
-      const joinerPos1After = findShipPosition(gameData, 6n);
+      // Next round starts with joiner (alternating); one move each: joiner 6, creator 2, joiner 7
+      const gameDataAfterDestroy = (await game.read.getGame([1n])) as unknown as GameDataView;
+      const joinerPos1After = findShipPosition(gameDataAfterDestroy, 6n);
+      const joinerPos2After = findShipPosition(gameDataAfterDestroy, 7n);
+      const creatorPos2After = findShipPosition(gameDataAfterDestroy, 2n);
+      await game.write.moveShip(
+        [1n, 6n, joinerPos1After.row, joinerPos1After.col, ActionType.Pass, 0n],
+        { account: joiner.account }
+      );
+      await game.write.moveShip(
+        [1n, 2n, creatorPos2After.row, creatorPos2After.col, ActionType.Pass, 0n],
+        { account: creator.account }
+      );
+      await game.write.moveShip(
+        [1n, 7n, joinerPos2After.row, joinerPos2After.col, ActionType.Pass, 0n],
+        { account: joiner.account }
+      );
 
-      // Move remaining ships to new positions
+      // Move remaining ships to new positions (next round: creator first)
+      const gameDataFinal = (await game.read.getGame([1n])) as unknown as GameDataView;
+      const creatorPos2Final = findShipPosition(gameDataFinal, 2n);
+      const joinerPos6Final = findShipPosition(gameDataFinal, 6n);
       await game.write.moveShip(
         [
           1n,
           2n,
-          creatorPos2After.row + 1,
-          creatorPos2After.col,
+          creatorPos2Final.row + 1,
+          creatorPos2Final.col,
           ActionType.Pass,
           0n,
         ],
@@ -3868,8 +3897,8 @@ describe("Game", function () {
         [
           1n,
           6n,
-          joinerPos1After.row - 1,
-          joinerPos1After.col - 1,
+          joinerPos6Final.row - 1,
+          joinerPos6Final.col - 1,
           ActionType.Pass,
           0n,
         ],
@@ -3990,7 +4019,7 @@ describe("Game", function () {
       );
     });
 
-    it("should allow ships to assist friendly ships with 0 HP to retreat", async function () {
+    it("should allow retreat (flee) for a ship with 0 HP as creator's turn", async function () {
       const {
         creatorLobbies,
         joinerLobbies,
@@ -4002,7 +4031,6 @@ describe("Game", function () {
         owner,
       } = await loadFixture(deployGameFixture);
 
-      // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
         { value: parseEther("4.99") }
@@ -4011,31 +4039,19 @@ describe("Game", function () {
         [joiner.account.address, 0n, creator.account.address, 1],
         { value: parseEther("4.99") }
       );
-
-      // Get ships' serial numbers and fulfill random requests
       for (let i = 1; i <= 10; i++) {
         const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
         const ship = tupleToShip(shipTuple);
-        const serialNumber = ship.traits.serialNumber;
-        await randomManager.write.fulfillRandomRequest([serialNumber]);
+        await randomManager.write.fulfillRandomRequest([ship.traits.serialNumber]);
       }
-
-      // Construct all ships for both players
       await ships.write.constructAllMyShips({ account: creator.account });
       await ships.write.constructAllMyShips({ account: joiner.account });
 
-      // Create a game
       await creatorLobbies.write.createLobby([
-        1000n,
-        300n,
-        true,
-        0n, // selectedMapId - no preset map,
-        100n, // maxScore
-        zeroAddress, // reservedJoiner - no reservation
+        1000n, 300n, true, 0n, 100n, zeroAddress,
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
-      // Create fleets with two ships each
       await creatorLobbies.write.createFleet([
         1n,
         [1n, 2n],
@@ -4047,47 +4063,29 @@ describe("Game", function () {
         generateStartingPositions([6n, 7n], false),
       ]);
 
-      // Get initial ship positions
       let gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
       const creatorPos1 = findShipPosition(gameData, 1n);
-      const creatorPos2 = findShipPosition(gameData, 2n);
 
-      // Set ship 1's HP to 0 using debug function
       await (game.write as any).debugSetHullPointsToZero([1n, 1], {
         account: owner.account,
       });
-
-      // Verify ship 1 has 0 HP
       const ship1Attrs = await game.read.getShipAttributes([1n, 1]);
       expect(ship1Attrs.hullPoints).to.equal(0);
 
-      // Move ship 2 adjacent to ship 1 and assist it
-      // Ship 1 is at (0, 5), ship 2 is at (2, 5)
-      // Move ship 2 to (1, 5) to be adjacent to ship 1
-      await game.write.moveShip([1n, 2n, 1, 0, ActionType.Assist, 1], {
-        account: creator.account,
-      });
-
-      // Verify ship 1 was retreated (no longer on the grid)
-      const allShipPositions = await game.read.getAllShipPositions([1n]);
-      const shipAtPosition = allShipPositions.find(
-        (pos) => pos.position.row === 0 && pos.position.col === 5
+      // Retreat (flee) ship 1 as creator's turn (Retreat allowed for 0 HP and already-moved ships)
+      await game.write.moveShip(
+        [1n, 1n, creatorPos1.row, creatorPos1.col, ActionType.Retreat, 0n],
+        { account: creator.account }
       );
-      expect(shipAtPosition).to.be.undefined;
 
-      // Verify ship 1 is excluded from getAllShipPositions
       const positions = (await game.read.getAllShipPositions([1n])) as any;
-      expect(positions.length).to.equal(3); // Creator's ship 2, joiner's ships 6 and 7 remain
-
-      // Verify the remaining ships are the correct ones
+      expect(positions.length).to.equal(3);
       const remainingShipIds = positions.map((pos: any) => pos.shipId);
-      expect(remainingShipIds).to.include(2n); // Creator's ship 2
-      expect(remainingShipIds).to.include(6n); // Joiner's ship 6
-      expect(remainingShipIds).to.include(7n); // Joiner's ship 7
-      expect(remainingShipIds).to.not.include(1n); // Ship 1 should be assisted/retreated
+      expect(remainingShipIds).to.include(2n);
+      expect(remainingShipIds).to.include(6n);
+      expect(remainingShipIds).to.include(7n);
+      expect(remainingShipIds).to.not.include(1n);
 
-      // Verify that the game can continue with remaining ships
-      // After assist, it should be joiner's turn
       gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
       const joinerPos1 = findShipPosition(gameData, 6n);
       await game.write.moveShip(
@@ -4663,22 +4661,19 @@ describe("Game", function () {
       ]);
       await hre.network.provider.send("evm_mine", []);
 
-      // Check that turn has timed out by checking if forceMoveOnTimeout can be called
-      // Verify that the current player (creator) cannot call forceMoveOnTimeout
+      // Timeout: other player calls endGameOnTimeout to claim win (timed-out player forfeits)
       await expect(
-        game.write.forceMoveOnTimeout([gameId], { account: creator.account })
+        game.write.endGameOnTimeout([gameId], { account: creator.account })
       ).to.be.rejectedWith("NotYourTurn");
 
-      // Force move on timeout (called by the other player - joiner)
-      await game.write.forceMoveOnTimeout([gameId], {
+      await game.write.endGameOnTimeout([gameId], {
         account: joiner.account,
       });
 
-      // Check that turn has switched to joiner
-      const gameDataAfterForceMove = (await game.read.getGame([gameId])) as any;
-      expect(
-        gameDataAfterForceMove.turnState.currentTurn.toLowerCase()
-      ).to.equal(joiner.account.address.toLowerCase()); // currentTurn
+      const gameDataAfterTimeout = (await game.read.getGame([gameId])) as any;
+      expect(gameDataAfterTimeout.metadata.winner?.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
+      );
     });
 
     it("should allow either player to flee and end the game", async function () {

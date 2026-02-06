@@ -157,6 +157,9 @@ struct GameData {
     EnumerableSet.UintSet shipsWithZeroHP; // shipIds with 0 hull points
     // Store active ship IDs for each player to avoid repeated fleet calls
     mapping(address => EnumerableSet.UintSet) playerActiveShipIds; // player => shipIds
+    // Round completion: use counts at round start so destroyed/retreated ships don't shrink the threshold
+    uint totalActiveShipsAtRoundStart; // set at start of each round
+    uint shipsRemovedThisRound; // destroyed or retreated this round (incremented in _removeShipFromGame)
 }
 
 struct GameDataView {

@@ -131,6 +131,12 @@ contract Game is Ownable {
         _initializeFleetAttributes(gameCount, _creatorFleetId, _joinerFleetId);
         _placeShipsOnGrid(gameCount, _creatorFleetId, _joinerFleetId);
 
+        GameData storage gameAfterPlace = games[gameCount];
+        gameAfterPlace.totalActiveShipsAtRoundStart =
+            EnumerableSet.length(gameAfterPlace.playerActiveShipIds[gameAfterPlace.metadata.creator]) +
+            EnumerableSet.length(gameAfterPlace.playerActiveShipIds[gameAfterPlace.metadata.joiner]);
+        gameAfterPlace.shipsRemovedThisRound = 0;
+
         // Track game for both players
         playerGames[_creator].push(gameCount);
         playerGames[_joiner].push(gameCount);
@@ -714,25 +720,17 @@ contract Game is Ownable {
     }
 
     // Check if both players have moved all their ships (round complete)
+    // Use totalActiveShipsAtRoundStart so that when ships are destroyed/retreated mid-round
+    // the threshold does not drop and the round does not end before all surviving ships have moved.
     function _checkRoundComplete(uint _gameId) internal view returns (bool) {
         GameData storage game = games[_gameId];
 
-        // Get total active ships
-        uint totalActiveShips = EnumerableSet.length(
-            game.playerActiveShipIds[game.metadata.creator]
-        ) +
-            EnumerableSet.length(
-                game.playerActiveShipIds[game.metadata.joiner]
-            );
-
-        // Get moved ships this round
         uint movedShips = EnumerableSet.length(game.shipMovedThisRound);
-
-        // Get ships with 0 HP that can't move
         uint shipsWithZeroHP = EnumerableSet.length(game.shipsWithZeroHP);
 
-        // Round is complete when all ships have either moved or have 0 HP
-        return (movedShips + shipsWithZeroHP) >= totalActiveShips;
+        // Round is complete when every ship that was active at round start has either
+        // moved, has 0 HP, or has been removed (destroyed or retreated) this round.
+        return (movedShips + shipsWithZeroHP + game.shipsRemovedThisRound) >= game.totalActiveShipsAtRoundStart;
     }
 
     // Switch turns only if the other player has unmoved ships
@@ -1088,6 +1086,9 @@ contract Game is Ownable {
 
         // Remove ship from zero HP set since it's no longer active
         EnumerableSet.remove(game.shipsWithZeroHP, _shipId);
+
+        // Count for round completion so round does not end early when ships are destroyed/retreated mid-round
+        game.shipsRemovedThisRound++;
 
         // Different behavior for retreat vs destroy
         if (_isRetreat) {
@@ -1452,9 +1453,15 @@ contract Game is Ownable {
 
         // Clear the moved ships set for the new round
         EnumerableSet.clear(game.shipMovedThisRound);
+        game.shipsRemovedThisRound = 0;
 
         // Beginning of new round: increment reactorCriticalTimer for ships with 0 HP
         _incrementReactorCriticalTimerForZeroHPShips(_gameId);
+
+        // Snapshot active ship count for this round (so mid-round destroys don't shrink the completion threshold)
+        game.totalActiveShipsAtRoundStart =
+            EnumerableSet.length(game.playerActiveShipIds[game.metadata.creator]) +
+            EnumerableSet.length(game.playerActiveShipIds[game.metadata.joiner]);
 
         // Alternate who goes first each round. creatorGoesFirst is set by Lobbies from
         // who selected fleet first (true = creator selected first, false = joiner).

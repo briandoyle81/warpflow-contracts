@@ -2370,6 +2370,77 @@ describe("Game", function () {
       });
     });
 
+    it("should not end round when joiner has more ships until all surviving ships have moved (no skipped ships)", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+        owner,
+      } = await loadFixture(deployGameFixture);
+
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address, 1],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address, 1],
+        { value: parseEther("4.99") }
+      );
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        await randomManager.write.fulfillRandomRequest([ship.traits.serialNumber]);
+      }
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      await creatorLobbies.write.createLobby([
+        1000n, 300n, true, 0n, 100n, zeroAddress,
+      ]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n, 2n],
+        generateStartingPositions([1n, 2n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n, 7n, 8n, 9n],
+        generateStartingPositions([6n, 7n, 8n, 9n], false),
+      ]);
+
+      // Turn order: creator 1, joiner 6, creator 2 -> then joiner's turn. Destroy 8 and 9 so joiner must still move ship 7.
+      let gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
+      const creatorPos1 = findShipPosition(gameData, 1n);
+      await game.write.moveShip([1n, 1n, creatorPos1.row, creatorPos1.col, ActionType.Pass, 0n], { account: creator.account });
+      gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
+      const joinerPos6 = findShipPosition(gameData, 6n);
+      await game.write.moveShip([1n, 6n, joinerPos6.row, joinerPos6.col, ActionType.Pass, 0n], { account: joiner.account });
+      gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
+      const creatorPos2 = findShipPosition(gameData, 2n);
+      await game.write.moveShip([1n, 2n, creatorPos2.row, creatorPos2.col, ActionType.Pass, 0n], { account: creator.account });
+
+      await (game.write as any).debugDestroyShip([1n, 8], { account: owner.account });
+      await (game.write as any).debugDestroyShip([1n, 9], { account: owner.account });
+
+      const stateAfterDestroy = (await game.read.getGame([1n])) as any;
+      expect(stateAfterDestroy.turnState.currentTurn.toLowerCase()).to.equal(joiner.account.address.toLowerCase());
+      expect(stateAfterDestroy.turnState.currentRound).to.equal(1n);
+
+      gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
+      const joinerPos7 = findShipPosition(gameData, 7n);
+      await game.write.moveShip([1n, 7n, joinerPos7.row, joinerPos7.col, ActionType.Pass, 0n], { account: joiner.account });
+
+      const stateAfterJoiner7 = (await game.read.getGame([1n])) as any;
+      expect(stateAfterJoiner7.turnState.currentRound).to.equal(2n);
+      expect(stateAfterJoiner7.turnState.currentTurn.toLowerCase()).to.equal(joiner.account.address.toLowerCase());
+    });
+
     it("should remove destroyed ships from grid positions", async function () {
       const {
         creatorLobbies,
@@ -3860,10 +3931,10 @@ describe("Game", function () {
       expect(remainingShipIds).to.include(7n); // Joiner's ship 7
       expect(remainingShipIds).to.not.include(1n); // Ship 1 should be destroyed
 
-      // Next round starts with joiner (alternating); one move each: joiner 6, creator 2, joiner 7
+      // Next round starts with joiner; totalActiveShipsAtRoundStart=3, shipsRemovedThisRound=1 (ship 1 destroyed at round start).
+      // So we need 2 moves to complete round: joiner 6, creator 2 -> round completes, then creator's turn.
       const gameDataAfterDestroy = (await game.read.getGame([1n])) as unknown as GameDataView;
       const joinerPos1After = findShipPosition(gameDataAfterDestroy, 6n);
-      const joinerPos2After = findShipPosition(gameDataAfterDestroy, 7n);
       const creatorPos2After = findShipPosition(gameDataAfterDestroy, 2n);
       await game.write.moveShip(
         [1n, 6n, joinerPos1After.row, joinerPos1After.col, ActionType.Pass, 0n],
@@ -3873,12 +3944,8 @@ describe("Game", function () {
         [1n, 2n, creatorPos2After.row, creatorPos2After.col, ActionType.Pass, 0n],
         { account: creator.account }
       );
-      await game.write.moveShip(
-        [1n, 7n, joinerPos2After.row, joinerPos2After.col, ActionType.Pass, 0n],
-        { account: joiner.account }
-      );
 
-      // Move remaining ships to new positions (next round: creator first)
+      // Move remaining ships to new positions (round just completed; creator's turn)
       const gameDataFinal = (await game.read.getGame([1n])) as unknown as GameDataView;
       const creatorPos2Final = findShipPosition(gameDataFinal, 2n);
       const joinerPos6Final = findShipPosition(gameDataFinal, 6n);

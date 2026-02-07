@@ -72,6 +72,16 @@ interface IMaps {
     function mapCount() external view returns (uint);
 
     // Scoring tile functions
+    function getGameMapState(
+        uint _gameId
+    )
+        external
+        view
+        returns (
+            Position[] memory blockedPositions,
+            ScoringPosition[] memory scoringPositions
+        );
+
     function setScoringTile(
         uint _gameId,
         int16 _row,

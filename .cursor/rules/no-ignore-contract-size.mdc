@@ -1,0 +1,14 @@
+---
+description: Never ignore contract size limits for compilation
+alwaysApply: true
+---
+
+# Contract size: do not ignore for compilation
+
+You are **never** allowed to turn on or enable "ignore contract size" (or equivalent) for compilation.
+
+- Do **not** add or set options that skip or ignore contract size checks (e.g. in Hardhat, Solidity config, or contract-sizer).
+- Do **not** suggest disabling or bypassing the 24 KiB deployment / 24 KiB init size limits.
+- If contracts exceed size limits, reduce size by refactoring, libraries, or optimizer settings—do not disable the check.
+
+This applies to any config that would ignore or suppress contract size warnings/errors (e.g. `ignoreContractSizeLimit`, `ignoreSizeLimit`, or similar in this repo).

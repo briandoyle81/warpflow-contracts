@@ -133,8 +133,16 @@ contract Game is Ownable {
 
         GameData storage gameAfterPlace = games[gameCount];
         gameAfterPlace.totalActiveShipsAtRoundStart =
-            EnumerableSet.length(gameAfterPlace.playerActiveShipIds[gameAfterPlace.metadata.creator]) +
-            EnumerableSet.length(gameAfterPlace.playerActiveShipIds[gameAfterPlace.metadata.joiner]);
+            EnumerableSet.length(
+                gameAfterPlace.playerActiveShipIds[
+                    gameAfterPlace.metadata.creator
+                ]
+            ) +
+            EnumerableSet.length(
+                gameAfterPlace.playerActiveShipIds[
+                    gameAfterPlace.metadata.joiner
+                ]
+            );
         gameAfterPlace.shipsRemovedThisRound = 0;
 
         // Track game for both players
@@ -730,7 +738,9 @@ contract Game is Ownable {
 
         // Round is complete when every ship that was active at round start has either
         // moved, has 0 HP, or has been removed (destroyed or retreated) this round.
-        return (movedShips + shipsWithZeroHP + game.shipsRemovedThisRound) >= game.totalActiveShipsAtRoundStart;
+        return
+            (movedShips + shipsWithZeroHP + game.shipsRemovedThisRound) >=
+            game.totalActiveShipsAtRoundStart;
     }
 
     // Switch turns only if the other player has unmoved ships
@@ -1090,27 +1100,19 @@ contract Game is Ownable {
         // Count for round completion so round does not end early when ships are destroyed/retreated mid-round
         game.shipsRemovedThisRound++;
 
-        // Different behavior for retreat vs destroy
-        if (_isRetreat) {
-            // Remove ship from fleet
-            if (isCreatorShip) {
-                fleets.removeShipFromFleet(
-                    game.metadata.creatorFleetId,
-                    _shipId
-                );
-            } else {
-                fleets.removeShipFromFleet(
-                    game.metadata.joinerFleetId,
-                    _shipId
-                );
-            }
-
-            // Clean up ship data in the game contract
-            delete game.shipAttributes[_shipId];
-            delete game.shipPositions[_shipId];
+        // Remove ship from fleet
+        if (isCreatorShip) {
+            fleets.removeShipFromFleet(game.metadata.creatorFleetId, _shipId);
         } else {
-            // Call the Ships contract to mark the ship as destroyed
+            fleets.removeShipFromFleet(game.metadata.joinerFleetId, _shipId);
+        }
 
+        // Clean up ship data in the game contract
+        delete game.shipAttributes[_shipId];
+        delete game.shipPositions[_shipId];
+
+        // If this ship didn't retreat, set the timestamp destroyed
+        if (!_isRetreat) {
             ships.setTimestampDestroyed(_shipId, lastDamage[_shipId]);
         }
 
@@ -1168,7 +1170,9 @@ contract Game is Ownable {
                 if (game.shipAttributes[shipId].reactorCriticalTimer >= 3) {
                     _destroyShip(_gameId, shipId);
                     // Set shrinks; re-check same index
-                    zeroHPShipCount = EnumerableSet.length(game.shipsWithZeroHP);
+                    zeroHPShipCount = EnumerableSet.length(
+                        game.shipsWithZeroHP
+                    );
                     continue;
                 }
             }
@@ -1460,8 +1464,12 @@ contract Game is Ownable {
 
         // Snapshot active ship count for this round (so mid-round destroys don't shrink the completion threshold)
         game.totalActiveShipsAtRoundStart =
-            EnumerableSet.length(game.playerActiveShipIds[game.metadata.creator]) +
-            EnumerableSet.length(game.playerActiveShipIds[game.metadata.joiner]);
+            EnumerableSet.length(
+                game.playerActiveShipIds[game.metadata.creator]
+            ) +
+            EnumerableSet.length(
+                game.playerActiveShipIds[game.metadata.joiner]
+            );
 
         // Alternate who goes first each round. creatorGoesFirst is set by Lobbies from
         // who selected fleet first (true = creator selected first, false = joiner).

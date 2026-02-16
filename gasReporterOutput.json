@@ -273,10 +273,26 @@
     "contract": "Fleets",
     "method": "setGameAddress",
     "fnSig": "setGameAddress(address)",
-    "intrinsicGas": [],
-    "callData": [],
-    "gasData": [],
-    "numberOfCalls": 0
+    "intrinsicGas": [
+     21432,
+     21432,
+     21432
+    ],
+    "callData": [
+     0,
+     0,
+     0
+    ],
+    "gasData": [
+     46150,
+     46150,
+     46150
+    ],
+    "numberOfCalls": 3,
+    "executionGasAverage": 46150,
+    "calldataGasAverage": 0,
+    "min": 46150,
+    "max": 46150
    },
    "Fleets_eab56f7e": {
     "key": "eab56f7e",
@@ -459,10 +475,20 @@
     "contract": "Game",
     "method": "debugSetHullPointsToZero",
     "fnSig": "debugSetHullPointsToZero(uint256,uint256)",
-    "intrinsicGas": [],
-    "callData": [],
-    "gasData": [],
-    "numberOfCalls": 0
+    "intrinsicGas": [
+     21344
+    ],
+    "callData": [
+     0
+    ],
+    "gasData": [
+     98236
+    ],
+    "numberOfCalls": 1,
+    "executionGasAverage": 98236,
+    "calldataGasAverage": 0,
+    "min": 98236,
+    "max": 98236
    },
    "Game_ecd1406d": {
     "key": "ecd1406d",
@@ -646,10 +672,59 @@
     "contract": "Game",
     "method": "moveShip",
     "fnSig": "moveShip(uint256,uint256,int16,int16,uint8,uint256)",
-    "intrinsicGas": [],
-    "callData": [],
-    "gasData": [],
-    "numberOfCalls": 0
+    "intrinsicGas": [
+     21880,
+     21880,
+     21880,
+     21880,
+     21880,
+     21880,
+     21880,
+     21880,
+     21880,
+     21880,
+     21880,
+     21880,
+     21880,
+     21880
+    ],
+    "callData": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "gasData": [
+     295032,
+     299736,
+     299986,
+     307365,
+     312169,
+     319591,
+     335127,
+     336691,
+     339833,
+     380569,
+     1261715,
+     1274721,
+     1291831,
+     1518863
+    ],
+    "numberOfCalls": 14,
+    "executionGasAverage": 612374,
+    "calldataGasAverage": 0,
+    "min": 295032,
+    "max": 1518863
    },
    "Game_8da5cb5b": {
     "key": "8da5cb5b",
@@ -690,10 +765,26 @@
     "contract": "Game",
     "method": "setAddresses",
     "fnSig": "setAddresses(address,address,address,address,address)",
-    "intrinsicGas": [],
-    "callData": [],
-    "gasData": [],
-    "numberOfCalls": 0
+    "intrinsicGas": [
+     22904,
+     22904,
+     22904
+    ],
+    "callData": [
+     0,
+     0,
+     0
+    ],
+    "gasData": [
+     116693,
+     116693,
+     116693
+    ],
+    "numberOfCalls": 3,
+    "executionGasAverage": 116693,
+    "calldataGasAverage": 0,
+    "min": 116693,
+    "max": 116693
    },
    "Game_41f5f5e9": {
     "key": "41f5f5e9",
@@ -877,10 +968,26 @@
     "contract": "GameResults",
     "method": "setGameContract",
     "fnSig": "setGameContract(address)",
-    "intrinsicGas": [],
-    "callData": [],
-    "gasData": [],
-    "numberOfCalls": 0
+    "intrinsicGas": [
+     21432,
+     21432,
+     21432
+    ],
+    "callData": [
+     0,
+     0,
+     0
+    ],
+    "gasData": [
+     47230,
+     47230,
+     47230
+    ],
+    "numberOfCalls": 3,
+    "executionGasAverage": 47230,
+    "calldataGasAverage": 0,
+    "min": 47230,
+    "max": 47230
    },
    "GameResults_5c13e57a": {
     "key": "5c13e57a",
@@ -1097,10 +1204,23 @@
     "contract": "Lobbies",
     "method": "createFleet",
     "fnSig": "createFleet(uint256,uint256[],(int16,int16)[])",
-    "intrinsicGas": [],
-    "callData": [],
-    "gasData": [],
-    "numberOfCalls": 0
+    "intrinsicGas": [
+     22580,
+     22604
+    ],
+    "callData": [
+     0,
+     0
+    ],
+    "gasData": [
+     423573,
+     1677894
+    ],
+    "numberOfCalls": 2,
+    "executionGasAverage": 1050734,
+    "calldataGasAverage": 0,
+    "min": 423573,
+    "max": 1677894
    },
    "Lobbies_e3bf490d": {
     "key": "e3bf490d",
@@ -1108,10 +1228,20 @@
     "contract": "Lobbies",
     "method": "createLobby",
     "fnSig": "createLobby(uint256,uint256,bool,uint256,uint256,address)",
-    "intrinsicGas": [],
-    "callData": [],
-    "gasData": [],
-    "numberOfCalls": 0
+    "intrinsicGas": [
+     21904
+    ],
+    "callData": [
+     0
+    ],
+    "gasData": [
+     418863
+    ],
+    "numberOfCalls": 1,
+    "executionGasAverage": 418863,
+    "calldataGasAverage": 0,
+    "min": 418863,
+    "max": 418863
    },
    "Lobbies_311cfc8c": {
     "key": "311cfc8c",
@@ -1295,10 +1425,20 @@
     "contract": "Lobbies",
     "method": "joinLobby",
     "fnSig": "joinLobby(uint256)",
-    "intrinsicGas": [],
-    "callData": [],
-    "gasData": [],
-    "numberOfCalls": 0
+    "intrinsicGas": [
+     21204
+    ],
+    "callData": [
+     0
+    ],
+    "gasData": [
+     237986
+    ],
+    "numberOfCalls": 1,
+    "executionGasAverage": 237986,
+    "calldataGasAverage": 0,
+    "min": 237986,
+    "max": 237986
    },
    "Lobbies_948428f0": {
     "key": "948428f0",
@@ -1476,10 +1616,26 @@
     "contract": "Lobbies",
     "method": "setGameAddress",
     "fnSig": "setGameAddress(address)",
-    "intrinsicGas": [],
-    "callData": [],
-    "gasData": [],
-    "numberOfCalls": 0
+    "intrinsicGas": [
+     21432,
+     21432,
+     21432
+    ],
+    "callData": [
+     0,
+     0,
+     0
+    ],
+    "gasData": [
+     46156,
+     46156,
+     46156
+    ],
+    "numberOfCalls": 3,
+    "executionGasAverage": 46156,
+    "calldataGasAverage": 0,
+    "min": 46156,
+    "max": 46156
    },
    "Lobbies_aa717f05": {
     "key": "aa717f05",
@@ -1937,10 +2093,26 @@
     "contract": "Maps",
     "method": "setGameAddress",
     "fnSig": "setGameAddress(address)",
-    "intrinsicGas": [],
-    "callData": [],
-    "gasData": [],
-    "numberOfCalls": 0
+    "intrinsicGas": [
+     21432,
+     21432,
+     21432
+    ],
+    "callData": [
+     0,
+     0,
+     0
+    ],
+    "gasData": [
+     46099,
+     46099,
+     46099
+    ],
+    "numberOfCalls": 3,
+    "executionGasAverage": 46099,
+    "calldataGasAverage": 0,
+    "min": 46099,
+    "max": 46099
    },
    "Maps_709faade": {
     "key": "709faade",
@@ -1992,10 +2164,47 @@
     "contract": "RandomManager",
     "method": "fulfillRandomRequest",
     "fnSig": "fulfillRandomRequest(uint256)",
-    "intrinsicGas": [],
-    "callData": [],
-    "gasData": [],
-    "numberOfCalls": 0
+    "intrinsicGas": [
+     21576,
+     21576,
+     21552,
+     21576,
+     21576,
+     21576,
+     21564,
+     21576,
+     21576,
+     21576
+    ],
+    "callData": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "gasData": [
+     27068,
+     27080,
+     27092,
+     27092,
+     27092,
+     27092,
+     27092,
+     27092,
+     27092,
+     27092
+    ],
+    "numberOfCalls": 10,
+    "executionGasAverage": 27088,
+    "calldataGasAverage": 0,
+    "min": 27068,
+    "max": 27092
    },
    "RandomManager_f8413b07": {
     "key": "f8413b07",
@@ -3136,10 +3345,23 @@
     "contract": "Ships",
     "method": "constructAllMyShips",
     "fnSig": "constructAllMyShips()",
-    "intrinsicGas": [],
-    "callData": [],
-    "gasData": [],
-    "numberOfCalls": 0
+    "intrinsicGas": [
+     21064,
+     21064
+    ],
+    "callData": [
+     0,
+     0
+    ],
+    "gasData": [
+     771108,
+     771357
+    ],
+    "numberOfCalls": 2,
+    "executionGasAverage": 771233,
+    "calldataGasAverage": 0,
+    "min": 771108,
+    "max": 771357
    },
    "Ships_dd81d5bf": {
     "key": "dd81d5bf",
@@ -3345,10 +3567,23 @@
     "contract": "Ships",
     "method": "purchaseWithFlow",
     "fnSig": "purchaseWithFlow(address,uint8,address,uint16)",
-    "intrinsicGas": [],
-    "callData": [],
-    "gasData": [],
-    "numberOfCalls": 0
+    "intrinsicGas": [
+     22056,
+     22056
+    ],
+    "callData": [
+     0,
+     0
+    ],
+    "gasData": [
+     1000119,
+     1034319
+    ],
+    "numberOfCalls": 2,
+    "executionGasAverage": 1017219,
+    "calldataGasAverage": 0,
+    "min": 1000119,
+    "max": 1034319
    },
    "Ships_d08acd93": {
     "key": "d08acd93",
@@ -3433,10 +3668,26 @@
     "contract": "Ships",
     "method": "setConfig",
     "fnSig": "setConfig(address,address,address,address,address,address,address,address)",
-    "intrinsicGas": [],
-    "callData": [],
-    "gasData": [],
-    "numberOfCalls": 0
+    "intrinsicGas": [
+     23996,
+     23996,
+     23996
+    ],
+    "callData": [
+     0,
+     0,
+     0
+    ],
+    "gasData": [
+     184392,
+     184392,
+     184392
+    ],
+    "numberOfCalls": 3,
+    "executionGasAverage": 184392,
+    "calldataGasAverage": 0,
+    "min": 184392,
+    "max": 184392
    },
    "Ships_446c00f7": {
     "key": "446c00f7",
@@ -3469,9 +3720,15 @@
     "intrinsicGas": [
      21572,
      21572,
+     21572,
+     21572,
+     21572,
      21572
     ],
     "callData": [
+     0,
+     0,
+     0,
      0,
      0,
      0
@@ -3479,9 +3736,12 @@
     "gasData": [
      46420,
      46420,
+     46420,
+     46420,
+     46420,
      46420
     ],
-    "numberOfCalls": 3,
+    "numberOfCalls": 6,
     "executionGasAverage": 46420,
     "calldataGasAverage": 0,
     "min": 46420,
@@ -4052,8 +4312,21 @@
    },
    {
     "name": "Game",
-    "gasData": [],
-    "callData": []
+    "gasData": [
+     5402530,
+     5402530,
+     5402530
+    ],
+    "callData": [
+     0,
+     0,
+     0
+    ],
+    "executionGasAverage": 5402530,
+    "calldataGasAverage": 0,
+    "min": 5402530,
+    "max": 5402530,
+    "percent": 18
    },
    {
     "name": "GameResults",

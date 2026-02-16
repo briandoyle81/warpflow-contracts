@@ -3931,10 +3931,11 @@ describe("Game", function () {
       expect(remainingShipIds).to.include(7n); // Joiner's ship 7
       expect(remainingShipIds).to.not.include(1n); // Ship 1 should be destroyed
 
-      // Next round starts with joiner; totalActiveShipsAtRoundStart=3, shipsRemovedThisRound=1 (ship 1 destroyed at round start).
-      // So we need 2 moves to complete round: joiner 6, creator 2 -> round completes, then creator's turn.
+      // Round 4: totalActiveShipsAtRoundStart=4, shipsRemovedThisRound=1 (ship 1 destroyed at round start). Need 3 moves.
+      // Round 4 is even -> joiner first. Order: joiner 6, creator 2, joiner 7 -> round completes; round 5 starts with creator.
       const gameDataAfterDestroy = (await game.read.getGame([1n])) as unknown as GameDataView;
       const joinerPos1After = findShipPosition(gameDataAfterDestroy, 6n);
+      const joinerPos2After = findShipPosition(gameDataAfterDestroy, 7n);
       const creatorPos2After = findShipPosition(gameDataAfterDestroy, 2n);
       await game.write.moveShip(
         [1n, 6n, joinerPos1After.row, joinerPos1After.col, ActionType.Pass, 0n],
@@ -3944,8 +3945,12 @@ describe("Game", function () {
         [1n, 2n, creatorPos2After.row, creatorPos2After.col, ActionType.Pass, 0n],
         { account: creator.account }
       );
+      await game.write.moveShip(
+        [1n, 7n, joinerPos2After.row, joinerPos2After.col, ActionType.Pass, 0n],
+        { account: joiner.account }
+      );
 
-      // Move remaining ships to new positions (round just completed; creator's turn)
+      // Move remaining ships to new positions (round 5; creator's turn)
       const gameDataFinal = (await game.read.getGame([1n])) as unknown as GameDataView;
       const creatorPos2Final = findShipPosition(gameDataFinal, 2n);
       const joinerPos6Final = findShipPosition(gameDataFinal, 6n);
@@ -4298,6 +4303,99 @@ describe("Game", function () {
       // Verify ship 2's HP was increased by the repair strength (40)
       const ship2AttrsAfter = await game.read.getShipAttributes([1n, 2n]);
       expect(ship2AttrsAfter.hullPoints).to.equal(40); // Should be exactly 40 since RepairDrones restores 40 HP
+    });
+
+    it("should not complete round until repaired (formerly 0 HP) ship moves", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+        owner,
+      } = await loadFixture(deployGameFixture);
+
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address, 1],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address, 1],
+        { value: parseEther("4.99") }
+      );
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        await randomManager.write.fulfillRandomRequest([ship.traits.serialNumber]);
+      }
+
+      const repairShip: Ship = {
+        name: "Repair Ship",
+        id: 1n,
+        equipment: {
+          mainWeapon: 0,
+          armor: 0,
+          shields: 0,
+          special: 2, // RepairDrones
+        },
+        traits: {
+          serialNumber: 12345n,
+          colors: { h1: 0, s1: 0, l1: 0, h2: 0, s2: 0, l2: 0, h3: 0, s3: 0, l3: 0 },
+          variant: 0,
+          accuracy: 0,
+          hull: 0,
+          speed: 2,
+        },
+        shipData: {
+          shipsDestroyed: 0,
+          costsVersion: 1,
+          cost: 0,
+          shiny: false,
+          constructed: false,
+          inFleet: false,
+          isFreeShip: false,
+          modified: 0,
+          timestampDestroyed: 0n,
+        },
+        owner: creator.account.address,
+      };
+      await ships.write.setIsAllowedToCreateShips([owner.account.address, true], { account: owner.account });
+      await ships.write.customizeShip([1n, repairShip], { account: owner.account });
+      await ships.write.constructShip([2n], { account: creator.account });
+      await ships.write.constructShip([6n], { account: joiner.account });
+
+      await creatorLobbies.write.createLobby([1000n, 300n, true, 0n, 100n, zeroAddress]);
+      await joinerLobbies.write.joinLobby([1n]);
+      await creatorLobbies.write.createFleet([1n, [1n, 2n], generateStartingPositions([1n, 2n], true)]);
+      await joinerLobbies.write.createFleet([1n, [6n], generateStartingPositions([6n], false)]);
+
+      await (game.write as any).debugSetHullPointsToZero([1n, 2n], { account: owner.account });
+      expect((await game.read.getShipAttributes([1n, 2n])).hullPoints).to.equal(0);
+
+      // Creator moves ship 1 and repairs ship 2 (ship 2 removed from shipsWithZeroHP)
+      await game.write.moveShip([1n, 1n, 2, 0, ActionType.Special, 2n], { account: creator.account });
+      expect((await game.read.getShipAttributes([1n, 2n])).hullPoints).to.equal(40);
+
+      // Round must not be complete: we need 3 counts, have 1 move. Repaired ship must still move.
+      const stateAfterRepair = (await game.read.getGame([1n])) as any;
+      expect(stateAfterRepair.turnState.currentRound).to.equal(1n);
+      expect(stateAfterRepair.turnState.currentTurn.toLowerCase()).to.equal(joiner.account.address.toLowerCase());
+
+      await game.write.moveShip([1n, 6n, 10, 13, ActionType.Pass, 0n], { account: joiner.account });
+
+      // Still round 1; creator must move ship 2 (repaired ship) before round can complete
+      const stateAfterJoiner = (await game.read.getGame([1n])) as any;
+      expect(stateAfterJoiner.turnState.currentRound).to.equal(1n);
+      expect(stateAfterJoiner.turnState.currentTurn.toLowerCase()).to.equal(creator.account.address.toLowerCase());
+
+      const gameDataBefore = (await game.read.getGame([1n])) as unknown as GameDataView;
+      const ship2Pos = findShipPosition(gameDataBefore, 2n);
+      await game.write.moveShip([1n, 2n, ship2Pos.row, ship2Pos.col, ActionType.Pass, 0n], { account: creator.account });
+
+      const stateAfterCreator2 = (await game.read.getGame([1n])) as any;
+      expect(stateAfterCreator2.turnState.currentRound).to.equal(2n);
     });
 
     it("should allow ships with EMP to increase enemy ship's reactor critical timer", async function () {

@@ -1459,10 +1459,9 @@ contract Game is Ownable {
         EnumerableSet.clear(game.shipMovedThisRound);
         game.shipsRemovedThisRound = 0;
 
-        // Beginning of new round: increment reactorCriticalTimer for ships with 0 HP
-        _incrementReactorCriticalTimerForZeroHPShips(_gameId);
-
-        // Snapshot active ship count for this round (so mid-round destroys don't shrink the completion threshold)
+        // Snapshot active ship count BEFORE any round-start destruction, so that when
+        // _incrementReactorCriticalTimerForZeroHPShips destroys ships we still require
+        // one "count" per ship that was active at round start (moved + zero HP + removed).
         game.totalActiveShipsAtRoundStart =
             EnumerableSet.length(
                 game.playerActiveShipIds[game.metadata.creator]
@@ -1470,6 +1469,9 @@ contract Game is Ownable {
             EnumerableSet.length(
                 game.playerActiveShipIds[game.metadata.joiner]
             );
+
+        // Beginning of new round: increment reactorCriticalTimer for ships with 0 HP (may destroy ships)
+        _incrementReactorCriticalTimerForZeroHPShips(_gameId);
 
         // Alternate who goes first each round. creatorGoesFirst is set by Lobbies from
         // who selected fleet first (true = creator selected first, false = joiner).

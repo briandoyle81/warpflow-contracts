@@ -5036,6 +5036,306 @@ describe("Game", function () {
       ).to.be.rejectedWith("InvalidMove");
     });
 
+    it("should award win to creator when their score exceeds maxScore and is higher than joiner after simultaneous scoring", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        maps,
+        randomManager,
+        owner,
+        gameResults,
+      } = await loadFixture(deployGameFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address, 1],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address, 1],
+        { value: parseEther("4.99") }
+      );
+
+      // Fulfill randomness and construct ships
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        await randomManager.write.fulfillRandomRequest([
+          ship.traits.serialNumber,
+        ]);
+      }
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a lobby with low maxScore for quick endgame
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map,
+        5n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
+      ]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets to start the game (one ship each)
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
+
+      const gameId = 1n;
+
+      // Place scoring tiles under each player's ship
+      let gameData = (await game.read.getGame([gameId])) as GameDataView;
+      const creatorPos = findShipPosition(gameData, 1n);
+      const joinerPos = findShipPosition(gameData, 6n);
+
+      // Creator tile: 5 points (reaches maxScore), Joiner tile: 3 points
+      await maps.write.setScoringTile(
+        [gameId, creatorPos.row, creatorPos.col, 5],
+        { account: owner.account }
+      );
+      await maps.write.setScoringTile(
+        [gameId, joinerPos.row, joinerPos.col, 3],
+        { account: owner.account }
+      );
+
+      // Complete the round with no-op moves to trigger end-of-round scoring
+      await game.write.moveShip(
+        [gameId, 1n, creatorPos.row, creatorPos.col, ActionType.Pass, 0n],
+        { account: creator.account }
+      );
+      await game.write.moveShip(
+        [gameId, 6n, joinerPos.row, joinerPos.col, ActionType.Pass, 0n],
+        { account: joiner.account }
+      );
+
+      const finalGame = (await game.read.getGame([gameId])) as any;
+      expect(finalGame.metadata.winner.toLowerCase()).to.equal(
+        creator.account.address.toLowerCase()
+      );
+      expect(finalGame.creatorScore).to.equal(5n);
+      expect(finalGame.joinerScore).to.equal(3n);
+
+      // Game result should be recorded for a non-draw outcome
+      expect(await gameResults.read.isGameResultRecorded([gameId])).to.be.true;
+      const result = await gameResults.read.getGameResult([gameId]);
+      expect(result.winner.toLowerCase()).to.equal(
+        creator.account.address.toLowerCase()
+      );
+      expect(result.loser.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
+      );
+    });
+
+    it("should award win to joiner when their score exceeds maxScore and is higher than creator after simultaneous scoring", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        maps,
+        randomManager,
+        owner,
+        gameResults,
+      } = await loadFixture(deployGameFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address, 1],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address, 1],
+        { value: parseEther("4.99") }
+      );
+
+      // Fulfill randomness and construct ships
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        await randomManager.write.fulfillRandomRequest([
+          ship.traits.serialNumber,
+        ]);
+      }
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a lobby with low maxScore for quick endgame
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map,
+        5n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
+      ]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets to start the game (one ship each)
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
+
+      const gameId = 1n;
+
+      // Place scoring tiles under each player's ship
+      let gameData = (await game.read.getGame([gameId])) as GameDataView;
+      const creatorPos = findShipPosition(gameData, 1n);
+      const joinerPos = findShipPosition(gameData, 6n);
+
+      // Creator tile: 3 points, Joiner tile: 5 points (reaches maxScore)
+      await maps.write.setScoringTile(
+        [gameId, creatorPos.row, creatorPos.col, 3],
+        { account: owner.account }
+      );
+      await maps.write.setScoringTile(
+        [gameId, joinerPos.row, joinerPos.col, 5],
+        { account: owner.account }
+      );
+
+      // Complete the round with no-op moves to trigger end-of-round scoring
+      await game.write.moveShip(
+        [gameId, 1n, creatorPos.row, creatorPos.col, ActionType.Pass, 0n],
+        { account: creator.account }
+      );
+      await game.write.moveShip(
+        [gameId, 6n, joinerPos.row, joinerPos.col, ActionType.Pass, 0n],
+        { account: joiner.account }
+      );
+
+      const finalGame = (await game.read.getGame([gameId])) as any;
+      expect(finalGame.metadata.winner.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
+      );
+      expect(finalGame.creatorScore).to.equal(3n);
+      expect(finalGame.joinerScore).to.equal(5n);
+
+      // Game result should be recorded for a non-draw outcome
+      expect(await gameResults.read.isGameResultRecorded([gameId])).to.be.true;
+      const result = await gameResults.read.getGameResult([gameId]);
+      expect(result.winner.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase()
+      );
+      expect(result.loser.toLowerCase()).to.equal(
+        creator.account.address.toLowerCase()
+      );
+    });
+
+    it("should end the game as a draw when both players reach at least maxScore with equal scores after simultaneous scoring", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        maps,
+        randomManager,
+        owner,
+        gameResults,
+      } = await loadFixture(deployGameFixture);
+
+      // Purchase and construct ships for both players
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address, 1],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address, 1],
+        { value: parseEther("4.99") }
+      );
+
+      // Fulfill randomness and construct ships
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        await randomManager.write.fulfillRandomRequest([
+          ship.traits.serialNumber,
+        ]);
+      }
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create a lobby with low maxScore for quick endgame
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n, // selectedMapId - no preset map,
+        5n, // maxScore
+        zeroAddress, // reservedJoiner - no reservation
+      ]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      // Create fleets to start the game (one ship each)
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
+
+      const gameId = 1n;
+
+      // Place scoring tiles under each player's ship
+      let gameData = (await game.read.getGame([gameId])) as GameDataView;
+      const creatorPos = findShipPosition(gameData, 1n);
+      const joinerPos = findShipPosition(gameData, 6n);
+
+      // Both tiles: 5 points (both reach maxScore with equal scores)
+      await maps.write.setScoringTile(
+        [gameId, creatorPos.row, creatorPos.col, 5],
+        { account: owner.account }
+      );
+      await maps.write.setScoringTile(
+        [gameId, joinerPos.row, joinerPos.col, 5],
+        { account: owner.account }
+      );
+
+      // Complete the round with no-op moves to trigger end-of-round scoring
+      await game.write.moveShip(
+        [gameId, 1n, creatorPos.row, creatorPos.col, ActionType.Pass, 0n],
+        { account: creator.account }
+      );
+      await game.write.moveShip(
+        [gameId, 6n, joinerPos.row, joinerPos.col, ActionType.Pass, 0n],
+        { account: joiner.account }
+      );
+
+      const finalGame = (await game.read.getGame([gameId])) as any;
+      expect(finalGame.creatorScore).to.equal(5n);
+      expect(finalGame.joinerScore).to.equal(5n);
+      expect(finalGame.metadata.winner).to.equal(zeroAddress); // Draw
+
+      // Draws should not be recorded in GameResults
+      expect(await gameResults.read.isGameResultRecorded([gameId])).to.be.false;
+    });
+
     it("should respect preset maps when calculating line of sight", async function () {
       const {
         creatorLobbies,

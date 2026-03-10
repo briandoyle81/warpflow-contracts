@@ -404,7 +404,8 @@ contract Game is Ownable {
     function _endGame(uint _gameId, address _winner, address _loser) internal {
         GameData storage game = games[_gameId];
         game.metadata.winner = _winner;
-        if (address(gameResults) != address(0)) {
+        // Only record non-draw results
+        if (_winner != address(0) && address(gameResults) != address(0)) {
             gameResults.recordGameResult(_gameId, _winner, _loser);
         }
         // Remove all ships from fleets when game ends
@@ -1447,8 +1448,10 @@ contract Game is Ownable {
                 game.creatorScore >= game.maxScore ||
                 game.joinerScore >= game.maxScore
             ) {
-                // If scores are equal (including both >= max), creator wins the tie
-                if (game.creatorScore >= game.joinerScore) {
+                // If both players have reached at least maxScore and are tied, end the game as a draw
+                if (game.creatorScore == game.joinerScore) {
+                    _endGame(_gameId, address(0), address(0));
+                } else if (game.creatorScore > game.joinerScore) {
                     _endGame(
                         _gameId,
                         game.metadata.creator,

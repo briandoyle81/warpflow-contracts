@@ -1417,6 +1417,8 @@ contract Game is Ownable {
             _gameId
         );
         uint scoringCount = scoringPositions.length;
+        uint creatorRoundPoints = 0;
+        uint joinerRoundPoints = 0;
         for (uint i = 0; i < scoringCount; i++) {
             ScoringPosition memory pos = scoringPositions[i];
             uint shipId = game.grid[pos.row][pos.col];
@@ -1429,27 +1431,37 @@ contract Game is Ownable {
             if (points == 0) continue;
 
             // Update the player's score based on which side the ship belongs to
-            // Check if the player has reached the max score and end the game if they have
             if (_isCreatorShip(_gameId, shipId)) {
-                game.creatorScore += points;
-                if (game.creatorScore >= game.maxScore) {
+                creatorRoundPoints += points;
+            } else {
+                joinerRoundPoints += points;
+            }
+        }
+
+        // Apply round points simultaneously, then determine winner if any
+        if (creatorRoundPoints > 0 || joinerRoundPoints > 0) {
+            game.creatorScore += creatorRoundPoints;
+            game.joinerScore += joinerRoundPoints;
+
+            if (
+                game.creatorScore >= game.maxScore ||
+                game.joinerScore >= game.maxScore
+            ) {
+                // If scores are equal (including both >= max), creator wins the tie
+                if (game.creatorScore >= game.joinerScore) {
                     _endGame(
                         _gameId,
                         game.metadata.creator,
                         game.metadata.joiner
                     );
-                    break;
-                }
-            } else {
-                game.joinerScore += points;
-                if (game.joinerScore >= game.maxScore) {
+                } else {
                     _endGame(
                         _gameId,
                         game.metadata.joiner,
                         game.metadata.creator
                     );
-                    break;
                 }
+                return;
             }
         }
 

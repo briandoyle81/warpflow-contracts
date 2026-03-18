@@ -54,13 +54,10 @@ contract Game is Ownable {
     error NotInGame();
     error ShipNotFound();
     error InvalidPosition();
-    error PositionOccupied();
-    error NotYourTurn();
     error ShipNotOwned();
     error ShipAlreadyMoved();
     error InvalidMove();
     error ShipDestroyed();
-    error ActionRequired();
     error TurnTimeoutNotReached();
     error TurnTimeoutExceeded();
 
@@ -234,11 +231,17 @@ contract Game is Ownable {
             revert InvalidPosition();
 
         // Check if position is already occupied
-        if (game.grid[_row][_column] != 0) revert PositionOccupied();
+        if (game.grid[_row][_column] != 0) revert InvalidPosition();
 
         // Place ship on grid at specified row and column
         game.grid[_row][_column] = _shipId;
-        game.shipPositions[_shipId] = Position(_row, _column);
+        // Initialize ship board position as alive at this location
+        game.shipPositions[_shipId] = ShipPosition({
+            shipId: _shipId,
+            position: Position(_row, _column),
+            isCreator: _isCreatorShip(_gameId, _shipId),
+            status: 0
+        });
     }
 
     // Calculate and store attributes for a ship in a game
@@ -297,7 +300,7 @@ contract Game is Ownable {
         for (int16 row = 0; row < GRID_HEIGHT; row++) {
             for (int16 col = 0; col < GRID_WIDTH; col++) {
                 uint shipId = game.grid[row][col];
-                if (shipId > 0 && _isShipNotDestroyed(shipId)) {
+                if (shipId > 0 && !ships.isShipDestroyed(shipId)) {
                     shipCount++;
                 }
             }
@@ -311,13 +314,14 @@ contract Game is Ownable {
         for (int16 row = 0; row < GRID_HEIGHT; row++) {
             for (int16 col = 0; col < GRID_WIDTH; col++) {
                 uint shipId = game.grid[row][col];
-                if (shipId > 0 && _isShipNotDestroyed(shipId)) {
+                if (shipId > 0 && !ships.isShipDestroyed(shipId)) {
                     // Determine if this is a creator or joiner ship
                     bool isCreator = _isCreatorShip(_gameId, shipId);
                     positions[index] = ShipPosition({
                         shipId: shipId,
                         position: Position({row: row, col: col}),
-                        isCreator: isCreator
+                        isCreator: isCreator,
+                        status: 0
                     });
                     index++;
                 }
@@ -348,19 +352,12 @@ contract Game is Ownable {
         uint _shipId
     ) internal view returns (bool) {
         GameData storage game = games[_gameId];
-        Ship memory ship = ships.getShip(_shipId);
-
-        // Skip destroyed ships
-        if (ship.shipData.timestampDestroyed != 0) return false;
-        // Skip ships with 0 hull points (treat same as destroyed)
-        if (game.shipAttributes[_shipId].hullPoints == 0) return false;
-
+        // Skip destroyed ships and ships with 0 hull points
+        if (
+            ships.isShipDestroyed(_shipId) ||
+            game.shipAttributes[_shipId].hullPoints == 0
+        ) return false;
         return true;
-    }
-
-    // Helper function to check if a ship is not destroyed (for functions that don't check hull points)
-    function _isShipNotDestroyed(uint _shipId) internal view returns (bool) {
-        return !ships.isShipDestroyed(_shipId);
     }
 
     // Helper function to check if a player has any active ships
@@ -438,7 +435,7 @@ contract Game is Ownable {
         if (game.metadata.winner != address(0)) revert InvalidMove();
 
         // Check if it's the player's turn
-        if (msg.sender != game.turnState.currentTurn) revert NotYourTurn();
+        if (msg.sender != game.turnState.currentTurn) revert InvalidMove();
 
         // Check if ship exists and is owned by the current player
         Ship memory ship = _validateShipExistsAndNotDestroyed(_shipId);
@@ -462,33 +459,32 @@ contract Game is Ownable {
         ) revert ShipAlreadyMoved();
 
         // Get current position
-        Position storage currentPos = game.shipPositions[_shipId];
+        Position storage shipPos = game.shipPositions[_shipId].position;
 
         // Capture old position values before any updates
-        int16 oldRow = currentPos.row;
-        int16 oldCol = currentPos.col;
+        int16 oldRow = shipPos.row;
+        int16 oldCol = shipPos.col;
 
         if (actionType != ActionType.Retreat) {
-            // Allow moving to the current position (no-op move), skip movement validation and PositionOccupied check
-            bool isNoOpMove = (currentPos.row == _newRow &&
-                currentPos.col == _newCol);
+            // Allow moving to the current position (no-op move), skip movement validation and position occupied check
 
-            if (!isNoOpMove) {
+            if (!(shipPos.row == _newRow && shipPos.col == _newCol)) {
                 uint8 movementCost = _manhattanDistance(
-                    currentPos,
+                    shipPos,
                     Position(_newRow, _newCol)
                 );
                 Attributes storage attributes = game.shipAttributes[_shipId];
                 if (movementCost > attributes.movement) revert InvalidMove();
                 if (_newRow >= GRID_HEIGHT || _newCol >= GRID_WIDTH)
                     revert InvalidPosition();
-                if (game.grid[_newRow][_newCol] != 0) revert PositionOccupied();
-            }
+                if (game.grid[_newRow][_newCol] != 0) revert InvalidPosition(); // position occupied
 
-            if (!isNoOpMove) {
-                game.grid[currentPos.row][currentPos.col] = 0;
+                game.grid[shipPos.row][shipPos.col] = 0;
                 game.grid[_newRow][_newCol] = _shipId;
-                game.shipPositions[_shipId] = Position(_newRow, _newCol);
+                game.shipPositions[_shipId].position = Position(
+                    _newRow,
+                    _newCol
+                );
             }
 
             EnumerableSet.add(game.shipMovedThisRound, _shipId);
@@ -502,7 +498,8 @@ contract Game is Ownable {
             _newRow,
             _newCol,
             actionType,
-            targetShipId
+            targetShipId,
+            ship
         );
 
         // Check if both players have moved all their ships (round complete)
@@ -550,11 +547,9 @@ contract Game is Ownable {
         int16 _newRow,
         int16 _newCol,
         ActionType actionType,
-        uint targetShipId
+        uint targetShipId,
+        Ship memory _ship
     ) internal {
-        // Get ship data once for all action types
-        Ship memory ship = ships.getShip(_shipId);
-
         if (actionType == ActionType.Pass) {
             // Pass: do nothing
         } else if (actionType == ActionType.Shoot) {
@@ -565,15 +560,22 @@ contract Game is Ownable {
                 _newRow,
                 _newCol,
                 targetShipId,
-                ship
+                _ship
             );
         } else if (actionType == ActionType.Retreat) {
-            _retreatShip(_gameId, _shipId);
+            _removeShipFromGame(_gameId, _shipId, true, _ship);
         } else if (actionType == ActionType.Assist) {
             revert InvalidMove(); // Assist removed
         } else if (actionType == ActionType.Special) {
             // Special: use special equipment
-            _performSpecial(_gameId, _shipId, _newRow, _newCol, targetShipId);
+            _performSpecial(
+                _gameId,
+                _shipId,
+                _newRow,
+                _newCol,
+                targetShipId,
+                _ship
+            );
         }
     }
 
@@ -595,7 +597,7 @@ contract Game is Ownable {
         if (targetShip.owner == ship.owner) revert InvalidMove();
         // Must be in range (manhattan)
         Position memory shooterPos = Position(_newRow, _newCol);
-        Position storage targetPos = game.shipPositions[targetShipId];
+        Position storage targetPos = game.shipPositions[targetShipId].position;
         uint8 manhattan = _manhattanDistance(shooterPos, targetPos);
         Attributes storage shooterAttributes = game.shipAttributes[_shipId];
         if (manhattan > shooterAttributes.range) revert InvalidMove();
@@ -621,7 +623,7 @@ contract Game is Ownable {
         if (targetAttributes.hullPoints == 0) {
             targetAttributes.reactorCriticalTimer++;
             if (targetAttributes.reactorCriticalTimer >= 3) {
-                _destroyShip(_gameId, targetShipId);
+                _removeShipFromGame(_gameId, targetShipId, false, targetShip);
             }
             return; // No damage calculation needed for 0 HP ships
         }
@@ -830,61 +832,24 @@ contract Game is Ownable {
         uint _shipId,
         int16 _newRow,
         int16 _newCol,
-        uint _targetShipId
+        uint _targetShipId,
+        Ship memory _usingShip
     ) internal {
-        // Check if using ship has a special
-        Ship memory usingShip = ships.getShip(_shipId);
-        if (usingShip.equipment.special == Special.None) revert InvalidMove();
-
         // Only validate target ship for specials that need targets
         Ship memory targetShip;
-        if (usingShip.equipment.special != Special.FlakArray) {
+        if (_usingShip.equipment.special != Special.FlakArray) {
             targetShip = _validateShipExistsAndNotDestroyed(_targetShipId);
         }
 
-        // Validate special-specific requirements
-        _validateSpecialRequirements(
-            _gameId,
-            _newRow,
-            _newCol,
-            _targetShipId,
-            usingShip,
-            targetShip
-        );
-
-        // Execute the special action
-        _executeSpecialAction(
-            _gameId,
-            _shipId,
-            _newRow,
-            _newCol,
-            _targetShipId,
-            usingShip.equipment.special
-        );
-    }
-
-    // Helper function to validate special-specific requirements
-    function _validateSpecialRequirements(
-        uint _gameId,
-        int16 _newRow,
-        int16 _newCol,
-        uint _targetShipId,
-        Ship memory _usingShip,
-        Ship memory _targetShip
-    ) internal view {
         Special special = _usingShip.equipment.special;
 
+        // Validate special-specific requirements
         if (special == Special.RepairDrones) {
             // RepairDrones can only target friendly ships
-            if (_targetShip.owner != _usingShip.owner) revert InvalidMove();
+            if (targetShip.owner != _usingShip.owner) revert InvalidMove();
         } else if (special == Special.EMP) {
             // EMP can only target enemy ships
-            if (_targetShip.owner == _usingShip.owner) revert InvalidMove();
-        } else if (special == Special.FlakArray) {
-            // FlakArray doesn't need a target - it affects all ships in range
-            return; // No additional validation needed
-        } else {
-            revert InvalidMove(); // Other specials not implemented yet
+            if (targetShip.owner == _usingShip.owner) revert InvalidMove();
         }
 
         // Validate range for specials that need targets
@@ -897,6 +862,17 @@ contract Game is Ownable {
                 special
             );
         }
+
+        // Execute the special action
+        if (special == Special.RepairDrones) {
+            _performRepairDrones(_gameId, _targetShipId);
+        } else if (special == Special.EMP) {
+            _performEMP(_gameId, _shipId, _targetShipId, targetShip);
+        } else if (special == Special.FlakArray) {
+            _performFlakArray(_gameId, _shipId, _newRow, _newCol);
+        } else {
+            revert InvalidMove(); // Other specials not implemented yet
+        }
     }
 
     // Helper function to validate special range
@@ -908,32 +884,12 @@ contract Game is Ownable {
         Special _special
     ) internal view {
         GameData storage game = games[_gameId];
-        Position storage targetPos = game.shipPositions[_targetShipId];
+        Position storage targetPos = game.shipPositions[_targetShipId].position;
         Position memory usingPos = Position(_newRow, _newCol);
         uint8 specialRange = shipAttributes.getSpecialRange(_special);
         uint8 manhattan = _manhattanDistance(usingPos, targetPos);
         if (manhattan > specialRange) {
             revert InvalidMove();
-        }
-    }
-
-    // Helper function to execute special actions
-    function _executeSpecialAction(
-        uint _gameId,
-        uint _shipId,
-        int16 _newRow,
-        int16 _newCol,
-        uint _targetShipId,
-        Special _special
-    ) internal {
-        if (_special == Special.RepairDrones) {
-            _performRepairDrones(_gameId, _targetShipId);
-        } else if (_special == Special.EMP) {
-            _performEMP(_gameId, _shipId, _targetShipId);
-        } else if (_special == Special.FlakArray) {
-            _performFlakArray(_gameId, _shipId, _newRow, _newCol);
-        } else {
-            revert InvalidMove(); // Other specials not implemented yet
         }
     }
 
@@ -956,17 +912,17 @@ contract Game is Ownable {
             targetAttributes.hullPoints = newHullPoints;
         }
 
-        // Remove ship from zero HP set if it was there and now has HP > 0
-        if (targetAttributes.hullPoints > 0) {
-            EnumerableSet.remove(game.shipsWithZeroHP, _targetShipId);
-        }
+        // Remove ship from zero HP set
+        // WARNING: This will break things if repair can ever be zero
+        EnumerableSet.remove(game.shipsWithZeroHP, _targetShipId);
     }
 
     // Internal function to perform EMP special
     function _performEMP(
         uint _gameId,
         uint _shipId,
-        uint _targetShipId
+        uint _targetShipId,
+        Ship memory _targetShip
     ) internal {
         GameData storage game = games[_gameId];
         Attributes storage targetAttributes = game.shipAttributes[
@@ -977,7 +933,7 @@ contract Game is Ownable {
         lastDamage[_targetShipId] = _shipId; // Track the ship using EMP as the last damager
         targetAttributes.reactorCriticalTimer += empStrength;
         if (targetAttributes.reactorCriticalTimer >= 3) {
-            _destroyShip(_gameId, _targetShipId);
+            _removeShipFromGame(_gameId, _targetShipId, false, _targetShip);
         }
     }
 
@@ -1035,7 +991,9 @@ contract Game is Ownable {
             uint targetShipId = EnumerableSet.at(shipIds, i);
 
             // Check if ship is within range and not the ship using flak
-            Position storage shipPos = game.shipPositions[targetShipId];
+            Position storage shipPos = game
+                .shipPositions[targetShipId]
+                .position;
             uint8 distance = _manhattanDistance(flakPos, shipPos);
 
             if (distance <= flakRange && targetShipId != _shipId) {
@@ -1066,13 +1024,14 @@ contract Game is Ownable {
     function _removeShipFromGame(
         uint _gameId,
         uint _shipId,
-        bool _isRetreat
+        bool _isRetreat,
+        Ship memory _ship
     ) internal {
         _requireGameExists(_gameId);
         GameData storage game = games[_gameId];
 
-        // Check if ship exists and is in the game
-        Ship memory ship = _validateShipExistsAndNotDestroyed(_shipId);
+        // Ensure the passed ship is not globally destroyed
+        if (_ship.shipData.timestampDestroyed != 0) revert ShipDestroyed();
 
         // Check if ship is in the game (either creator or joiner fleet)
         bool isCreatorShip = fleets.isShipInFleet(
@@ -1085,12 +1044,9 @@ contract Game is Ownable {
         );
         if (!isCreatorShip && !isJoinerShip) revert ShipNotFound();
 
-        // Check if ship is already destroyed
-        if (ship.shipData.timestampDestroyed != 0) revert ShipDestroyed();
-
         // Remove ship from grid
-        Position storage shipPosition = game.shipPositions[_shipId];
-        game.grid[shipPosition.row][shipPosition.col] = 0;
+        ShipPosition storage shipPosition = game.shipPositions[_shipId];
+        game.grid[shipPosition.position.row][shipPosition.position.col] = 0;
 
         // Remove ship from moved set since it's no longer active
         EnumerableSet.remove(game.shipMovedThisRound, _shipId);
@@ -1108,9 +1064,11 @@ contract Game is Ownable {
             fleets.removeShipFromFleet(game.metadata.joinerFleetId, _shipId);
         }
 
-        // Clean up ship data in the game contract
+        // Mark ship status (1 = destroyed, 2 = fled) but keep last known position for replay/visualization
+        shipPosition.status = _isRetreat ? 2 : 1;
+
+        // Clean up ship data in the game contract (attributes and grid membership)
         delete game.shipAttributes[_shipId];
-        delete game.shipPositions[_shipId];
 
         // If this ship didn't retreat, set the timestamp destroyed
         if (!_isRetreat) {
@@ -1122,16 +1080,6 @@ contract Game is Ownable {
 
         // Check if the game should end due to a player having no active ships
         _checkGameEndCondition(_gameId);
-    }
-
-    // Internal function to retreat a ship
-    function _retreatShip(uint _gameId, uint _shipId) internal {
-        _removeShipFromGame(_gameId, _shipId, true);
-    }
-
-    // Internal function to destroy a ship
-    function _destroyShip(uint _gameId, uint _shipId) internal {
-        _removeShipFromGame(_gameId, _shipId, false);
     }
 
     // Helper function to remove a ship from playerActiveShipIds
@@ -1164,12 +1112,13 @@ contract Game is Ownable {
         for (uint i = 0; i < zeroHPShipCount; ) {
             uint shipId = EnumerableSet.at(game.shipsWithZeroHP, i);
             if (
-                _isShipNotDestroyed(shipId) &&
+                !(ships.isShipDestroyed(shipId)) &&
                 game.shipAttributes[shipId].hullPoints == 0
             ) {
                 game.shipAttributes[shipId].reactorCriticalTimer++;
                 if (game.shipAttributes[shipId].reactorCriticalTimer >= 3) {
-                    _destroyShip(_gameId, shipId);
+                    Ship memory ship = ships.getShip(shipId);
+                    _removeShipFromGame(_gameId, shipId, false, ship);
                     // Set shrinks; re-check same index
                     zeroHPShipCount = EnumerableSet.length(
                         game.shipsWithZeroHP
@@ -1182,7 +1131,8 @@ contract Game is Ownable {
     }
 
     function debugDestroyShip(uint _gameId, uint _shipId) external onlyOwner {
-        _destroyShip(_gameId, _shipId);
+        Ship memory ship = ships.getShip(_shipId);
+        _removeShipFromGame(_gameId, _shipId, false, ship);
     }
 
     // Debug function to set a ship's hull points to 0 (onlyOwner for testing)
@@ -1238,22 +1188,16 @@ contract Game is Ownable {
         // No checks needed for debug, assume correct info given
 
         // Clear old position in grid
-        games[_gameId].grid[games[_gameId].shipPositions[_shipId].row][
-            games[_gameId].shipPositions[_shipId].col
-        ] = 0;
+        games[_gameId].grid[games[_gameId].shipPositions[_shipId].position.row][
+                games[_gameId].shipPositions[_shipId].position.col
+            ] = 0;
 
         // Set ship position
-        games[_gameId].shipPositions[_shipId] = Position(_row, _col);
+        games[_gameId].shipPositions[_shipId].position = Position(_row, _col);
+        games[_gameId].shipPositions[_shipId].status = 0;
 
         // Set ship in grid
         games[_gameId].grid[_row][_col] = _shipId;
-    }
-
-    // Debug function to get ships with zero HP
-    function _getShipsWithZeroHP(
-        uint _gameId
-    ) external view returns (uint[] memory) {
-        return _copySetToArray(games[_gameId].shipsWithZeroHP);
     }
 
     // Debug function to manually trigger reactor critical timer increment for 0 HP ships (onlyOwner for testing)
@@ -1351,7 +1295,7 @@ contract Game is Ownable {
         GameData storage game = games[_gameId];
 
         // Only the other player can force a timeout skip
-        if (msg.sender == game.turnState.currentTurn) revert NotYourTurn();
+        if (msg.sender == game.turnState.currentTurn) revert InvalidMove();
 
         // Must be either the creator or joiner
         if (
@@ -1513,16 +1457,9 @@ contract Game is Ownable {
         return result;
     }
 
-    function getPlayerGameIds(
-        address _player
-    ) public view returns (uint[] memory) {
-        return playerGames[_player];
-    }
-
     function getGamesForPlayer(
         address _player
     ) public view returns (GameDataView[] memory) {
-        uint[] memory gameIds = getPlayerGameIds(_player);
-        return getGamesFromIds(gameIds);
+        return getGamesFromIds(playerGames[_player]);
     }
 }

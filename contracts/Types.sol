@@ -106,11 +106,13 @@ struct ScoringPosition {
     bool onlyOnce; // Whether this tile can only be claimed once
 }
 
-// Ship position on the grid
+// Ship position on the grid (including status for replay/visualization)
+// status: 0 = alive, 1 = destroyed, 2 = fled
 struct ShipPosition {
     uint shipId;
     Position position;
     bool isCreator;
+    uint8 status;
 }
 
 // Game metadata - basic game identification and players
@@ -152,7 +154,8 @@ struct GameData {
     mapping(uint => Attributes) shipAttributes; // shipId => attributes
     // Grid state - grid[row][column] = shipId (0 if empty)
     mapping(int16 row => mapping(int16 column => uint shipId)) grid;
-    mapping(uint => Position) shipPositions; // shipId => position
+    // Board position and status for each ship (status: 0 = alive, 1 = destroyed, 2 = fled)
+    mapping(uint => ShipPosition) shipPositions; // shipId => position + status
     EnumerableSet.UintSet shipMovedThisRound; // movedShipIds in current round
     EnumerableSet.UintSet shipsWithZeroHP; // shipIds with 0 hull points
     // Store active ship IDs for each player to avoid repeated fleet calls

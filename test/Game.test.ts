@@ -1322,7 +1322,7 @@ describe("Game", function () {
             account: joiner.account,
           }
         )
-      ).to.be.rejectedWith("NotYourTurn");
+      ).to.be.rejectedWith("InvalidMove");
     });
 
     it("should prevent moving a ship that doesn't belong to the player", async function () {
@@ -1468,7 +1468,7 @@ describe("Game", function () {
         game.write.moveShip([1n, 1n, 0, 2, ActionType.Pass, 0n], {
           account: creator.account,
         })
-      ).to.be.rejectedWith("NotYourTurn");
+      ).to.be.rejectedWith("InvalidMove");
     });
 
     it("should emit Move event with correct oldRow and oldCol for actual movement", async function () {
@@ -1954,7 +1954,7 @@ describe("Game", function () {
         game.write.moveShip([1n, 1n, 1, 1, ActionType.Pass, 0n], {
           account: creator.account,
         })
-      ).to.be.rejectedWith("PositionOccupied");
+      ).to.be.rejectedWith("InvalidPosition");
     });
 
     it("should allow diagonal movement", async function () {
@@ -4829,7 +4829,7 @@ describe("Game", function () {
       // Timeout: other player calls endGameOnTimeout to claim win (timed-out player forfeits)
       await expect(
         game.write.endGameOnTimeout([gameId], { account: creator.account })
-      ).to.be.rejectedWith("NotYourTurn");
+      ).to.be.rejectedWith("InvalidMove");
 
       await game.write.endGameOnTimeout([gameId], {
         account: joiner.account,

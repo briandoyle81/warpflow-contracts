@@ -53,6 +53,14 @@ const config: HardhatUserConfig = {
           browserURL: "https://saigon-app.roninchain.com/",
         },
       },
+      {
+        network: "xai-testnet",
+        chainId: 37714555429,
+        urls: {
+          apiURL: "https://testnet-v2.xai-chain.net/rpc",
+          browserURL: "https://testnet-explorer-v2.xai-chain.net",
+        },
+      },
     ],
   },
   networks: {
@@ -68,6 +76,10 @@ const config: HardhatUserConfig = {
     },
     "ronin-saigon": {
       url: "https://saigon-testnet.roninchain.com/rpc",
+      accounts: [process.env.METAMASK_WALLET_1 as string],
+    },
+    "xai-testnet": {
+      url: "https://testnet-v2.xai-chain.net/rpc",
       accounts: [process.env.METAMASK_WALLET_1 as string],
     },
     // CRITICAL: CHANGE NAMES CONTRACT ADDRESS BEFORE ADDING AND DEPLOYING ON MAINNET

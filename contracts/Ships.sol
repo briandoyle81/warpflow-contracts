@@ -91,7 +91,7 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
     constructor(
         address _renderer
-    ) ERC721("Warpflow Ships", "SHIP") Ownable(msg.sender) {
+    ) ERC721("Void Tactics Ships", "SHIP") Ownable(msg.sender) {
         config.metadataRenderer = IRenderMetadata(_renderer);
 
         // Variant 0 has no modifiers, already exists as zeroes

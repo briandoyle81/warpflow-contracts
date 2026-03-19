@@ -909,7 +909,7 @@ describe("Ships", function () {
 
       // Verify description
       expect(metadata.description).to.equal(
-        "A unique spaceship in the Warpflow universe. Each ship has unique traits, equipment, and stats that determine its capabilities in battle."
+        "A unique spaceship in the Void Tactics universe. Each ship has unique traits, equipment, and stats that determine its capabilities in battle."
       );
 
       // Verify image format - should now be a base64 encoded SVG

@@ -153,7 +153,7 @@ contract RenderMetadata is IRenderMetadata {
                 ship.name,
                 " #",
                 ship.id.toString(),
-                '","description": "A unique spaceship in the Warpflow universe. Each ship has unique traits, equipment, and stats that determine its capabilities in battle.", "attributes": [',
+                '","description": "A unique spaceship in the Void Tactics universe. Each ship has unique traits, equipment, and stats that determine its capabilities in battle.", "attributes": [',
                 getTraitsString(ship),
                 '],"image": "',
                 imageUri,

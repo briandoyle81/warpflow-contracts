@@ -8,6 +8,7 @@ Usage:
 
 Options:
   --skip-verify        Do not pass `--verify` to hardhat ignition deploy
+  --no-auto-confirm   Do not auto-answer "y" to any deploy confirmation prompts
   --sleep-seconds <n> Sleep seconds between retries when the error contains: "The next nonce"
 
 Environment variables:
@@ -19,6 +20,7 @@ EOF
 NETWORK=""
 DEPLOY_SCRIPT=""
 VERIFY=1
+AUTO_CONFIRM=1
 SLEEP_SECONDS_DEFAULT="2"
 
 LOG_FILE="${LOG_FILE:-ignition_deploy_retry.log}"
@@ -36,6 +38,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --skip-verify)
       VERIFY=0
+      shift 1
+      ;;
+    --no-auto-confirm)
+      AUTO_CONFIRM=0
       shift 1
       ;;
     --sleep-seconds)
@@ -70,7 +76,13 @@ while true; do
 
   # Run and stream output to log; capture the deploy command exit code from bash's PIPESTATUS.
   set +e
-  "${CMD[@]}" 2>&1 | tee "$LOG_FILE"
+  if [[ "$AUTO_CONFIRM" -eq 1 ]]; then
+    # Hardhat Ignition may ask for an interactive confirmation (e.g. "Confirm deploy to network ... (y/N)").
+    # Feed "y" continuously so retries never require human interaction.
+    "${CMD[@]}" < <(yes) 2>&1 | tee "$LOG_FILE"
+  else
+    "${CMD[@]}" 2>&1 | tee "$LOG_FILE"
+  fi
   ec="${PIPESTATUS[0]}"
   set -e
 
@@ -79,10 +91,10 @@ while true; do
     exit 0
   fi
 
-  # Retry only when the error indicates a nonce mismatch.
-  python3 -c 'import pathlib,sys; s=pathlib.Path("'"$LOG_FILE"'").read_text(errors="ignore"); sys.exit(0 if "The next nonce" in s else 1)'
+  # Retry only when the error indicates a nonce mismatch or a transient ignition rerun hint.
+  python3 -c 'import pathlib,sys; s=pathlib.Path("'"$LOG_FILE"'").read_text(errors="ignore"); sys.exit(0 if ("The next nonce" in s or "Please try rerunning Hardhat Ignition." in s) else 1)'
   if [[ $? -eq 0 ]]; then
-    echo "Retrying due to nonce mismatch..."
+    echo "Retrying due to transient deploy error..."
     sleep "$SLEEP_SECONDS"
     continue
   fi

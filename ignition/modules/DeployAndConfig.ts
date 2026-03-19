@@ -81,7 +81,7 @@ const DeployModule = buildModule("DeployModule", (m) => {
   // const shipNames = m.contract("MockOnchainRandomShipNames");
 
   // For Flow testnet use
-  const shipNames = "0x9E433A07D283d56E8243EA25b7358521b1922df5";
+  // const shipNames = "0x9E433A07D283d56E8243EA25b7358521b1922df5";
 
   // For Ronin Saigon testnet use
   // const shipNames = "0x3866a81241Ec61414a3A7A99486f6652fFd0743C";
@@ -90,7 +90,7 @@ const DeployModule = buildModule("DeployModule", (m) => {
   // const shipNames = "0xe7266c681ce3F8CD8853141139574F2CA70AA165";
 
   // For Base Sepolia testnet use
-  // const shipNames = "0x2b6C2e73D7D8B9dd49aF848B7A19FF003ED0d779";
+  const shipNames = "0x2b6C2e73D7D8B9dd49aF848B7A19FF003ED0d779";
 
   // Deploy GenerateNewShip with ship names
   const generateNewShip = m.contract("GenerateNewShip", [shipNames]);

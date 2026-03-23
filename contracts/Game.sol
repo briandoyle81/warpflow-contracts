@@ -306,6 +306,9 @@ contract Game is Ownable {
             }
         }
 
+        // Add gone ship ids to the count
+        shipCount += game.goneShipIds.length;
+
         // Create array with actual count
         ShipPosition[] memory positions = new ShipPosition[](shipCount);
         uint index = 0;
@@ -317,6 +320,7 @@ contract Game is Ownable {
                 if (shipId > 0 && !ships.isShipDestroyed(shipId)) {
                     // Determine if this is a creator or joiner ship
                     bool isCreator = _isCreatorShip(_gameId, shipId);
+                    // Don't read from existing mapping to avoid lookup costs, just create a new position
                     positions[index] = ShipPosition({
                         shipId: shipId,
                         position: Position({row: row, col: col}),
@@ -326,6 +330,19 @@ contract Game is Ownable {
                     index++;
                 }
             }
+        }
+
+        // Iterate through gone ship ids
+        for (uint i = 0; i < game.goneShipIds.length; i++) {
+            uint shipId = game.goneShipIds[i];
+            Position memory position = game.shipPositions[shipId].position;
+            positions[index] = ShipPosition({
+                shipId: shipId,
+                position: position,
+                isCreator: _isCreatorShip(_gameId, shipId),
+                status: 1
+            });
+            index++;
         }
 
         return positions;
@@ -1056,6 +1073,9 @@ contract Game is Ownable {
 
         // Count for round completion so round does not end early when ships are destroyed/retreated mid-round
         game.shipsRemovedThisRound++;
+
+        // Add ship to gone ship ids
+        game.goneShipIds.push(_shipId);
 
         // Remove ship from fleet
         if (isCreatorShip) {

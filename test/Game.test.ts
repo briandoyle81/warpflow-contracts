@@ -2518,7 +2518,7 @@ describe("Game", function () {
       expect(shipAt00).to.be.undefined;
     });
 
-    it("should exclude destroyed ships from getAllShipPositions", async function () {
+    it("should include destroyed ships in getAllShipPositions with destroyed status", async function () {
       const {
         creatorLobbies,
         joinerLobbies,
@@ -2597,18 +2597,23 @@ describe("Game", function () {
         })
       ).to.be.rejectedWith("ShipDestroyed");
 
-      // Verify the destroyed ship is excluded from getAllShipPositions
+      // Destroyed ships remain in getAllShipPositions (gone list, status = destroyed)
       const updatedPositions = (await game.read.getAllShipPositions([
         1n,
       ])) as any;
-      expect(updatedPositions.length).to.equal(3); // Only 3 ships now
+      expect(updatedPositions.length).to.equal(4);
 
-      // Verify ship 1 is not in the positions
       const shipIds = updatedPositions.map((pos: any) => pos.shipId);
-      expect(shipIds).to.not.include(1n);
+      expect(shipIds).to.include(1n);
       expect(shipIds).to.include(2n);
       expect(shipIds).to.include(6n);
       expect(shipIds).to.include(7n);
+
+      const destroyedShip1 = updatedPositions.find(
+        (pos: any) => pos.shipId === 1n
+      );
+      expect(destroyedShip1).to.not.equal(undefined);
+      expect(destroyedShip1.status).to.equal(1); // 1 = destroyed
 
       // Verify round completion works correctly with the destroyed ship
       // Move the remaining ships to complete the round
@@ -3920,16 +3925,19 @@ describe("Game", function () {
       const ship1 = tupleToShip(ship1Tuple);
       expect(ship1.shipData.timestampDestroyed).to.not.equal(0);
 
-      // Verify ship 1 is excluded from getAllShipPositions
+      // Destroyed ship 1 stays in getAllShipPositions (gone list)
       const positions = (await game.read.getAllShipPositions([1n])) as any;
-      expect(positions.length).to.equal(3); // Creator's ship 2, joiner's ships 6 and 7 remain
+      expect(positions.length).to.equal(4);
 
-      // Verify the remaining ships are the correct ones
       const remainingShipIds = positions.map((pos: any) => pos.shipId);
-      expect(remainingShipIds).to.include(2n); // Creator's ship 2
-      expect(remainingShipIds).to.include(6n); // Joiner's ship 6
-      expect(remainingShipIds).to.include(7n); // Joiner's ship 7
-      expect(remainingShipIds).to.not.include(1n); // Ship 1 should be destroyed
+      expect(remainingShipIds).to.include(1n);
+      expect(remainingShipIds).to.include(2n);
+      expect(remainingShipIds).to.include(6n);
+      expect(remainingShipIds).to.include(7n);
+
+      const destroyedShip1 = positions.find((pos: any) => pos.shipId === 1n);
+      expect(destroyedShip1).to.not.equal(undefined);
+      expect(destroyedShip1.status).to.equal(1);
 
       // Round 4: totalActiveShipsAtRoundStart=4, shipsRemovedThisRound=1 (ship 1 destroyed at round start). Need 3 moves.
       // Round 4 is even -> joiner first. Order: joiner 6, creator 2, joiner 7 -> round completes; round 5 starts with creator.
@@ -4046,25 +4054,22 @@ describe("Game", function () {
         { account: creator.account }
       );
 
-      // Verify ship 1 is no longer on the grid
+      // Fled ship 1 is not on the grid but is still listed in getAllShipPositions (gone list)
       const allShipPositions = await game.read.getAllShipPositions([1n]);
-      const shipAtPosition = allShipPositions.find(
-        (pos) =>
-          pos.position.row === creatorPos1.row &&
-          pos.position.col === creatorPos1.col
-      );
-      expect(shipAtPosition).to.be.undefined;
+      const fledShip1 = allShipPositions.find((pos) => pos.shipId === 1n);
+      expect(fledShip1).to.not.equal(undefined);
+      expect(fledShip1!.status).to.equal(2); // 2 = fled
+      expect(fledShip1!.position.row).to.equal(creatorPos1.row);
+      expect(fledShip1!.position.col).to.equal(creatorPos1.col);
 
-      // Verify ship 1 is excluded from getAllShipPositions
       const positions = (await game.read.getAllShipPositions([1n])) as any;
-      expect(positions.length).to.equal(3); // Creator's ship 2, joiner's ships 6 and 7 remain
+      expect(positions.length).to.equal(4);
 
-      // Verify the remaining ships are the correct ones
       const remainingShipIds = positions.map((pos: any) => pos.shipId);
-      expect(remainingShipIds).to.include(2n); // Creator's ship 2
-      expect(remainingShipIds).to.include(6n); // Joiner's ship 6
-      expect(remainingShipIds).to.include(7n); // Joiner's ship 7
-      expect(remainingShipIds).to.not.include(1n); // Ship 1 should be retreated
+      expect(remainingShipIds).to.include(1n);
+      expect(remainingShipIds).to.include(2n);
+      expect(remainingShipIds).to.include(6n);
+      expect(remainingShipIds).to.include(7n);
 
       // Verify that the game can continue with remaining ships
       // After retreat, it should be joiner's turn
@@ -4151,12 +4156,16 @@ describe("Game", function () {
       );
 
       const positions = (await game.read.getAllShipPositions([1n])) as any;
-      expect(positions.length).to.equal(3);
+      expect(positions.length).to.equal(4);
       const remainingShipIds = positions.map((pos: any) => pos.shipId);
+      expect(remainingShipIds).to.include(1n);
       expect(remainingShipIds).to.include(2n);
       expect(remainingShipIds).to.include(6n);
       expect(remainingShipIds).to.include(7n);
-      expect(remainingShipIds).to.not.include(1n);
+
+      const fledShip1 = positions.find((pos: any) => pos.shipId === 1n);
+      expect(fledShip1).to.not.equal(undefined);
+      expect(fledShip1.status).to.equal(2); // 2 = fled
 
       gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
       const joinerPos1 = findShipPosition(gameData, 6n);

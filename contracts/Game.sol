@@ -332,15 +332,15 @@ contract Game is Ownable {
             }
         }
 
-        // Iterate through gone ship ids
+        // Iterate through gone ship ids (destroyed or fled; status from storage)
         for (uint i = 0; i < game.goneShipIds.length; i++) {
             uint shipId = game.goneShipIds[i];
-            Position memory position = game.shipPositions[shipId].position;
+            ShipPosition storage sp = game.shipPositions[shipId];
             positions[index] = ShipPosition({
                 shipId: shipId,
-                position: position,
+                position: sp.position,
                 isCreator: _isCreatorShip(_gameId, shipId),
-                status: 1
+                status: sp.status
             });
             index++;
         }
@@ -1178,26 +1178,6 @@ contract Game is Ownable {
         // where we want to simulate 0 hull points without ending the game
     }
 
-    // Debug function to set a ship's reactor critical timer (onlyOwner for testing)
-    function debugSetReactorCriticalTimer(
-        uint _gameId,
-        uint _shipId,
-        uint8 _timer
-    ) external onlyOwner {
-        GameData storage game = games[_gameId];
-        game.shipAttributes[_shipId].reactorCriticalTimer = _timer;
-    }
-
-    // Debug function to mark a ship as moved this round (onlyOwner for testing)
-    function debugMarkShipAsMoved(
-        uint _gameId,
-        uint _shipId
-    ) external onlyOwner {
-        GameData storage game = games[_gameId];
-        // Mark ship as moved this round
-        EnumerableSet.add(game.shipMovedThisRound, _shipId);
-    }
-
     // Debug function to set a ship in a specific position (onlyOwner for testing)
     function debugSetShipPosition(
         uint _gameId,
@@ -1218,13 +1198,6 @@ contract Game is Ownable {
 
         // Set ship in grid
         games[_gameId].grid[_row][_col] = _shipId;
-    }
-
-    // Debug function to manually trigger reactor critical timer increment for 0 HP ships (onlyOwner for testing)
-    function debugIncrementReactorCriticalTimerForZeroHPShips(
-        uint _gameId
-    ) external onlyOwner {
-        _incrementReactorCriticalTimerForZeroHPShips(_gameId);
     }
 
     // View functions

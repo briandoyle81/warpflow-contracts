@@ -78,7 +78,7 @@ const DeployModule = buildModule("DeployModule", (m) => {
   const metadataRenderer = m.contract("RenderMetadata", [imageRenderer]);
 
   // Deploy mock ship names
-  // const shipNames = m.contract("MockOnchainRandomShipNames");
+  const shipNames = m.contract("MockOnchainRandomShipNames");
 
   // For Flow testnet use
   // const shipNames = "0x9E433A07D283d56E8243EA25b7358521b1922df5";
@@ -90,7 +90,7 @@ const DeployModule = buildModule("DeployModule", (m) => {
   // const shipNames = "0xe7266c681ce3F8CD8853141139574F2CA70AA165";
 
   // For Base Sepolia testnet use
-  const shipNames = "0x2b6C2e73D7D8B9dd49aF848B7A19FF003ED0d779";
+  // const shipNames = "0x2b6C2e73D7D8B9dd49aF848B7A19FF003ED0d779";
 
   // Deploy GenerateNewShip with ship names
   const generateNewShip = m.contract("GenerateNewShip", [shipNames]);
@@ -129,6 +129,8 @@ const DeployModule = buildModule("DeployModule", (m) => {
 
   // Deploy Lobbies contract
   const lobbies = m.contract("Lobbies", [ships]);
+
+  const tutorialClaim = m.contract("TutorialClaim", [ships, gameResults]);
 
   // Set all config values in a single call
   m.call(ships, "setConfig", [
@@ -184,6 +186,19 @@ const DeployModule = buildModule("DeployModule", (m) => {
   // Allow DroneYard to modify ships
   m.call(ships, "setIsAllowedToCreateShips", [droneYard, true], {
     id: "AllowDroneYardToModifyShips",
+  });
+
+  m.call(ships, "setIsAllowedToCreateShips", [tutorialClaim, true], {
+    id: "AllowTutorialClaimToCreateShips",
+  });
+
+  m.call(gameResults, "setTutorialClaimContract", [tutorialClaim], {
+    id: "SetTutorialClaimOnGameResults",
+  });
+
+  // Tutorial ships use trait variants 1–3; default maxVariant is 1
+  m.call(ships, "setMaxVariant", [3], {
+    id: "SetMaxVariantForTutorialShips",
   });
 
   // Enable minting for UniversalCredits
@@ -282,6 +297,7 @@ const DeployModule = buildModule("DeployModule", (m) => {
     game,
     fleets,
     lobbies,
+    tutorialClaim,
   };
 });
 

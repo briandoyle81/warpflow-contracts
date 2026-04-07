@@ -49,7 +49,7 @@ async function getValidHorizontalDestination(
   shipId: bigint,
   currentCol: number,
   desiredDelta = 4,
-  allowNoOp = false
+  allowNoOp = false,
 ) {
   const attributes = await game.read.getShipAttributes([gameId, shipId]);
   const movement = Number(attributes.movement);
@@ -81,7 +81,7 @@ async function moveShipWithinMovement(
   account: any,
   desiredDelta = 4,
   actionType: ActionType = ActionType.Pass,
-  allowNoOp = false
+  allowNoOp = false,
 ) {
   const gameData = (await game.read.getGame([gameId])) as GameDataView;
   const shipPosition = findShipPosition(gameData, shipId);
@@ -91,14 +91,14 @@ async function moveShipWithinMovement(
     shipId,
     shipPosition.col,
     desiredDelta,
-    allowNoOp
+    allowNoOp,
   );
 
   await game.write.moveShip(
     [gameId, shipId, shipPosition.row, destinationCol, actionType, 0n],
     {
       account,
-    }
+    },
   );
 }
 
@@ -116,21 +116,21 @@ describe("Game", function () {
       deployed.lobbies.address,
       {
         client: { wallet: creator },
-      }
+      },
     );
     const joinerLobbies = await hre.viem.getContractAt(
       "Lobbies",
       deployed.lobbies.address,
       {
         client: { wallet: joiner },
-      }
+      },
     );
     const otherLobbies = await hre.viem.getContractAt(
       "Lobbies",
       deployed.lobbies.address,
       {
         client: { wallet: other },
-      }
+      },
     );
 
     // Create Fleets contract instances
@@ -139,14 +139,14 @@ describe("Game", function () {
       deployed.fleets.address,
       {
         client: { wallet: creator },
-      }
+      },
     );
     const joinerFleets = await hre.viem.getContractAt(
       "Fleets",
       deployed.fleets.address,
       {
         client: { wallet: joiner },
-      }
+      },
     );
 
     return {
@@ -185,11 +185,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -254,11 +254,11 @@ describe("Game", function () {
       // Purchase and construct ships
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -325,11 +325,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -390,7 +390,7 @@ describe("Game", function () {
       const foreAccuracyBonuses = [0, 25, 50];
       const baseRange = expectedRanges[mainWeapon];
       const foreAccuracyBonus = Math.floor(
-        (baseRange * foreAccuracyBonuses[accuracyLevel]) / 100
+        (baseRange * foreAccuracyBonuses[accuracyLevel]) / 100,
       );
       const expectedRangeWithBonus = baseRange + foreAccuracyBonus;
 
@@ -412,11 +412,11 @@ describe("Game", function () {
       // Purchase and construct ships
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -477,11 +477,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -549,11 +549,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -598,15 +598,15 @@ describe("Game", function () {
       expect(gameData.metadata.gameId).to.equal(1n);
       expect(gameData.metadata.lobbyId).to.equal(1n);
       expect(gameData.metadata.creator.toLowerCase()).to.equal(
-        creator.account.address.toLowerCase()
+        creator.account.address.toLowerCase(),
       );
       expect(gameData.metadata.joiner.toLowerCase()).to.equal(
-        joiner.account.address.toLowerCase()
+        joiner.account.address.toLowerCase(),
       );
       expect(gameData.metadata.creatorGoesFirst).to.be.true;
       expect(Number(gameData.metadata.startedAt)).to.be.greaterThan(0);
       expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
-        creator.account.address.toLowerCase()
+        creator.account.address.toLowerCase(),
       );
 
       // Verify ship attributes arrays
@@ -635,7 +635,7 @@ describe("Game", function () {
       const { game } = await loadFixture(deployGameFixture);
 
       await expect(game.read.getShipAttributes([999n, 1])).to.be.rejectedWith(
-        "GameNotFound"
+        "GameNotFound",
       );
     });
 
@@ -653,11 +653,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -697,7 +697,7 @@ describe("Game", function () {
 
       // Try to get attributes for non-existent ship
       await expect(game.read.getShipAttributes([1n, 999n])).to.be.rejectedWith(
-        "ShipNotFound"
+        "ShipNotFound",
       );
     });
   });
@@ -717,11 +717,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -784,7 +784,7 @@ describe("Game", function () {
       const ownerLobbies = await hre.viem.getContractAt(
         "Lobbies",
         lobbies.address,
-        { client: { wallet: owner } }
+        { client: { wallet: owner } },
       );
       await ownerLobbies.write.setMaxFleetCostLimit([5000n]);
 
@@ -793,11 +793,11 @@ describe("Game", function () {
       for (let i = 0; i < 12; i++) {
         await ships.write.purchaseWithFlow(
           [creator.account.address, 0n, joiner.account.address, 1],
-          { value: parseEther("4.99") }
+          { value: parseEther("4.99") },
         );
         await ships.write.purchaseWithFlow(
           [joiner.account.address, 0n, creator.account.address, 1],
-          { value: parseEther("4.99") }
+          { value: parseEther("4.99") },
         );
       }
 
@@ -884,16 +884,16 @@ describe("Game", function () {
       // Verify creator ships are placed in columns 0-3
       // With 12 ships and i % 4, we get: 0,1,2,3,0,1,2,3,0,1,2,3
       const creatorShipsInCol0 = creatorShips.filter(
-        (ship) => ship.position.col === 0
+        (ship) => ship.position.col === 0,
       );
       const creatorShipsInCol1 = creatorShips.filter(
-        (ship) => ship.position.col === 1
+        (ship) => ship.position.col === 1,
       );
       const creatorShipsInCol2 = creatorShips.filter(
-        (ship) => ship.position.col === 2
+        (ship) => ship.position.col === 2,
       );
       const creatorShipsInCol3 = creatorShips.filter(
-        (ship) => ship.position.col === 3
+        (ship) => ship.position.col === 3,
       );
 
       expect(creatorShipsInCol0.length).to.equal(3); // Ships at indices 0, 4, 8
@@ -910,16 +910,16 @@ describe("Game", function () {
       // Verify joiner ships are placed in columns 13-16
       // With 12 ships and 13 + (i % 4), we get: 13,14,15,16,13,14,15,16,13,14,15,16
       const joinerShipsInCol13 = joinerShips.filter(
-        (ship) => ship.position.col === 13
+        (ship) => ship.position.col === 13,
       );
       const joinerShipsInCol14 = joinerShips.filter(
-        (ship) => ship.position.col === 14
+        (ship) => ship.position.col === 14,
       );
       const joinerShipsInCol15 = joinerShips.filter(
-        (ship) => ship.position.col === 15
+        (ship) => ship.position.col === 15,
       );
       const joinerShipsInCol16 = joinerShips.filter(
-        (ship) => ship.position.col === 16
+        (ship) => ship.position.col === 16,
       );
 
       expect(joinerShipsInCol13.length).to.equal(3); // Ships at indices 0, 4, 8
@@ -953,11 +953,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -1020,11 +1020,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -1091,11 +1091,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -1160,10 +1160,10 @@ describe("Game", function () {
         // Verify grid is updated using getAllShipPositions
         const allShipPositions = await game.read.getAllShipPositions([1n]);
         const shipAt00 = allShipPositions.find(
-          (pos) => pos.position.row === 0 && pos.position.col === 0
+          (pos) => pos.position.row === 0 && pos.position.col === 0,
         );
         const shipAt02 = allShipPositions.find(
-          (pos) => pos.position.row === 0 && pos.position.col === 2
+          (pos) => pos.position.row === 0 && pos.position.col === 2,
         );
 
         expect(shipAt00).to.be.undefined; // Should be empty
@@ -1172,7 +1172,7 @@ describe("Game", function () {
         // Verify turn switched to joiner
         gameData = (await game.read.getGame([1n])) as any;
         expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
-          joiner.account.address.toLowerCase()
+          joiner.account.address.toLowerCase(),
         );
       }
     });
@@ -1191,11 +1191,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -1243,8 +1243,8 @@ describe("Game", function () {
           [1n, 1n, 0, 5 + movementRange + 1, ActionType.Pass, 0n],
           {
             account: creator.account,
-          }
-        )
+          },
+        ),
       ).to.be.rejectedWith("InvalidMove");
     });
 
@@ -1262,11 +1262,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -1313,15 +1313,15 @@ describe("Game", function () {
         6n,
         ship6Position.col,
         4,
-        true
+        true,
       );
       await expect(
         game.write.moveShip(
           [1n, 6n, ship6Position.row, ship6TargetCol, ActionType.Pass, 0n],
           {
             account: joiner.account,
-          }
-        )
+          },
+        ),
       ).to.be.rejectedWith("InvalidMove");
     });
 
@@ -1339,11 +1339,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -1390,15 +1390,15 @@ describe("Game", function () {
         6n,
         ship6Position.col,
         4,
-        true
+        true,
       );
       await expect(
         game.write.moveShip(
           [1n, 6n, ship6Position.row, ship6TargetCol, ActionType.Pass, 0n],
           {
             account: creator.account,
-          }
-        )
+          },
+        ),
       ).to.be.rejectedWith("ShipNotOwned");
     });
 
@@ -1416,11 +1416,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -1467,7 +1467,7 @@ describe("Game", function () {
       await expect(
         game.write.moveShip([1n, 1n, 0, 2, ActionType.Pass, 0n], {
           account: creator.account,
-        })
+        }),
       ).to.be.rejectedWith("InvalidMove");
     });
 
@@ -1485,11 +1485,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -1570,11 +1570,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -1623,7 +1623,7 @@ describe("Game", function () {
         [1n, 1n, currentRow, currentCol, ActionType.Pass, 0n],
         {
           account: creator.account,
-        }
+        },
       );
 
       // Get Move events
@@ -1657,11 +1657,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -1704,7 +1704,7 @@ describe("Game", function () {
         [1n, 1n, 0, 1, ActionType.Pass, 0n],
         {
           account: creator.account,
-        }
+        },
       );
       const firstMoveReceipt = await publicClient.getTransactionReceipt({
         hash: firstMoveTx,
@@ -1726,11 +1726,13 @@ describe("Game", function () {
       });
 
       // Round 2: joiner goes first (alternating), so joiner moves again before creator
-      const gameDataRound2 = (await game.read.getGame([1n])) as unknown as GameDataView;
+      const gameDataRound2 = (await game.read.getGame([
+        1n,
+      ])) as unknown as GameDataView;
       const joinerPosRound2 = findShipPosition(gameDataRound2, 6n);
       await game.write.moveShip(
         [1n, 6n, joinerPosRound2.row, joinerPosRound2.col, ActionType.Pass, 0n],
-        { account: joiner.account }
+        { account: joiner.account },
       );
 
       // Second move: creator from (0, 1) to (0, 2)
@@ -1738,7 +1740,7 @@ describe("Game", function () {
         [1n, 1n, 0, 2, ActionType.Pass, 0n],
         {
           account: creator.account,
-        }
+        },
       );
       const secondMoveReceipt = await publicClient.getTransactionReceipt({
         hash: secondMoveTx,
@@ -1758,10 +1760,10 @@ describe("Game", function () {
 
       // Find the Move event for ship 1 in each transaction
       const firstMoveEvent = firstMoveEvents.find(
-        (e) => e.args.shipId === 1n && e.args.gameId === 1n
+        (e) => e.args.shipId === 1n && e.args.gameId === 1n,
       );
       const secondMoveEvent = secondMoveEvents.find(
-        (e) => e.args.shipId === 1n && e.args.gameId === 1n
+        (e) => e.args.shipId === 1n && e.args.gameId === 1n,
       );
 
       expect(firstMoveEvent).to.not.be.undefined;
@@ -1794,11 +1796,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -1839,7 +1841,7 @@ describe("Game", function () {
       // Check initial turn
       let gameData = (await game.read.getGame([1n])) as any;
       expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
-        creator.account.address.toLowerCase()
+        creator.account.address.toLowerCase(),
       );
 
       // Creator moves first ship
@@ -1850,7 +1852,7 @@ describe("Game", function () {
       // Verify turn switched to joiner
       gameData = (await game.read.getGame([1n])) as any;
       expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
-        joiner.account.address.toLowerCase()
+        joiner.account.address.toLowerCase(),
       );
 
       // Joiner moves first ship
@@ -1859,7 +1861,7 @@ describe("Game", function () {
       // Verify turn switched back to creator
       gameData = (await game.read.getGame([1n])) as any;
       expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
-        creator.account.address.toLowerCase()
+        creator.account.address.toLowerCase(),
       );
 
       // Creator moves second ship
@@ -1870,7 +1872,7 @@ describe("Game", function () {
       // Verify turn switched to joiner
       gameData = (await game.read.getGame([1n])) as any;
       expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
-        joiner.account.address.toLowerCase()
+        joiner.account.address.toLowerCase(),
       );
 
       // Joiner moves second ship (completing the round)
@@ -1879,14 +1881,14 @@ describe("Game", function () {
       // Round 2 starts with second player (joiner when creatorGoesFirst)
       gameData = (await game.read.getGame([1n])) as any;
       expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
-        joiner.account.address.toLowerCase()
+        joiner.account.address.toLowerCase(),
       );
 
       // Joiner moves in round 2, then creator
       await moveShipWithinMovement(game, 1n, 6n, joiner.account);
       gameData = (await game.read.getGame([1n])) as any;
       expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
-        creator.account.address.toLowerCase()
+        creator.account.address.toLowerCase(),
       );
       await game.write.moveShip([1n, 1n, 0, 2, ActionType.Pass, 0n], {
         account: creator.account,
@@ -1907,11 +1909,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -1953,7 +1955,7 @@ describe("Game", function () {
       await expect(
         game.write.moveShip([1n, 1n, 1, 1, ActionType.Pass, 0n], {
           account: creator.account,
-        })
+        }),
       ).to.be.rejectedWith("InvalidPosition");
     });
 
@@ -1971,11 +1973,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -2041,11 +2043,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -2116,12 +2118,14 @@ describe("Game", function () {
       // Round 2 starts with second player (joiner when creatorGoesFirst)
       let gameData = (await game.read.getGame([1n])) as any;
       expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
-        joiner.account.address.toLowerCase()
+        joiner.account.address.toLowerCase(),
       );
       await moveShipWithinMovement(game, 1n, 6n, joiner.account);
-      expect((await game.read.getGame([1n]) as any).turnState.currentTurn.toLowerCase()).to.equal(
-        creator.account.address.toLowerCase()
-      );
+      expect(
+        (
+          (await game.read.getGame([1n])) as any
+        ).turnState.currentTurn.toLowerCase(),
+      ).to.equal(creator.account.address.toLowerCase());
       await game.write.moveShip([1n, 1n, 0, 2, ActionType.Pass, 0n], {
         account: creator.account,
       });
@@ -2142,11 +2146,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -2193,7 +2197,7 @@ describe("Game", function () {
       await expect(
         game.write.moveShip([1n, 1n, 0, 1, ActionType.Pass, 0n], {
           account: creator.account,
-        })
+        }),
       ).to.be.rejectedWith("ShipDestroyed");
     });
 
@@ -2213,11 +2217,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -2260,7 +2264,7 @@ describe("Game", function () {
       // Check initial game status
       const initialGame = await game.read.getGame([gameId]);
       expect(initialGame.metadata.winner).to.equal(
-        "0x0000000000000000000000000000000000000000"
+        "0x0000000000000000000000000000000000000000",
       ); // No winner yet
 
       // Destroy creator's only ship (this should end the game)
@@ -2271,17 +2275,17 @@ describe("Game", function () {
       // Check that the game ended and joiner won
       const finalGame = await game.read.getGame([gameId]);
       expect(finalGame.metadata.winner.toLowerCase()).to.equal(
-        joiner.account.address.toLowerCase()
+        joiner.account.address.toLowerCase(),
       ); // Joiner wins when creator has no ships
 
       // Check that the game result was recorded in GameResults
       expect(await gameResults.read.isGameResultRecorded([gameId])).to.be.true;
       const result = await gameResults.read.getGameResult([gameId]);
       expect(result.winner.toLowerCase()).to.equal(
-        joiner.account.address.toLowerCase()
+        joiner.account.address.toLowerCase(),
       );
       expect(result.loser.toLowerCase()).to.equal(
-        creator.account.address.toLowerCase()
+        creator.account.address.toLowerCase(),
       );
     });
 
@@ -2300,11 +2304,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -2359,12 +2363,14 @@ describe("Game", function () {
       // Round 2 starts with joiner (alternating first player)
       const gameData = (await game.read.getGame([1n])) as any;
       expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
-        joiner.account.address.toLowerCase()
+        joiner.account.address.toLowerCase(),
       );
       await moveShipWithinMovement(game, 1n, 6n, joiner.account);
-      expect((await game.read.getGame([1n]) as any).turnState.currentTurn.toLowerCase()).to.equal(
-        creator.account.address.toLowerCase()
-      );
+      expect(
+        (
+          (await game.read.getGame([1n])) as any
+        ).turnState.currentTurn.toLowerCase(),
+      ).to.equal(creator.account.address.toLowerCase());
       await game.write.moveShip([1n, 2n, 2, 2, ActionType.Pass, 0n], {
         account: creator.account,
       });
@@ -2384,22 +2390,29 @@ describe("Game", function () {
 
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       for (let i = 1; i <= 10; i++) {
         const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
         const ship = tupleToShip(shipTuple);
-        await randomManager.write.fulfillRandomRequest([ship.traits.serialNumber]);
+        await randomManager.write.fulfillRandomRequest([
+          ship.traits.serialNumber,
+        ]);
       }
       await ships.write.constructAllMyShips({ account: creator.account });
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       await creatorLobbies.write.createLobby([
-        1000n, 300n, true, 0n, 100n, zeroAddress,
+        1000n,
+        300n,
+        true,
+        0n,
+        100n,
+        zeroAddress,
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -2417,28 +2430,48 @@ describe("Game", function () {
       // Turn order: creator 1, joiner 6, creator 2 -> then joiner's turn. Destroy 8 and 9 so joiner must still move ship 7.
       let gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
       const creatorPos1 = findShipPosition(gameData, 1n);
-      await game.write.moveShip([1n, 1n, creatorPos1.row, creatorPos1.col, ActionType.Pass, 0n], { account: creator.account });
+      await game.write.moveShip(
+        [1n, 1n, creatorPos1.row, creatorPos1.col, ActionType.Pass, 0n],
+        { account: creator.account },
+      );
       gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
       const joinerPos6 = findShipPosition(gameData, 6n);
-      await game.write.moveShip([1n, 6n, joinerPos6.row, joinerPos6.col, ActionType.Pass, 0n], { account: joiner.account });
+      await game.write.moveShip(
+        [1n, 6n, joinerPos6.row, joinerPos6.col, ActionType.Pass, 0n],
+        { account: joiner.account },
+      );
       gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
       const creatorPos2 = findShipPosition(gameData, 2n);
-      await game.write.moveShip([1n, 2n, creatorPos2.row, creatorPos2.col, ActionType.Pass, 0n], { account: creator.account });
+      await game.write.moveShip(
+        [1n, 2n, creatorPos2.row, creatorPos2.col, ActionType.Pass, 0n],
+        { account: creator.account },
+      );
 
-      await (game.write as any).debugDestroyShip([1n, 8], { account: owner.account });
-      await (game.write as any).debugDestroyShip([1n, 9], { account: owner.account });
+      await (game.write as any).debugDestroyShip([1n, 8], {
+        account: owner.account,
+      });
+      await (game.write as any).debugDestroyShip([1n, 9], {
+        account: owner.account,
+      });
 
       const stateAfterDestroy = (await game.read.getGame([1n])) as any;
-      expect(stateAfterDestroy.turnState.currentTurn.toLowerCase()).to.equal(joiner.account.address.toLowerCase());
+      expect(stateAfterDestroy.turnState.currentTurn.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase(),
+      );
       expect(stateAfterDestroy.turnState.currentRound).to.equal(1n);
 
       gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
       const joinerPos7 = findShipPosition(gameData, 7n);
-      await game.write.moveShip([1n, 7n, joinerPos7.row, joinerPos7.col, ActionType.Pass, 0n], { account: joiner.account });
+      await game.write.moveShip(
+        [1n, 7n, joinerPos7.row, joinerPos7.col, ActionType.Pass, 0n],
+        { account: joiner.account },
+      );
 
       const stateAfterJoiner7 = (await game.read.getGame([1n])) as any;
       expect(stateAfterJoiner7.turnState.currentRound).to.equal(2n);
-      expect(stateAfterJoiner7.turnState.currentTurn.toLowerCase()).to.equal(joiner.account.address.toLowerCase());
+      expect(stateAfterJoiner7.turnState.currentTurn.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase(),
+      );
     });
 
     it("should remove destroyed ships from grid positions", async function () {
@@ -2456,11 +2489,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -2501,7 +2534,7 @@ describe("Game", function () {
       // Verify ship is initially on the grid
       let allShipPositions = await game.read.getAllShipPositions([1n]);
       let shipAt00 = allShipPositions.find(
-        (pos) => pos.position.row === 0 && pos.position.col === 0
+        (pos) => pos.position.row === 0 && pos.position.col === 0,
       );
       expect(shipAt00?.shipId).to.equal(1n);
 
@@ -2513,7 +2546,7 @@ describe("Game", function () {
       // Verify ship is removed from grid
       allShipPositions = await game.read.getAllShipPositions([1n]);
       shipAt00 = allShipPositions.find(
-        (pos) => pos.position.row === 0 && pos.position.col === 5
+        (pos) => pos.position.row === 0 && pos.position.col === 5,
       );
       expect(shipAt00).to.be.undefined;
     });
@@ -2533,11 +2566,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -2594,7 +2627,7 @@ describe("Game", function () {
       await expect(
         game.write.moveShip([1n, 1n, 0, 2, ActionType.Pass, 0n], {
           account: creator.account,
-        })
+        }),
       ).to.be.rejectedWith("ShipDestroyed");
 
       // Destroyed ships remain in getAllShipPositions (gone list, status = destroyed)
@@ -2610,7 +2643,7 @@ describe("Game", function () {
       expect(shipIds).to.include(7n);
 
       const destroyedShip1 = updatedPositions.find(
-        (pos: any) => pos.shipId === 1n
+        (pos: any) => pos.shipId === 1n,
       );
       expect(destroyedShip1).to.not.equal(undefined);
       expect(destroyedShip1.status).to.equal(1); // 1 = destroyed
@@ -2628,18 +2661,20 @@ describe("Game", function () {
         joiner.account,
         0,
         ActionType.Pass,
-        true
+        true,
       );
 
       // Round 2 starts with joiner (alternating)
       const gameData = (await game.read.getGame([1n])) as any;
       expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
-        joiner.account.address.toLowerCase()
+        joiner.account.address.toLowerCase(),
       );
       await moveShipWithinMovement(game, 1n, 6n, joiner.account);
-      expect((await game.read.getGame([1n]) as any).turnState.currentTurn.toLowerCase()).to.equal(
-        creator.account.address.toLowerCase()
-      );
+      expect(
+        (
+          (await game.read.getGame([1n])) as any
+        ).turnState.currentTurn.toLowerCase(),
+      ).to.equal(creator.account.address.toLowerCase());
       await game.write.moveShip([1n, 2n, 2, 3, ActionType.Pass, 0n], {
         account: creator.account,
       });
@@ -2660,11 +2695,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -2711,7 +2746,7 @@ describe("Game", function () {
       await expect(
         (game.write as any).debugDestroyShip([1n, 1], {
           account: owner.account,
-        })
+        }),
       ).to.be.rejectedWith("ShipDestroyed");
     });
 
@@ -2729,11 +2764,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -2779,7 +2814,7 @@ describe("Game", function () {
       // Verify turn switched to joiner
       let gameData = (await game.read.getGame([1n])) as any;
       expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
-        joiner.account.address.toLowerCase()
+        joiner.account.address.toLowerCase(),
       );
 
       // Round 1: Joiner moves first ship
@@ -2788,7 +2823,7 @@ describe("Game", function () {
       // Verify turn switched back to creator
       gameData = (await game.read.getGame([1n])) as any;
       expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
-        creator.account.address.toLowerCase()
+        creator.account.address.toLowerCase(),
       );
 
       // Round 1: Creator moves second ship (last ship)
@@ -2799,7 +2834,7 @@ describe("Game", function () {
       // Verify turn stays with joiner (creator has no more ships)
       gameData = (await game.read.getGame([1n])) as any;
       expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
-        joiner.account.address.toLowerCase()
+        joiner.account.address.toLowerCase(),
       );
 
       // Round 1: Joiner moves second ship
@@ -2810,13 +2845,13 @@ describe("Game", function () {
         joiner.account,
         0,
         ActionType.Pass,
-        true
+        true,
       );
 
       // Verify turn stays with joiner (creator still has no more ships)
       gameData = (await game.read.getGame([1n])) as any;
       expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
-        joiner.account.address.toLowerCase()
+        joiner.account.address.toLowerCase(),
       );
 
       // Round 1: Joiner moves third ship (completing the round)
@@ -2825,12 +2860,14 @@ describe("Game", function () {
       // Round 2 starts with joiner (alternating)
       gameData = (await game.read.getGame([1n])) as any;
       expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
-        joiner.account.address.toLowerCase()
+        joiner.account.address.toLowerCase(),
       );
       await moveShipWithinMovement(game, 1n, 6n, joiner.account);
-      expect((await game.read.getGame([1n]) as any).turnState.currentTurn.toLowerCase()).to.equal(
-        creator.account.address.toLowerCase()
-      );
+      expect(
+        (
+          (await game.read.getGame([1n])) as any
+        ).turnState.currentTurn.toLowerCase(),
+      ).to.equal(creator.account.address.toLowerCase());
       await game.write.moveShip([1n, 1n, 0, 2, ActionType.Pass, 0n], {
         account: creator.account,
       });
@@ -2851,11 +2888,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -2919,13 +2956,13 @@ describe("Game", function () {
         joiner.account,
         0,
         ActionType.Pass,
-        true
+        true,
       );
 
       // After this move, creator has no unmoved ships, so the turn should remain with the joiner
       let gameData = (await game.read.getGame([1n])) as any;
       expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
-        joiner.account.address.toLowerCase()
+        joiner.account.address.toLowerCase(),
       );
 
       // Round 1: Joiner moves third ship (completing the round)
@@ -2934,12 +2971,14 @@ describe("Game", function () {
       // Round 2 starts with joiner (alternating)
       gameData = (await game.read.getGame([1n])) as any;
       expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
-        joiner.account.address.toLowerCase()
+        joiner.account.address.toLowerCase(),
       );
       await moveShipWithinMovement(game, 1n, 6n, joiner.account);
-      expect((await game.read.getGame([1n]) as any).turnState.currentTurn.toLowerCase()).to.equal(
-        creator.account.address.toLowerCase()
-      );
+      expect(
+        (
+          (await game.read.getGame([1n])) as any
+        ).turnState.currentTurn.toLowerCase(),
+      ).to.equal(creator.account.address.toLowerCase());
       await game.write.moveShip([1n, 1n, 0, 2, ActionType.Pass, 0n], {
         account: creator.account,
       });
@@ -2961,11 +3000,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -3047,7 +3086,7 @@ describe("Game", function () {
             try {
               await game.write.moveShip(
                 [1n, 1n, creatorPos.row, creatorPos.col, ActionType.Shoot, 6n],
-                { account: creator.account }
+                { account: creator.account },
               );
               shootingSuccessful = true;
               break;
@@ -3072,7 +3111,7 @@ describe("Game", function () {
 
               await game.write.moveShip(
                 [1n, 1n, newRow, newCol, ActionType.Pass, 0n],
-                { account: creator.account }
+                { account: creator.account },
               );
             }
           } else {
@@ -3080,7 +3119,7 @@ describe("Game", function () {
             try {
               await game.write.moveShip(
                 [1n, 6n, joinerPos.row, joinerPos.col, ActionType.Shoot, 1],
-                { account: joiner.account }
+                { account: joiner.account },
               );
               shootingSuccessful = true;
               break;
@@ -3103,7 +3142,7 @@ describe("Game", function () {
 
               await game.write.moveShip(
                 [1n, 6n, newRow, newCol, ActionType.Pass, 0n],
-                { account: joiner.account }
+                { account: joiner.account },
               );
             }
           }
@@ -3130,7 +3169,7 @@ describe("Game", function () {
 
             await game.write.moveShip(
               [1n, 1n, newRow, newCol, ActionType.Pass, 0n],
-              { account: creator.account }
+              { account: creator.account },
             );
           } else {
             // Joiner's turn - move towards target
@@ -3151,7 +3190,7 @@ describe("Game", function () {
 
             await game.write.moveShip(
               [1n, 6n, newRow, newCol, ActionType.Pass, 0n],
-              { account: joiner.account }
+              { account: joiner.account },
             );
           }
         }
@@ -3191,11 +3230,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -3270,7 +3309,7 @@ describe("Game", function () {
         // Let joiner pass their turn (move in place)
         await game.write.moveShip(
           [1n, 6n, joinerPos.row, joinerPos.col, ActionType.Pass, 0n],
-          { account: joiner.account }
+          { account: joiner.account },
         );
       }
 
@@ -3278,8 +3317,8 @@ describe("Game", function () {
       await expect(
         game.write.moveShip(
           [1n, 1n, creatorPos.row, creatorPos.col, ActionType.Shoot, 6n],
-          { account: creator.account }
-        )
+          { account: creator.account },
+        ),
       ).to.be.rejectedWith("InvalidMove");
     });
 
@@ -3299,11 +3338,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -3368,7 +3407,7 @@ describe("Game", function () {
       // Authorize owner to create ships
       await ships.write.setIsAllowedToCreateShips(
         [owner.account.address, true],
-        { account: owner.account }
+        { account: owner.account },
       );
 
       // Construct the EMP ship
@@ -3434,7 +3473,7 @@ describe("Game", function () {
         // Let joiner pass their turn
         await game.write.moveShip(
           [1n, 6n, joinerPos.row, joinerPos.col, ActionType.Pass, 0n],
-          { account: joiner.account }
+          { account: joiner.account },
         );
       }
 
@@ -3444,7 +3483,7 @@ describe("Game", function () {
       try {
         await game.write.moveShip(
           [1n, 1n, creatorPos.row, creatorPos.col, ActionType.Special, 6n],
-          { account: creator.account }
+          { account: creator.account },
         );
         // If this succeeds, it means line of sight wasn't checked (which is correct)
         // If it fails, it should be for a reason other than line of sight
@@ -3476,11 +3515,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -3531,14 +3570,14 @@ describe("Game", function () {
 
       // Verify ship 1 has 0 hull points
       expect((await game.read.getShipAttributes([1n, 1])).hullPoints).to.equal(
-        0
+        0,
       );
 
       // Try to move the ship with 0 hull points (should fail)
       await expect(
         game.write.moveShip([1n, 1n, 0, 2, ActionType.Pass, 0n], {
           account: creator.account,
-        })
+        }),
       ).to.be.rejectedWith("ShipDestroyed");
 
       // Verify the ship with 0 hull points is still included in getAllShipPositions
@@ -3566,7 +3605,7 @@ describe("Game", function () {
         joiner.account,
         0,
         ActionType.Pass,
-        true
+        true,
       );
       await moveShipWithinMovement(
         game,
@@ -3575,18 +3614,20 @@ describe("Game", function () {
         joiner.account,
         0,
         ActionType.Pass,
-        true
+        true,
       );
 
       // Round 2 starts with joiner (alternating)
       const gameData = (await game.read.getGame([1n])) as any;
       expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
-        joiner.account.address.toLowerCase()
+        joiner.account.address.toLowerCase(),
       );
       await moveShipWithinMovement(game, 1n, 6n, joiner.account);
-      expect((await game.read.getGame([1n]) as any).turnState.currentTurn.toLowerCase()).to.equal(
-        creator.account.address.toLowerCase()
-      );
+      expect(
+        (
+          (await game.read.getGame([1n])) as any
+        ).turnState.currentTurn.toLowerCase(),
+      ).to.equal(creator.account.address.toLowerCase());
       await game.write.moveShip([1n, 2n, 2, 3, ActionType.Pass, 0n], {
         account: creator.account,
       });
@@ -3609,11 +3650,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -3654,11 +3695,9 @@ describe("Game", function () {
       // Move ships toward each other until in range (similar to shooting test)
       let gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
 
-      // Place ships very close together for this test
-      // Move creator ship to (4, 5) - valid move within movement range of 4
-      await game.write.moveShip([1n, 1n, 4, 0, ActionType.Pass, 0n], {
-        account: creator.account,
-      });
+      // Place ships very close together for this test.
+      // Move within actual ship movement so this remains deterministic.
+      await moveShipWithinMovement(game, 1n, 1n, creator.account);
       // Move joiner ship toward the creator ship within its movement range
       await moveShipWithinMovement(game, 1n, 6n, joiner.account);
       // Ensure it's creator's turn
@@ -3672,7 +3711,7 @@ describe("Game", function () {
         const joinerPos = findShipPosition(gameData, 6n);
         await game.write.moveShip(
           [1n, 6n, joinerPos.row, joinerPos.col, ActionType.Pass, 0n],
-          { account: joiner.account }
+          { account: joiner.account },
         );
       }
 
@@ -3699,14 +3738,14 @@ describe("Game", function () {
       const creatorPos = findShipPosition(gameData, 1n);
       await game.write.moveShip(
         [1n, 1n, creatorPos.row, creatorPos.col, ActionType.Shoot, 6n],
-        { account: creator.account }
+        { account: creator.account },
       );
 
       // Verify reactor critical timer was incremented by 2:
       // 1 for being shot while having 0 HP, plus 1 for starting a new round with 0 HP
       const ship6AttrsAfter = await game.read.getShipAttributes([1n, 6n]);
       expect(ship6AttrsAfter.reactorCriticalTimer).to.equal(
-        ship6Attrs.reactorCriticalTimer + 2
+        ship6Attrs.reactorCriticalTimer + 2,
       );
     });
 
@@ -3725,11 +3764,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -3772,19 +3811,19 @@ describe("Game", function () {
       const creatorPos1 = findShipPosition(gameData, 1n);
       await game.write.moveShip(
         [1n, 1n, creatorPos1.row, creatorPos1.col, ActionType.Pass, 0n],
-        { account: creator.account }
+        { account: creator.account },
       );
       gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
       const joinerPos = findShipPosition(gameData, 6n);
       await game.write.moveShip(
         [1n, 6n, joinerPos.row, joinerPos.col, ActionType.Pass, 0n],
-        { account: joiner.account }
+        { account: joiner.account },
       );
       gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
       const creatorPos2 = findShipPosition(gameData, 2n);
       await game.write.moveShip(
         [1n, 2n, creatorPos2.row, creatorPos2.col, ActionType.Pass, 0n],
-        { account: creator.account }
+        { account: creator.account },
       );
 
       // Now set creator's ship 1 HP to 0 (after round has ended)
@@ -3801,13 +3840,20 @@ describe("Game", function () {
       const joinerPos2 = findShipPosition(gameData, 6n);
       await game.write.moveShip(
         [1n, 6n, joinerPos2.row, joinerPos2.col, ActionType.Pass, 0n],
-        { account: joiner.account }
+        { account: joiner.account },
       );
       gameData = (await game.read.getGame([1n])) as unknown as GameDataView;
       const creatorPos2Again = findShipPosition(gameData, 2n);
       await game.write.moveShip(
-        [1n, 2n, creatorPos2Again.row, creatorPos2Again.col, ActionType.Pass, 0n],
-        { account: creator.account }
+        [
+          1n,
+          2n,
+          creatorPos2Again.row,
+          creatorPos2Again.col,
+          ActionType.Pass,
+          0n,
+        ],
+        { account: creator.account },
       );
 
       const ship1AttrsAfter = await game.read.getShipAttributes([1n, 1]);
@@ -3829,11 +3875,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -3891,29 +3937,29 @@ describe("Game", function () {
           // Round 1, 3: creator first
           await game.write.moveShip(
             [1n, 2n, creatorPos2.row, creatorPos2.col, ActionType.Pass, 0n],
-            { account: creator.account }
+            { account: creator.account },
           );
           await game.write.moveShip(
             [1n, 6n, joinerPos1.row, joinerPos1.col, ActionType.Pass, 0n],
-            { account: joiner.account }
+            { account: joiner.account },
           );
           await game.write.moveShip(
             [1n, 7n, joinerPos2.row, joinerPos2.col, ActionType.Pass, 0n],
-            { account: joiner.account }
+            { account: joiner.account },
           );
         } else {
           // Round 2: joiner first; order joiner 6, creator 2, joiner 7
           await game.write.moveShip(
             [1n, 6n, joinerPos1.row, joinerPos1.col, ActionType.Pass, 0n],
-            { account: joiner.account }
+            { account: joiner.account },
           );
           await game.write.moveShip(
             [1n, 2n, creatorPos2.row, creatorPos2.col, ActionType.Pass, 0n],
-            { account: creator.account }
+            { account: creator.account },
           );
           await game.write.moveShip(
             [1n, 7n, joinerPos2.row, joinerPos2.col, ActionType.Pass, 0n],
-            { account: joiner.account }
+            { account: joiner.account },
           );
         }
         round++;
@@ -3941,25 +3987,36 @@ describe("Game", function () {
 
       // Round 4: totalActiveShipsAtRoundStart=4, shipsRemovedThisRound=1 (ship 1 destroyed at round start). Need 3 moves.
       // Round 4 is even -> joiner first. Order: joiner 6, creator 2, joiner 7 -> round completes; round 5 starts with creator.
-      const gameDataAfterDestroy = (await game.read.getGame([1n])) as unknown as GameDataView;
+      const gameDataAfterDestroy = (await game.read.getGame([
+        1n,
+      ])) as unknown as GameDataView;
       const joinerPos1After = findShipPosition(gameDataAfterDestroy, 6n);
       const joinerPos2After = findShipPosition(gameDataAfterDestroy, 7n);
       const creatorPos2After = findShipPosition(gameDataAfterDestroy, 2n);
       await game.write.moveShip(
         [1n, 6n, joinerPos1After.row, joinerPos1After.col, ActionType.Pass, 0n],
-        { account: joiner.account }
+        { account: joiner.account },
       );
       await game.write.moveShip(
-        [1n, 2n, creatorPos2After.row, creatorPos2After.col, ActionType.Pass, 0n],
-        { account: creator.account }
+        [
+          1n,
+          2n,
+          creatorPos2After.row,
+          creatorPos2After.col,
+          ActionType.Pass,
+          0n,
+        ],
+        { account: creator.account },
       );
       await game.write.moveShip(
         [1n, 7n, joinerPos2After.row, joinerPos2After.col, ActionType.Pass, 0n],
-        { account: joiner.account }
+        { account: joiner.account },
       );
 
       // Move remaining ships to new positions (round 5; creator's turn)
-      const gameDataFinal = (await game.read.getGame([1n])) as unknown as GameDataView;
+      const gameDataFinal = (await game.read.getGame([
+        1n,
+      ])) as unknown as GameDataView;
       const creatorPos2Final = findShipPosition(gameDataFinal, 2n);
       const joinerPos6Final = findShipPosition(gameDataFinal, 6n);
       await game.write.moveShip(
@@ -3971,7 +4028,7 @@ describe("Game", function () {
           ActionType.Pass,
           0n,
         ],
-        { account: creator.account }
+        { account: creator.account },
       );
       await game.write.moveShip(
         [
@@ -3982,7 +4039,7 @@ describe("Game", function () {
           ActionType.Pass,
           0n,
         ],
-        { account: joiner.account }
+        { account: joiner.account },
       );
     });
 
@@ -4001,11 +4058,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -4051,7 +4108,7 @@ describe("Game", function () {
       // Have creator's ship 1 retreat
       await game.write.moveShip(
         [1n, 1n, creatorPos1.row, creatorPos1.col, ActionType.Retreat, 0n],
-        { account: creator.account }
+        { account: creator.account },
       );
 
       // Fled ship 1 is not on the grid but is still listed in getAllShipPositions (gone list)
@@ -4084,7 +4141,7 @@ describe("Game", function () {
           ActionType.Pass,
           0n,
         ],
-        { account: joiner.account }
+        { account: joiner.account },
       );
 
       // Now it should be creator's turn to move ship 2
@@ -4092,7 +4149,7 @@ describe("Game", function () {
       const creatorPos2 = findShipPosition(gameData, 2n);
       await game.write.moveShip(
         [1n, 2n, creatorPos2.row + 1, creatorPos2.col, ActionType.Pass, 0n],
-        { account: creator.account }
+        { account: creator.account },
       );
     });
 
@@ -4110,22 +4167,29 @@ describe("Game", function () {
 
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       for (let i = 1; i <= 10; i++) {
         const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
         const ship = tupleToShip(shipTuple);
-        await randomManager.write.fulfillRandomRequest([ship.traits.serialNumber]);
+        await randomManager.write.fulfillRandomRequest([
+          ship.traits.serialNumber,
+        ]);
       }
       await ships.write.constructAllMyShips({ account: creator.account });
       await ships.write.constructAllMyShips({ account: joiner.account });
 
       await creatorLobbies.write.createLobby([
-        1000n, 300n, true, 0n, 100n, zeroAddress,
+        1000n,
+        300n,
+        true,
+        0n,
+        100n,
+        zeroAddress,
       ]);
       await joinerLobbies.write.joinLobby([1n]);
 
@@ -4152,7 +4216,7 @@ describe("Game", function () {
       // Retreat (flee) ship 1 as creator's turn (Retreat allowed for 0 HP and already-moved ships)
       await game.write.moveShip(
         [1n, 1n, creatorPos1.row, creatorPos1.col, ActionType.Retreat, 0n],
-        { account: creator.account }
+        { account: creator.account },
       );
 
       const positions = (await game.read.getAllShipPositions([1n])) as any;
@@ -4171,7 +4235,7 @@ describe("Game", function () {
       const joinerPos1 = findShipPosition(gameData, 6n);
       await game.write.moveShip(
         [1n, 6n, joinerPos1.row - 1, joinerPos1.col - 1, ActionType.Pass, 0n],
-        { account: joiner.account }
+        { account: joiner.account },
       );
     });
 
@@ -4190,11 +4254,11 @@ describe("Game", function () {
       // Purchase ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -4250,7 +4314,7 @@ describe("Game", function () {
       // Authorize owner to create ships
       await ships.write.setIsAllowedToCreateShips(
         [owner.account.address, true],
-        { account: owner.account }
+        { account: owner.account },
       );
 
       // Construct the repair ship
@@ -4328,16 +4392,18 @@ describe("Game", function () {
 
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       for (let i = 1; i <= 10; i++) {
         const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
         const ship = tupleToShip(shipTuple);
-        await randomManager.write.fulfillRandomRequest([ship.traits.serialNumber]);
+        await randomManager.write.fulfillRandomRequest([
+          ship.traits.serialNumber,
+        ]);
       }
 
       const repairShip: Ship = {
@@ -4351,7 +4417,17 @@ describe("Game", function () {
         },
         traits: {
           serialNumber: 12345n,
-          colors: { h1: 0, s1: 0, l1: 0, h2: 0, s2: 0, l2: 0, h3: 0, s3: 0, l3: 0 },
+          colors: {
+            h1: 0,
+            s1: 0,
+            l1: 0,
+            h2: 0,
+            s2: 0,
+            l2: 0,
+            h3: 0,
+            s3: 0,
+            l3: 0,
+          },
           variant: 0,
           accuracy: 0,
           hull: 0,
@@ -4370,38 +4446,77 @@ describe("Game", function () {
         },
         owner: creator.account.address,
       };
-      await ships.write.setIsAllowedToCreateShips([owner.account.address, true], { account: owner.account });
-      await ships.write.customizeShip([1n, repairShip], { account: owner.account });
+      await ships.write.setIsAllowedToCreateShips(
+        [owner.account.address, true],
+        { account: owner.account },
+      );
+      await ships.write.customizeShip([1n, repairShip], {
+        account: owner.account,
+      });
       await ships.write.constructShip([2n], { account: creator.account });
       await ships.write.constructShip([6n], { account: joiner.account });
 
-      await creatorLobbies.write.createLobby([1000n, 300n, true, 0n, 100n, zeroAddress]);
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n,
+        100n,
+        zeroAddress,
+      ]);
       await joinerLobbies.write.joinLobby([1n]);
-      await creatorLobbies.write.createFleet([1n, [1n, 2n], generateStartingPositions([1n, 2n], true)]);
-      await joinerLobbies.write.createFleet([1n, [6n], generateStartingPositions([6n], false)]);
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n, 2n],
+        generateStartingPositions([1n, 2n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
 
-      await (game.write as any).debugSetHullPointsToZero([1n, 2n], { account: owner.account });
-      expect((await game.read.getShipAttributes([1n, 2n])).hullPoints).to.equal(0);
+      await (game.write as any).debugSetHullPointsToZero([1n, 2n], {
+        account: owner.account,
+      });
+      expect((await game.read.getShipAttributes([1n, 2n])).hullPoints).to.equal(
+        0,
+      );
 
       // Creator moves ship 1 and repairs ship 2 (ship 2 removed from shipsWithZeroHP)
-      await game.write.moveShip([1n, 1n, 2, 0, ActionType.Special, 2n], { account: creator.account });
-      expect((await game.read.getShipAttributes([1n, 2n])).hullPoints).to.equal(40);
+      await game.write.moveShip([1n, 1n, 2, 0, ActionType.Special, 2n], {
+        account: creator.account,
+      });
+      expect((await game.read.getShipAttributes([1n, 2n])).hullPoints).to.equal(
+        40,
+      );
 
       // Round must not be complete: we need 3 counts, have 1 move. Repaired ship must still move.
       const stateAfterRepair = (await game.read.getGame([1n])) as any;
       expect(stateAfterRepair.turnState.currentRound).to.equal(1n);
-      expect(stateAfterRepair.turnState.currentTurn.toLowerCase()).to.equal(joiner.account.address.toLowerCase());
+      expect(stateAfterRepair.turnState.currentTurn.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase(),
+      );
 
-      await game.write.moveShip([1n, 6n, 10, 13, ActionType.Pass, 0n], { account: joiner.account });
+      await game.write.moveShip([1n, 6n, 10, 13, ActionType.Pass, 0n], {
+        account: joiner.account,
+      });
 
       // Still round 1; creator must move ship 2 (repaired ship) before round can complete
       const stateAfterJoiner = (await game.read.getGame([1n])) as any;
       expect(stateAfterJoiner.turnState.currentRound).to.equal(1n);
-      expect(stateAfterJoiner.turnState.currentTurn.toLowerCase()).to.equal(creator.account.address.toLowerCase());
+      expect(stateAfterJoiner.turnState.currentTurn.toLowerCase()).to.equal(
+        creator.account.address.toLowerCase(),
+      );
 
-      const gameDataBefore = (await game.read.getGame([1n])) as unknown as GameDataView;
+      const gameDataBefore = (await game.read.getGame([
+        1n,
+      ])) as unknown as GameDataView;
       const ship2Pos = findShipPosition(gameDataBefore, 2n);
-      await game.write.moveShip([1n, 2n, ship2Pos.row, ship2Pos.col, ActionType.Pass, 0n], { account: creator.account });
+      await game.write.moveShip(
+        [1n, 2n, ship2Pos.row, ship2Pos.col, ActionType.Pass, 0n],
+        { account: creator.account },
+      );
 
       const stateAfterCreator2 = (await game.read.getGame([1n])) as any;
       expect(stateAfterCreator2.turnState.currentRound).to.equal(2n);
@@ -4422,11 +4537,11 @@ describe("Game", function () {
       // Purchase ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -4482,7 +4597,7 @@ describe("Game", function () {
       // Authorize owner to create ships
       await ships.write.setIsAllowedToCreateShips(
         [owner.account.address, true],
-        { account: owner.account }
+        { account: owner.account },
       );
 
       // Construct the EMP ship
@@ -4549,7 +4664,7 @@ describe("Game", function () {
         [1n, 1n, creatorPos.row, creatorPos.col, ActionType.Special, 6n],
         {
           account: creator.account,
-        }
+        },
       );
 
       // Verify joiner's ship's reactor critical timer was increased by the EMP strength (1)
@@ -4572,11 +4687,11 @@ describe("Game", function () {
       // 1. Purchase ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -4632,7 +4747,7 @@ describe("Game", function () {
       // Authorize owner to create ships
       await ships.write.setIsAllowedToCreateShips(
         [owner.account.address, true],
-        { account: owner.account }
+        { account: owner.account },
       );
 
       // Create the FlakArray ship
@@ -4713,7 +4828,7 @@ describe("Game", function () {
       const flakPos = findShipPosition(gameData, 1n);
       await game.write.moveShip(
         [1n, 1n, flakPos.row, flakPos.col, ActionType.Special, 0n],
-        { account: creator.account }
+        { account: creator.account },
       );
 
       // Get hull points after FlakArray attack
@@ -4736,10 +4851,10 @@ describe("Game", function () {
       const ship2DamageReduction = ship2AttrsBefore.damageReduction;
       const ship2ExpectedDamage = Math.max(
         0,
-        flakStrength - Math.floor((flakStrength * ship2DamageReduction) / 100)
+        flakStrength - Math.floor((flakStrength * ship2DamageReduction) / 100),
       );
       expect(ship2AttrsAfter.hullPoints).to.equal(
-        Math.max(0, ship2AttrsBefore.hullPoints - ship2ExpectedDamage)
+        Math.max(0, ship2AttrsBefore.hullPoints - ship2ExpectedDamage),
       );
 
       // Ship 6 damage calculation (enemy ship in range)
@@ -4747,10 +4862,10 @@ describe("Game", function () {
       const ship6DamageReduction = ship6AttrsBefore.damageReduction;
       const ship6ExpectedDamage = Math.max(
         0,
-        flakStrength - Math.floor((flakStrength * ship6DamageReduction) / 100)
+        flakStrength - Math.floor((flakStrength * ship6DamageReduction) / 100),
       );
       expect(ship6AttrsAfter.hullPoints).to.equal(
-        Math.max(0, ship6AttrsBefore.hullPoints - ship6ExpectedDamage)
+        Math.max(0, ship6AttrsBefore.hullPoints - ship6ExpectedDamage),
       );
 
       // 10. Make sure that the ships out of range are undamaged
@@ -4776,11 +4891,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -4826,7 +4941,7 @@ describe("Game", function () {
       // Check initial turn info
       const gameData = (await game.read.getGame([gameId])) as any;
       expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
-        creator.account.address.toLowerCase()
+        creator.account.address.toLowerCase(),
       ); // currentTurn
 
       // Wait for turn to timeout (simulate by advancing time)
@@ -4837,7 +4952,7 @@ describe("Game", function () {
 
       // Timeout: other player calls endGameOnTimeout to claim win (timed-out player forfeits)
       await expect(
-        game.write.endGameOnTimeout([gameId], { account: creator.account })
+        game.write.endGameOnTimeout([gameId], { account: creator.account }),
       ).to.be.rejectedWith("InvalidMove");
 
       await game.write.endGameOnTimeout([gameId], {
@@ -4846,7 +4961,7 @@ describe("Game", function () {
 
       const gameDataAfterTimeout = (await game.read.getGame([gameId])) as any;
       expect(gameDataAfterTimeout.metadata.winner?.toLowerCase()).to.equal(
-        joiner.account.address.toLowerCase()
+        joiner.account.address.toLowerCase(),
       );
     });
 
@@ -4867,11 +4982,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -4917,7 +5032,7 @@ describe("Game", function () {
       // Check initial game status
       const initialGame = await game.read.getGame([gameId]);
       expect(initialGame.metadata.winner).to.equal(
-        "0x0000000000000000000000000000000000000000"
+        "0x0000000000000000000000000000000000000000",
       ); // winner (zero address means game not over)
 
       // Creator flees
@@ -4926,29 +5041,29 @@ describe("Game", function () {
       // Check game status after flee
       const gameAfterFlee = await game.read.getGame([gameId]);
       expect(gameAfterFlee.metadata.winner.toLowerCase()).to.equal(
-        joiner.account.address.toLowerCase()
+        joiner.account.address.toLowerCase(),
       ); // winner (joiner wins when creator flees)
 
       // Check that the game result was recorded in GameResults
       expect(await gameResults.read.isGameResultRecorded([gameId])).to.be.true;
       const result = await gameResults.read.getGameResult([gameId]);
       expect(result.winner.toLowerCase()).to.equal(
-        joiner.account.address.toLowerCase()
+        joiner.account.address.toLowerCase(),
       );
       expect(result.loser.toLowerCase()).to.equal(
-        creator.account.address.toLowerCase()
+        creator.account.address.toLowerCase(),
       );
 
       // Verify that moves are no longer allowed
       await expect(
         game.write.moveShip([gameId, 1n, 0, 1, 0, 0n], {
           account: creator.account,
-        })
+        }),
       ).to.be.rejectedWith("InvalidMove");
 
       // Verify that the other player cannot flee again
       await expect(
-        game.write.flee([gameId], { account: joiner.account })
+        game.write.flee([gameId], { account: joiner.account }),
       ).to.be.rejectedWith("InvalidMove");
     });
 
@@ -4968,11 +5083,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests
@@ -5016,7 +5131,7 @@ describe("Game", function () {
       // Check initial game status
       const initialGame = await game.read.getGame([gameId]);
       expect(initialGame.metadata.winner).to.equal(
-        "0x0000000000000000000000000000000000000000"
+        "0x0000000000000000000000000000000000000000",
       ); // No winner yet
 
       // Creator retreats all their ships
@@ -5034,14 +5149,14 @@ describe("Game", function () {
       // Check game status after all creator ships retreated
       const gameAfterRetreat = await game.read.getGame([gameId]);
       expect(gameAfterRetreat.metadata.winner.toLowerCase()).to.equal(
-        joiner.account.address.toLowerCase()
+        joiner.account.address.toLowerCase(),
       ); // Joiner wins because creator has no active ships
 
       // Verify that moves are no longer allowed
       await expect(
         game.write.moveShip([gameId, 6n, 0, 1, 0, 0n], {
           account: joiner.account,
-        })
+        }),
       ).to.be.rejectedWith("InvalidMove");
     });
 
@@ -5062,11 +5177,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Fulfill randomness and construct ships
@@ -5113,26 +5228,26 @@ describe("Game", function () {
       // Creator tile: 5 points (reaches maxScore), Joiner tile: 3 points
       await maps.write.setScoringTile(
         [gameId, creatorPos.row, creatorPos.col, 5],
-        { account: owner.account }
+        { account: owner.account },
       );
       await maps.write.setScoringTile(
         [gameId, joinerPos.row, joinerPos.col, 3],
-        { account: owner.account }
+        { account: owner.account },
       );
 
       // Complete the round with no-op moves to trigger end-of-round scoring
       await game.write.moveShip(
         [gameId, 1n, creatorPos.row, creatorPos.col, ActionType.Pass, 0n],
-        { account: creator.account }
+        { account: creator.account },
       );
       await game.write.moveShip(
         [gameId, 6n, joinerPos.row, joinerPos.col, ActionType.Pass, 0n],
-        { account: joiner.account }
+        { account: joiner.account },
       );
 
       const finalGame = (await game.read.getGame([gameId])) as any;
       expect(finalGame.metadata.winner.toLowerCase()).to.equal(
-        creator.account.address.toLowerCase()
+        creator.account.address.toLowerCase(),
       );
       expect(finalGame.creatorScore).to.equal(5n);
       expect(finalGame.joinerScore).to.equal(3n);
@@ -5141,10 +5256,10 @@ describe("Game", function () {
       expect(await gameResults.read.isGameResultRecorded([gameId])).to.be.true;
       const result = await gameResults.read.getGameResult([gameId]);
       expect(result.winner.toLowerCase()).to.equal(
-        creator.account.address.toLowerCase()
+        creator.account.address.toLowerCase(),
       );
       expect(result.loser.toLowerCase()).to.equal(
-        joiner.account.address.toLowerCase()
+        joiner.account.address.toLowerCase(),
       );
     });
 
@@ -5165,11 +5280,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Fulfill randomness and construct ships
@@ -5216,26 +5331,26 @@ describe("Game", function () {
       // Creator tile: 3 points, Joiner tile: 5 points (reaches maxScore)
       await maps.write.setScoringTile(
         [gameId, creatorPos.row, creatorPos.col, 3],
-        { account: owner.account }
+        { account: owner.account },
       );
       await maps.write.setScoringTile(
         [gameId, joinerPos.row, joinerPos.col, 5],
-        { account: owner.account }
+        { account: owner.account },
       );
 
       // Complete the round with no-op moves to trigger end-of-round scoring
       await game.write.moveShip(
         [gameId, 1n, creatorPos.row, creatorPos.col, ActionType.Pass, 0n],
-        { account: creator.account }
+        { account: creator.account },
       );
       await game.write.moveShip(
         [gameId, 6n, joinerPos.row, joinerPos.col, ActionType.Pass, 0n],
-        { account: joiner.account }
+        { account: joiner.account },
       );
 
       const finalGame = (await game.read.getGame([gameId])) as any;
       expect(finalGame.metadata.winner.toLowerCase()).to.equal(
-        joiner.account.address.toLowerCase()
+        joiner.account.address.toLowerCase(),
       );
       expect(finalGame.creatorScore).to.equal(3n);
       expect(finalGame.joinerScore).to.equal(5n);
@@ -5244,10 +5359,10 @@ describe("Game", function () {
       expect(await gameResults.read.isGameResultRecorded([gameId])).to.be.true;
       const result = await gameResults.read.getGameResult([gameId]);
       expect(result.winner.toLowerCase()).to.equal(
-        joiner.account.address.toLowerCase()
+        joiner.account.address.toLowerCase(),
       );
       expect(result.loser.toLowerCase()).to.equal(
-        creator.account.address.toLowerCase()
+        creator.account.address.toLowerCase(),
       );
     });
 
@@ -5268,11 +5383,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Fulfill randomness and construct ships
@@ -5319,21 +5434,21 @@ describe("Game", function () {
       // Both tiles: 5 points (both reach maxScore with equal scores)
       await maps.write.setScoringTile(
         [gameId, creatorPos.row, creatorPos.col, 5],
-        { account: owner.account }
+        { account: owner.account },
       );
       await maps.write.setScoringTile(
         [gameId, joinerPos.row, joinerPos.col, 5],
-        { account: owner.account }
+        { account: owner.account },
       );
 
       // Complete the round with no-op moves to trigger end-of-round scoring
       await game.write.moveShip(
         [gameId, 1n, creatorPos.row, creatorPos.col, ActionType.Pass, 0n],
-        { account: creator.account }
+        { account: creator.account },
       );
       await game.write.moveShip(
         [gameId, 6n, joinerPos.row, joinerPos.col, ActionType.Pass, 0n],
-        { account: joiner.account }
+        { account: joiner.account },
       );
 
       const finalGame = (await game.read.getGame([gameId])) as any;
@@ -5363,11 +5478,11 @@ describe("Game", function () {
       // Purchase and construct ships for both players
       await ships.write.purchaseWithFlow(
         [creator.account.address, 0n, joiner.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
       await ships.write.purchaseWithFlow(
         [joiner.account.address, 0n, creator.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get ships' serial numbers and fulfill random requests

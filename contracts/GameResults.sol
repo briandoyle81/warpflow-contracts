@@ -17,6 +17,9 @@ contract GameResults is Ownable {
     // Address of the Game contract that can record results
     address public gameContract;
 
+    // Tutorial claim contract: may record tutorial win/loss into player stats only
+    address public tutorialClaimContract;
+
     // Events
     event GameResultRecorded(
         uint indexed gameId,
@@ -34,11 +37,14 @@ contract GameResults is Ownable {
 
     event GameContractSet(address indexed gameContract);
 
+    event TutorialClaimContractSet(address indexed tutorialClaimContract);
+
     // Errors
     error GameAlreadyRecorded();
     error InvalidGameResult();
     error GameNotFound();
     error NotGameContract();
+    error NotTutorialClaimContract();
 
     constructor() Ownable(msg.sender) {}
 
@@ -49,6 +55,34 @@ contract GameResults is Ownable {
     function setGameContract(address _gameContract) external onlyOwner {
         gameContract = _gameContract;
         emit GameContractSet(_gameContract);
+    }
+
+    /**
+     * @dev Set the TutorialClaim contract (only it may call addWin / addLoss)
+     */
+    function setTutorialClaimContract(
+        address _tutorialClaimContract
+    ) external onlyOwner {
+        tutorialClaimContract = _tutorialClaimContract;
+        emit TutorialClaimContractSet(_tutorialClaimContract);
+    }
+
+    /**
+     * @dev Record a tutorial completion as a win for player stats (no game row / game id)
+     */
+    function addWin(address _player) external {
+        if (msg.sender != tutorialClaimContract) revert NotTutorialClaimContract();
+        if (_player == address(0)) revert InvalidGameResult();
+        _updatePlayerStats(_player, true);
+    }
+
+    /**
+     * @dev Record a tutorial completion as a loss for player stats (no game row / game id)
+     */
+    function addLoss(address _player) external {
+        if (msg.sender != tutorialClaimContract) revert NotTutorialClaimContract();
+        if (_player == address(0)) revert InvalidGameResult();
+        _updatePlayerStats(_player, false);
     }
 
     /**

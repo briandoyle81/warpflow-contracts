@@ -191,13 +191,36 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     // with special ships.
     // I don't think I care, but should I?
     function customizeShip(uint _id, Ship calldata _ship) external {
-        emit MetadataUpdate(_id);
-
-        Ship storage ship = ships[_id];
-
         if (!isAllowedToCreateShips[msg.sender]) {
             revert NotAuthorized(msg.sender);
         }
+
+        Ship storage ship = ships[_id];
+        _applyShipCustomization(ship, _id, _ship);
+    }
+
+    // Used for minting predefined/specific ships in one call for authorized callers.
+    function createSpecificShip(
+        address _to,
+        Ship calldata _ship
+    ) external returns (uint) {
+        if (!isAllowedToCreateShips[msg.sender]) {
+            revert NotAuthorized(msg.sender);
+        }
+
+        _mintShip(_to, _ship.traits.variant, 0);
+        uint newShipId = shipCount;
+        Ship storage ship = ships[newShipId];
+        _applyShipCustomization(ship, newShipId, _ship);
+        return newShipId;
+    }
+
+    function _applyShipCustomization(
+        Ship storage ship,
+        uint _id,
+        Ship calldata _ship
+    ) internal {
+        emit MetadataUpdate(_id);
 
         if (ship.shipData.timestampDestroyed != 0) {
             revert ShipDestroyed();

@@ -10,6 +10,10 @@ interface IGameResults {
         address _loser
     ) external;
 
+    function addWin(address _player) external;
+
+    function addLoss(address _player) external;
+
     // function getPlayerStats(
     //     address _player
     // ) external view returns (PlayerStats memory);

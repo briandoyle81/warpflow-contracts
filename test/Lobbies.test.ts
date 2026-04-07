@@ -469,6 +469,80 @@ describe("Lobbies", function () {
       const gameCount = await game.read.gameCount();
       expect(gameCount).to.equal(1n);
     });
+
+    it("should allow next lobby and game after a lobby is cancelled", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        randomManager,
+        game,
+      } = await loadFixture(deployLobbiesFixture);
+
+      // Prepare ships for both players so the second lobby can start a game.
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address, 1],
+        { value: parseEther("4.99") }
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address, 1],
+        { value: parseEther("4.99") }
+      );
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        await randomManager.write.fulfillRandomRequest([ship.traits.serialNumber]);
+      }
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      // Create lobby #1, then cancel it by creator leaving (no joiner).
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n,
+        100n,
+        zeroAddress,
+      ]);
+      await creatorLobbies.write.leaveLobby([1n]);
+
+      const creatorStateAfterCancel = (await creatorLobbies.read.getPlayerState([
+        creator.account.address,
+      ])) as unknown as PlayerLobbyState;
+      expect(creatorStateAfterCancel.activeLobbiesCount).to.equal(0n);
+
+      // Create lobby #2 and start a game from it.
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n,
+        100n,
+        zeroAddress,
+      ]);
+      await joinerLobbies.write.joinLobby([2n]);
+
+      await creatorLobbies.write.createFleet([
+        2n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        2n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
+
+      const gameCount = await game.read.gameCount();
+      expect(gameCount).to.equal(1n);
+
+      const startedGame = await game.read.getGame([1n]);
+      expect(startedGame.metadata.lobbyId).to.equal(2n);
+      expect(startedGame.metadata.gameId).to.equal(1n);
+    });
   });
 
   describe("Lobby Joining", function () {

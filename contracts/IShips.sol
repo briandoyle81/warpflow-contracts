@@ -6,6 +6,8 @@ import "./Types.sol";
 interface IShips {
     function createShips(address _to, uint _amount, uint16 _variant, uint8 _tier) external;
 
+    function createSpecificShip(address _to, Ship calldata _ship) external returns (uint);
+
     function getShip(uint _id) external view returns (Ship memory);
 
     function isShipDestroyed(uint _id) external view returns (bool);

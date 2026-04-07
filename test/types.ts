@@ -52,7 +52,7 @@ export type ShipTuple = [
   ShipEquipment, // equipment
   ShipTraits, // traits
   ShipData, // shipData
-  Address // owner
+  Address, // owner
 ];
 
 export function tupleToShip(tuple: ShipTuple): Ship {
@@ -202,7 +202,7 @@ export type LobbyTuple = [
   bigint, // joinedAt
   bigint, // joinerFleetSetAt
   bigint, // selectedMapId
-  bigint // maxScore
+  bigint, // maxScore
 ];
 
 export type FleetTuple = [
@@ -211,7 +211,7 @@ export type FleetTuple = [
   Address, // owner
   bigint[], // shipIds
   bigint, // totalCost
-  boolean // isComplete
+  boolean, // isComplete
 ];
 
 export type PlayerLobbyStateTuple = [
@@ -219,7 +219,7 @@ export type PlayerLobbyStateTuple = [
   bigint, // activeLobbiesCount
   boolean, // hasActiveLobby
   bigint, // kickCount
-  bigint // lastKickTime
+  bigint, // lastKickTime
 ];
 
 export type GameDataTuple = [
@@ -231,7 +231,7 @@ export type GameDataTuple = [
   bigint, // joinerFleetId
   boolean, // creatorGoesFirst
   bigint, // startedAt
-  Address // currentTurn
+  Address, // currentTurn
 ];
 
 // Helper functions to convert tuples to objects
@@ -275,7 +275,7 @@ export function tupleToFleet(tuple: FleetTuple): Fleet {
 }
 
 export function tupleToPlayerLobbyState(
-  tuple: PlayerLobbyStateTuple
+  tuple: PlayerLobbyStateTuple,
 ): PlayerLobbyState {
   return {
     activeLobbyId: tuple[0],

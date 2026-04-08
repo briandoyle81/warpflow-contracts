@@ -120,7 +120,7 @@
  ·····································|································|·································
  |  Strings                           ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
  ·····································|································|·································
- |  TutorialClaim                     ·                 2.746 (0.000)  ·                 3.009 (0.000)  │
+ |  TutorialClaim                     ·                 2.756 (0.000)  ·                 3.019 (0.000)  │
  ·····································|································|·································
  |  UniversalCredits                  ·                 2.830 (0.000)  ·                 3.453 (0.000)  │
  ·------------------------------------|--------------------------------|--------------------------------·
@@ -2392,47 +2392,47 @@ Batch #8
 
 Deployed Addresses
 
-DeployModule#GameResults - 0x2E9b011D3Ed7044705Cd4A4b08E725A6BC8775bB
-DeployModule#GenerateNewShip - 0x2A8A1d779e1C69AF2dE682aE5F077e87528B1B1D
-DeployModule#Maps - 0xcd410f2Ec30833a96D95220d8cbb92c855e6cE3e
-DeployModule#RandomManager - 0xbdCb2fDBA20f3aC24Dd9c4aB95F6Ea39C49534cA
-DeployModule#RenderAft0 - 0x53A86BF1D90ab47657083257a3Cb05951e95C740
-DeployModule#RenderAft1 - 0x0A804b30196Ab606B463685fBE4ECB92aCe44112
-DeployModule#RenderAft2 - 0x26f4fEb5C037e9800418769066753943D1D0c19A
-DeployModule#RenderArmor1 - 0x7FdCc5711b5cE63A8ad9c885a1b9fCF3C7b34Ce0
-DeployModule#RenderArmor2 - 0xd5F9Ba8cB0eA4Ca7BE9F9F16C4D760364d7dCa2d
-DeployModule#RenderArmor3 - 0xd8F06cfFB432F332Ca945B8307AA2ca61cD1ADb1
-DeployModule#RenderBaseBody - 0xf6E887bbE16BE46fc80CA4543C53e47FdB58141E
-DeployModule#RenderFore0 - 0x23B17C1eB95acfAa38079cbC3c22d0622a335aEb
-DeployModule#RenderFore1 - 0xcc8b329E1A9C72d1a117F87E45e9Aebf4AcB1E98
-DeployModule#RenderFore2 - 0x5Abd03b192b3cf62509Fa089E2650C399020EbFa
-DeployModule#RenderForePerfect - 0x001B19ca0c53d6d40201eBF9470a2ca3BB113345
-DeployModule#RenderShield1 - 0xD73CF8f002519FB71B115a7A6472E03F8dB8DE4c
-DeployModule#RenderShield2 - 0xfed293578a49D4B1dA4dE472a76a35Ab75d79295
-DeployModule#RenderShield3 - 0x7a01457baEcc9AAAb7eB39CDEe957eB459235afD
-DeployModule#RenderSpecial1 - 0xbc03945eb46BDbdDaD70E3D5F64A179a79DEEC58
-DeployModule#RenderSpecial2 - 0x9486330838AbF270AC1aA42ac7081fE0d31358f0
-DeployModule#RenderSpecial3 - 0xA1538D29796341eFbed0bDB1B1B1Afe163eB7Ae9
-DeployModule#RenderWeapon1 - 0x4BBfD4cc26417E4d60f797A1Bd658d6FAe8ec3B0
-DeployModule#RenderWeapon2 - 0x68c942521b46cA02bF815619cD94Af0DF0CEa62b
-DeployModule#RenderWeapon3 - 0x0f9a54B63Dbe6FafD5Dc2A07A5b290f393758984
-DeployModule#RenderWeapon4 - 0x39c12d6d7161f7A8e651A03C179891dd7438A6c7
-DeployModule#UniversalCredits - 0x51cFb771637E25701594362ba004316276937610
-DeployModule#RenderAft - 0xdb63B1A3eae86FD944e5cb70E2B52462870756e4
-DeployModule#RenderBody - 0xC69426e90f951ff03e642F5FCf267Dbd942B89BF
-DeployModule#RenderFore - 0xB1BC02d0633B6ac1d14befe317EF2b49d33B5166
-DeployModule#RenderSpecial - 0x9d4A891f704DBeE77cb5649959ef7d015D522960
-DeployModule#RenderWeapon - 0xa7E9aEE141b3d1c24C64B898bE77d01dd87830ad
-DeployModule#ImageRenderer - 0xc2f836Cc39E98dC81396bFC265D1304c7904a8b6
-DeployModule#RenderMetadata - 0x694b54B7C99927c2E6104Dd4d4e34917Ab629274
-DeployModule#Ships - 0x2a57a1B5Ce2a6cBAfDba4b96811F1323625da4B8
-DeployModule#Fleets - 0x22A03500cC14B734e3271aaE6cb3A58d86529a8C
-DeployModule#Lobbies - 0xd49A694C9D891CAb7546e7F5E25E9364c6abe8fe
-DeployModule#ShipAttributes - 0xCD0A9bCab139fd8cFA7C0CC2FD7cda9aC614d5fe
-DeployModule#ShipPurchaser - 0x40f29e4a553A2E453852fd233a29F37eA1E730B7
-DeployModule#TutorialClaim - 0x89819cd09F35Cae99173d3BA0B513d326206faE7
-DeployModule#DroneYard - 0x8A25f643246C063764565F7EBE17225df6C18536
-DeployModule#Game - 0x4f1bFB941140584812C8e623691f7228ccB91B94
+DeployModule#GameResults - 0x6A8Ec382dF34a5021cc229E8C2dbe3648966d6b2
+DeployModule#GenerateNewShip - 0xFa4142de5C80c971885bf94bF7251EC020A70236
+DeployModule#Maps - 0x8BA407Ab3Dd040E8b64092d9b27B3C30bc2fd30a
+DeployModule#RandomManager - 0xBed9D337bD2aF6E7649708b557c23BcE94a39bB8
+DeployModule#RenderAft0 - 0x5Eb6d04E7dBBAA319C62F526F4De973cdad628F2
+DeployModule#RenderAft1 - 0xafc9474E140c44e80c42d28f1fDb10530569b116
+DeployModule#RenderAft2 - 0x179dfcEfa012386cDfF63671081c305B753f63d1
+DeployModule#RenderArmor1 - 0xF355907d1B4Cf99E3a6523D88BC03A26162094D7
+DeployModule#RenderArmor2 - 0xf9c370b81514D020154005f3368f97dCf500Ea4F
+DeployModule#RenderArmor3 - 0x1dbd49dE1EB1377a107A6ecFfd27c1e859e1DA3a
+DeployModule#RenderBaseBody - 0x9644Ad3e1C14951BdF0CB652EFB2355F1B6B8e3E
+DeployModule#RenderFore0 - 0xA9e878B866A416e687aAB20cbD0769Da0A7E4a1F
+DeployModule#RenderFore1 - 0x0C826618a4b148aB9A0ecD69e2188dbef0cF9C3c
+DeployModule#RenderFore2 - 0x1f278dFeF62D0011383afee8DA9FDb9989bD75Dc
+DeployModule#RenderForePerfect - 0xa9852d83De99D68D1070E5F57017889BB8e67d81
+DeployModule#RenderShield1 - 0x456761be4d0604126480F2c39df4DF25a7873e19
+DeployModule#RenderShield2 - 0xa258707e46029563Fcf7bE97A664b6Ae397D4699
+DeployModule#RenderShield3 - 0xF641cdAE624D2f34c572E858B6eE534d68ad71aD
+DeployModule#RenderSpecial1 - 0xc992b4f8D778B43d6bf28b07F8B1213563Db828d
+DeployModule#RenderSpecial2 - 0xb0aaC37726C6Ca645413D1DCA0c11De6B59C9e48
+DeployModule#RenderSpecial3 - 0x4b3201d5196e5BDF5cC981Ece26949C703a802c8
+DeployModule#RenderWeapon1 - 0xAf47387f85D604Ea206bFc572BDdD60c9D0444BD
+DeployModule#RenderWeapon2 - 0x280449562Cc94C7285f7fe2A8a53850011f9b8e6
+DeployModule#RenderWeapon3 - 0xD1DF8c467ddaf01a12A9Ed8347009bD1B3558153
+DeployModule#RenderWeapon4 - 0x80d9e3545f5F325423Bdb037121D44419CF45f3a
+DeployModule#UniversalCredits - 0x63135e9F5f35112897F7a029498bCb93676982dF
+DeployModule#RenderAft - 0x5524864B41cffb9f08ffb63FF8ad5cB116ed15C6
+DeployModule#RenderBody - 0x016ca60165770Ac0A986A1cc6e861e45CD451A6c
+DeployModule#RenderFore - 0xA1025FC218cE1327e5fe7A3559728bbda03FBc43
+DeployModule#RenderSpecial - 0x3556Ee95222c1825E302c33dc491E87cF6F21124
+DeployModule#RenderWeapon - 0xc7bD7e334af9CFbc15f7Ef081D401Bb781e94bCd
+DeployModule#ImageRenderer - 0x499378842d81a60372AAE7f47eec222EBc7CaDC2
+DeployModule#RenderMetadata - 0x316f92B75ca23B70E1db5DDdFBF34718c569C849
+DeployModule#Ships - 0x3e8d817b63768618f5441222a81c78E34d761a60
+DeployModule#Fleets - 0xA28e89DbF39dd5DA07c0915D098cb0e29299DaDF
+DeployModule#Lobbies - 0x3B92472A8244a36a8D46485E0F8754136e8FD272
+DeployModule#ShipAttributes - 0x4aD3855b683753329c5441535BF6C9FF4428A0e1
+DeployModule#ShipPurchaser - 0x42415F3A70C2290Cfa48618cBd257137a2Fa3190
+DeployModule#TutorialClaim - 0xA0fcD0265D59e57f34439720d18980BE0846CBB9
+DeployModule#DroneYard - 0x9AB3af669d1DbcEA3F51d4E2c9109E62C02C1eA0
+DeployModule#Game - 0x77e6511DB6Bb8C972298f4EE5422f4C826077010
 
 Verifying deployed contracts
 

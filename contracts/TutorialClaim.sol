@@ -93,6 +93,7 @@ contract TutorialClaim is ReentrancyGuard {
             hull: 2,
             speed: 2
         });
+        s.shipData.shiny = true;
     }
 
     function _buildVigilantTemplate(

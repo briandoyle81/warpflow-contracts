@@ -93,6 +93,8 @@ contract TutorialClaim is ReentrancyGuard {
             hull: 2,
             speed: 2
         });
+        // Rank 2 starts at 10 kills in ShipAttributes.getRank()
+        s.shipData.shipsDestroyed = 10;
         s.shipData.shiny = true;
     }
 

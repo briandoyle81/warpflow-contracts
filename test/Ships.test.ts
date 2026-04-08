@@ -76,21 +76,21 @@ describe("Ships", function () {
       universalCredits.address,
       {
         client: { wallet: user1 },
-      }
+      },
     );
     const user2UC = await hre.viem.getContractAt(
       "UniversalCredits",
       universalCredits.address,
       {
         client: { wallet: user2 },
-      }
+      },
     );
     const user3UC = await hre.viem.getContractAt(
       "UniversalCredits",
       universalCredits.address,
       {
         client: { wallet: user3 },
-      }
+      },
     );
 
     // Create separate contract instances for ShipPurchaser
@@ -99,21 +99,21 @@ describe("Ships", function () {
       shipPurchaser.address,
       {
         client: { wallet: user1 },
-      }
+      },
     );
     const user2Purchaser = await hre.viem.getContractAt(
       "ShipPurchaser",
       shipPurchaser.address,
       {
         client: { wallet: user2 },
-      }
+      },
     );
     const user3Purchaser = await hre.viem.getContractAt(
       "ShipPurchaser",
       shipPurchaser.address,
       {
         client: { wallet: user3 },
-      }
+      },
     );
 
     // Approve the owner address to mint UC tokens
@@ -152,21 +152,21 @@ describe("Ships", function () {
       droneYard.address,
       {
         client: { wallet: user1 },
-      }
+      },
     );
     const user2DroneYard = await hre.viem.getContractAt(
       "DroneYard",
       droneYard.address,
       {
         client: { wallet: user2 },
-      }
+      },
     );
     const user3DroneYard = await hre.viem.getContractAt(
       "DroneYard",
       droneYard.address,
       {
         client: { wallet: user3 },
-      }
+      },
     );
 
     return {
@@ -227,7 +227,7 @@ describe("Ships", function () {
       const { ships, owner } = await loadFixture(deployShipsFixture);
       const contractOwner = await ships.read.owner();
       expect(contractOwner.toString().toLocaleLowerCase()).to.equal(
-        owner.account.address.toLocaleLowerCase()
+        owner.account.address.toLocaleLowerCase(),
       );
     });
 
@@ -286,9 +286,9 @@ describe("Ships", function () {
       await expect(
         ships.write.setPurchaseInfo([newShipsPerTier, newPrices], {
           account: user1.account,
-        })
+        }),
       ).to.be.rejectedWith(
-        'OwnableUnauthorizedAccount("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")'
+        'OwnableUnauthorizedAccount("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")',
       );
     });
 
@@ -308,20 +308,19 @@ describe("Ships", function () {
 
       const config = await ships.read.config();
       expect(config[0].toString().toLowerCase()).to.equal(
-        user1.account.address.toLowerCase()
+        user1.account.address.toLowerCase(),
       );
     });
   });
 
   describe("Minting", function () {
     it("Should purchase tier 0 with correct payment", async function () {
-      const { ships, user1, user2, publicClient } = await loadFixture(
-        deployShipsFixture
-      );
+      const { ships, user1, user2, publicClient } =
+        await loadFixture(deployShipsFixture);
 
       const tx = await ships.write.purchaseWithFlow(
         [user1.account.address, 0n, user2.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       await publicClient.waitForTransactionReceipt({ hash: tx });
@@ -334,7 +333,7 @@ describe("Ships", function () {
         const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
         const ship = tupleToShip(shipTuple);
         expect(ship.owner.toString().toLocaleLowerCase()).to.equal(
-          user1.account.address.toLocaleLowerCase()
+          user1.account.address.toLocaleLowerCase(),
         );
       }
 
@@ -346,13 +345,12 @@ describe("Ships", function () {
     });
 
     it("Should purchase tier 1 with correct payment", async function () {
-      const { ships, user1, user2, publicClient } = await loadFixture(
-        deployShipsFixture
-      );
+      const { ships, user1, user2, publicClient } =
+        await loadFixture(deployShipsFixture);
 
       const tx = await ships.write.purchaseWithFlow(
         [user1.account.address, 1n, user2.account.address, 1],
-        { value: parseEther("9.99") }
+        { value: parseEther("9.99") },
       );
 
       await publicClient.waitForTransactionReceipt({ hash: tx });
@@ -365,7 +363,7 @@ describe("Ships", function () {
         const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
         const ship = tupleToShip(shipTuple);
         expect(ship.owner.toString().toLocaleLowerCase()).to.equal(
-          user1.account.address.toLocaleLowerCase()
+          user1.account.address.toLocaleLowerCase(),
         );
       }
 
@@ -384,8 +382,8 @@ describe("Ships", function () {
       await expect(
         ships.write.purchaseWithFlow(
           [user1.account.address, 0n, user2.account.address, 1],
-          { value: invalidPayment }
-        )
+          { value: invalidPayment },
+        ),
       ).to.be.rejectedWith("InvalidPurchase");
     });
 
@@ -400,8 +398,8 @@ describe("Ships", function () {
             "0x0000000000000000000000000000000000000000",
             1n,
           ],
-          { value: parseEther("4.99") }
-        )
+          { value: parseEther("4.99") },
+        ),
       ).to.be.rejectedWith("InvalidReferral");
     });
 
@@ -411,8 +409,8 @@ describe("Ships", function () {
       await expect(
         ships.write.purchaseWithFlow(
           [user1.account.address, 0n, user2.account.address, 1],
-          { value: parseEther("0.5") }
-        )
+          { value: parseEther("0.5") },
+        ),
       ).to.be.rejectedWith("InvalidPurchase");
     });
 
@@ -427,8 +425,8 @@ describe("Ships", function () {
             "0x0000000000000000000000000000000000000000",
             1n,
           ],
-          { value: parseEther("4.99") }
-        )
+          { value: parseEther("4.99") },
+        ),
       ).to.be.rejectedWith("InvalidReferral");
     });
 
@@ -445,7 +443,9 @@ describe("Ships", function () {
       const tier4ShipsPerPurchase = 60n; // Tier 4 gives 60 ships per purchase
       const tier4Price = parseEther("49.99");
       // Round up to ensure we get at least targetShipCount
-      const purchasesNeeded = Math.ceil(Number(targetShipCount) / Number(tier4ShipsPerPurchase)); // 167 purchases (167 * 60 = 10020)
+      const purchasesNeeded = Math.ceil(
+        Number(targetShipCount) / Number(tier4ShipsPerPurchase),
+      ); // 167 purchases (167 * 60 = 10020)
 
       const initialShipCount = await ships.read.shipCount();
 
@@ -453,13 +453,15 @@ describe("Ships", function () {
       for (let i = 0; i < purchasesNeeded; i++) {
         const tx = await ownerShips.write.purchaseWithFlow(
           [owner.account.address, 4n, user2.account.address, 1],
-          { value: tier4Price }
+          { value: tier4Price },
         );
         await publicClient.waitForTransactionReceipt({ hash: tx });
       }
 
       const finalShipCount = await ships.read.shipCount();
-      const expectedShipCount = initialShipCount + BigInt(purchasesNeeded * Number(tier4ShipsPerPurchase));
+      const expectedShipCount =
+        initialShipCount +
+        BigInt(purchasesNeeded * Number(tier4ShipsPerPurchase));
 
       expect(finalShipCount).to.equal(expectedShipCount);
 
@@ -468,7 +470,7 @@ describe("Ships", function () {
         owner.account.address,
       ]);
       expect(shipsOwned.length).to.be.greaterThanOrEqual(
-        Number(targetShipCount)
+        Number(targetShipCount),
       );
 
       // Verify amountPurchased is correct
@@ -476,7 +478,7 @@ describe("Ships", function () {
         owner.account.address,
       ]);
       expect(Number(amountPurchased)).to.be.greaterThanOrEqual(
-        Number(targetShipCount)
+        Number(targetShipCount),
       );
     });
 
@@ -493,7 +495,9 @@ describe("Ships", function () {
       const tier4ShipsPerPurchase = 60n; // Tier 4 gives 60 ships per purchase
       const tier4Price = parseEther("49.99");
       // Round up to ensure we get at least targetShipCount
-      const purchasesNeeded = Math.ceil(Number(targetShipCount) / Number(tier4ShipsPerPurchase)); // 17 purchases (17 * 60 = 1020)
+      const purchasesNeeded = Math.ceil(
+        Number(targetShipCount) / Number(tier4ShipsPerPurchase),
+      ); // 17 purchases (17 * 60 = 1020)
 
       const initialShipCount = await ships.read.shipCount();
 
@@ -501,13 +505,15 @@ describe("Ships", function () {
       for (let i = 0; i < purchasesNeeded; i++) {
         const tx = await ownerShips.write.purchaseWithFlow(
           [owner.account.address, 4n, user2.account.address, 1],
-          { value: tier4Price }
+          { value: tier4Price },
         );
         await publicClient.waitForTransactionReceipt({ hash: tx });
       }
 
       const finalShipCount = await ships.read.shipCount();
-      const expectedShipCount = initialShipCount + BigInt(purchasesNeeded * Number(tier4ShipsPerPurchase));
+      const expectedShipCount =
+        initialShipCount +
+        BigInt(purchasesNeeded * Number(tier4ShipsPerPurchase));
 
       expect(finalShipCount).to.equal(expectedShipCount);
 
@@ -516,7 +522,7 @@ describe("Ships", function () {
         owner.account.address,
       ]);
       expect(shipsOwned.length).to.be.greaterThanOrEqual(
-        Number(targetShipCount)
+        Number(targetShipCount),
       );
 
       // Verify amountPurchased is correct
@@ -524,7 +530,7 @@ describe("Ships", function () {
         owner.account.address,
       ]);
       expect(Number(amountPurchased)).to.be.greaterThanOrEqual(
-        Number(targetShipCount)
+        Number(targetShipCount),
       );
     });
   });
@@ -560,9 +566,9 @@ describe("Ships", function () {
       await expect(
         ships.write.setPurchaseInfo([newShipsPerTier, newPrices], {
           account: user1.account,
-        })
+        }),
       ).to.be.rejectedWith(
-        'OwnableUnauthorizedAccount("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")'
+        'OwnableUnauthorizedAccount("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")',
       );
     });
 
@@ -582,7 +588,7 @@ describe("Ships", function () {
 
       const config = await ships.read.config();
       expect(config[0].toString().toLowerCase()).to.equal(
-        user1.account.address.toLowerCase()
+        user1.account.address.toLowerCase(),
       );
     });
 
@@ -597,9 +603,8 @@ describe("Ships", function () {
 
   describe("Referral System", function () {
     it("Should process referral payment correctly", async function () {
-      const { ships, user1, user2, publicClient } = await loadFixture(
-        deployShipsFixture
-      );
+      const { ships, user1, user2, publicClient } =
+        await loadFixture(deployShipsFixture);
 
       const initialBalance = await publicClient.getBalance({
         address: user2.account.address,
@@ -607,7 +612,7 @@ describe("Ships", function () {
 
       await ships.write.purchaseWithFlow(
         [user1.account.address, 0n, user2.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       const finalBalance = await publicClient.getBalance({
@@ -625,9 +630,8 @@ describe("Ships", function () {
     });
 
     it("Should process referral payment correctly for tier 0", async function () {
-      const { ships, user1, user2, publicClient } = await loadFixture(
-        deployShipsFixture
-      );
+      const { ships, user1, user2, publicClient } =
+        await loadFixture(deployShipsFixture);
 
       const initialBalance = await publicClient.getBalance({
         address: user2.account.address,
@@ -635,7 +639,7 @@ describe("Ships", function () {
 
       await ships.write.purchaseWithFlow(
         [user1.account.address, 0n, user2.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       const finalBalance = await publicClient.getBalance({
@@ -658,7 +662,7 @@ describe("Ships", function () {
       // Purchase tier 1 (5 ships)
       await ships.write.purchaseWithFlow(
         [user1.account.address, 0n, user2.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Check referral count is 5
@@ -670,7 +674,7 @@ describe("Ships", function () {
       // Purchase another tier 1
       await ships.write.purchaseWithFlow(
         [user1.account.address, 0n, user2.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Check referral count is now 10 (5 + 5)
@@ -687,7 +691,7 @@ describe("Ships", function () {
       // Mint a ship first
       await ships.write.purchaseWithFlow(
         [user1.account.address, 0n, user2.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get the ship's serial number
@@ -721,7 +725,7 @@ describe("Ships", function () {
       // Purchase tier 4 (60 ships)
       await ships.write.purchaseWithFlow(
         [user1.account.address, 4n, user2.account.address, 1],
-        { value: parseEther("49.99") }
+        { value: parseEther("49.99") },
       );
 
       // Get all ships' serial numbers and fulfill random requests
@@ -755,7 +759,7 @@ describe("Ships", function () {
       // Purchase tier 1 (5 ships)
       await ships.write.purchaseWithFlow(
         [user1.account.address, 0n, user2.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get all ships' serial numbers
@@ -784,14 +788,13 @@ describe("Ships", function () {
     });
 
     it("Should not allow non-owner to construct ship", async function () {
-      const { ships, user1, user2, randomManager } = await loadFixture(
-        deployShipsFixture
-      );
+      const { ships, user1, user2, randomManager } =
+        await loadFixture(deployShipsFixture);
 
       // Mint a ship first
       await ships.write.purchaseWithFlow(
         [user1.account.address, 0n, user2.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get the ship's serial number
@@ -806,19 +809,18 @@ describe("Ships", function () {
       await expect(
         ships.write.constructShip([1n], {
           account: user2.account,
-        })
+        }),
       ).to.be.rejectedWith("NotYourShip");
     });
 
     it("Should not allow constructing an already constructed ship", async function () {
-      const { ships, user1, user2, randomManager } = await loadFixture(
-        deployShipsFixture
-      );
+      const { ships, user1, user2, randomManager } =
+        await loadFixture(deployShipsFixture);
 
       // Mint a ship first
       await ships.write.purchaseWithFlow(
         [user1.account.address, 0n, user2.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get the ship's serial number
@@ -838,7 +840,7 @@ describe("Ships", function () {
       await expect(
         ships.write.constructShip([1n], {
           account: user1.account,
-        })
+        }),
       ).to.be.rejectedWith("ShipConstructed");
     });
   });
@@ -851,7 +853,7 @@ describe("Ships", function () {
       // Mint and construct a ship
       await ships.write.purchaseWithFlow(
         [user1.account.address, 0n, user2.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       // Get the ship's serial number
@@ -875,7 +877,7 @@ describe("Ships", function () {
       // Decode the base64 content
       const base64Content = tokenURI.replace(
         "data:application/json;base64,",
-        ""
+        "",
       );
       const decodedContent = Buffer.from(base64Content, "base64").toString();
       const metadata = JSON.parse(decodedContent);
@@ -909,7 +911,7 @@ describe("Ships", function () {
 
       // Verify description
       expect(metadata.description).to.equal(
-        "A unique spaceship in the Void Tactics universe. Each ship has unique traits, equipment, and stats that determine its capabilities in battle."
+        "A unique spaceship in the Void Tactics universe. Each ship has unique traits, equipment, and stats that determine its capabilities in battle.",
       );
 
       // Verify image format - should now be a base64 encoded SVG
@@ -925,8 +927,8 @@ describe("Ships", function () {
           (attr: { trait_type: string; value: string | number | boolean }) => [
             attr.trait_type,
             attr.value,
-          ]
-        )
+          ],
+        ),
       );
 
       // Verify required traits
@@ -970,7 +972,7 @@ describe("Ships", function () {
 
       await ships.write.setIsAllowedToCreateShips(
         [owner.account.address, true],
-        { account: owner.account }
+        { account: owner.account },
       );
 
       await ships.write.createShips([user1.account.address, 1, 1, 0], {
@@ -1029,7 +1031,7 @@ describe("Ships", function () {
       const tokenURI = await ships.read.tokenURI([1n]);
       const base64Content = tokenURI.replace(
         "data:application/json;base64,",
-        ""
+        "",
       );
       const decodedContent = Buffer.from(base64Content, "base64").toString();
       const metadata = JSON.parse(decodedContent);
@@ -1039,8 +1041,8 @@ describe("Ships", function () {
           (attr: { trait_type: string; value: string | number | boolean }) => [
             attr.trait_type,
             attr.value,
-          ]
-        )
+          ],
+        ),
       );
       expect(attributeMap.get("Modified")).to.equal("Yes");
     });
@@ -1054,9 +1056,8 @@ describe("Ships", function () {
 
   describe("Ownership Changes", function () {
     it("Should not allow transfer without purchasing a tier", async function () {
-      const { ships, user1, user2, user3 } = await loadFixture(
-        deployShipsFixture
-      );
+      const { ships, user1, user2, user3 } =
+        await loadFixture(deployShipsFixture);
 
       // Verify user1 has not purchased enough ships to transfer initially
       const amountPurchased = await ships.read.amountPurchased([
@@ -1067,7 +1068,7 @@ describe("Ships", function () {
       // Mint ships to user1 using tier 1 (which gives 11 ships, enough to transfer)
       await ships.write.purchaseWithFlow(
         [user1.account.address, 1n, user2.account.address, 1],
-        { value: parseEther("9.99") }
+        { value: parseEther("9.99") },
       );
 
       // Verify user1 has now purchased enough ships to transfer (since they purchased tier 1)
@@ -1080,8 +1081,8 @@ describe("Ships", function () {
       await expect(
         ships.write.transferFrom(
           [user1.account.address, user3.account.address, 1],
-          { account: user1.account }
-        )
+          { account: user1.account },
+        ),
       ).to.be.rejectedWith("InsufficientPurchases");
     });
 
@@ -1092,13 +1093,13 @@ describe("Ships", function () {
       // First purchase tier 1 to enable trading (gives 11 ships, enough to transfer)
       await user1Ships.write.purchaseWithFlow(
         [user1.account.address, 1n, user2.account.address, 1],
-        { value: parseEther("9.99") }
+        { value: parseEther("9.99") },
       );
 
       // Mint tier 1 to user2 so they can transfer (gives 11 ships, enough to transfer)
       await user2Ships.write.purchaseWithFlow(
         [user2.account.address, 1n, user2.account.address, 1],
-        { value: parseEther("9.99") }
+        { value: parseEther("9.99") },
       );
 
       // Confirm user1 has purchased enough ships to transfer
@@ -1123,7 +1124,7 @@ describe("Ships", function () {
       // Verify new owner
       const newOwner = await ships.read.ownerOf([1n]);
       expect(newOwner.toString().toLocaleLowerCase()).to.equal(
-        user2.account.address.toLocaleLowerCase()
+        user2.account.address.toLocaleLowerCase(),
       );
     });
 
@@ -1142,13 +1143,13 @@ describe("Ships", function () {
       // First purchase tier 1 to enable trading for user1 (the owner) - gives 11 ships
       await user1Ships.write.purchaseWithFlow(
         [user1.account.address, 1n, user2.account.address, 1],
-        { value: parseEther("9.99") }
+        { value: parseEther("9.99") },
       );
 
       // Purchase tier 1 for user3 (the receiver) - gives 11 ships
       await user3Ships.write.purchaseWithFlow(
         [user3.account.address, 1n, user2.account.address, 1],
-        { value: parseEther("9.99") }
+        { value: parseEther("9.99") },
       );
 
       // Confirm user1 has purchased enough ships to transfer
@@ -1176,7 +1177,7 @@ describe("Ships", function () {
       // Verify new owner
       const newOwner = await ships.read.ownerOf([1n]);
       expect(newOwner.toString().toLocaleLowerCase()).to.equal(
-        user3.account.address.toLocaleLowerCase()
+        user3.account.address.toLocaleLowerCase(),
       );
     });
 
@@ -1195,13 +1196,13 @@ describe("Ships", function () {
       // First purchase tier 1 to enable trading for user1 (the owner) - gives 11 ships
       await user1Ships.write.purchaseWithFlow(
         [user1.account.address, 1n, user2.account.address, 1],
-        { value: parseEther("9.99") }
+        { value: parseEther("9.99") },
       );
 
       // Purchase tier 1 for user3 (the receiver) - gives 11 ships
       await user3Ships.write.purchaseWithFlow(
         [user3.account.address, 1n, user2.account.address, 1],
-        { value: parseEther("9.99") }
+        { value: parseEther("9.99") },
       );
 
       // Confirm user1 has purchased enough ships to transfer
@@ -1229,7 +1230,7 @@ describe("Ships", function () {
       // Verify new owner
       const newOwner = await ships.read.ownerOf([1n]);
       expect(newOwner.toString().toLocaleLowerCase()).to.equal(
-        user3.account.address.toLocaleLowerCase()
+        user3.account.address.toLocaleLowerCase(),
       );
     });
 
@@ -1248,19 +1249,19 @@ describe("Ships", function () {
       // First purchase tier 1 to enable trading for user1 (the owner) - gives 11 ships
       await user1Ships.write.purchaseWithFlow(
         [user1.account.address, 1n, user2.account.address, 1],
-        { value: parseEther("9.99") }
+        { value: parseEther("9.99") },
       );
 
       // Purchase tier 1 for user2 (the non-owner) - gives 11 ships
       await user2Ships.write.purchaseWithFlow(
         [user2.account.address, 1n, user1.account.address, 1],
-        { value: parseEther("9.99") }
+        { value: parseEther("9.99") },
       );
 
       // Purchase tier 1 for user3 (the receiver) - gives 11 ships
       await user3Ships.write.purchaseWithFlow(
         [user3.account.address, 1n, user2.account.address, 1],
-        { value: parseEther("9.99") }
+        { value: parseEther("9.99") },
       );
 
       // Confirm all users have purchased enough ships to transfer
@@ -1283,19 +1284,18 @@ describe("Ships", function () {
           user1.account.address,
           user3.account.address,
           1n,
-        ])
+        ]),
       ).to.be.rejectedWith("ERC721InsufficientApproval");
     });
 
     it("Should not allow transfer of destroyed ship even with tier purchase", async function () {
-      const { ships, user1, user2, owner, publicClient } = await loadFixture(
-        deployShipsFixture
-      );
+      const { ships, user1, user2, owner, publicClient } =
+        await loadFixture(deployShipsFixture);
 
       // First purchase tier 1 to enable trading - gives 11 ships
       await ships.write.purchaseWithFlow(
         [user1.account.address, 1n, user2.account.address, 1],
-        { value: parseEther("9.99") }
+        { value: parseEther("9.99") },
       );
 
       // Note: The first purchase already gives 11 ships, no need for a second purchase
@@ -1309,8 +1309,8 @@ describe("Ships", function () {
       await expect(
         ships.write.transferFrom(
           [user1.account.address, user2.account.address, 1],
-          { account: user1.account }
-        )
+          { account: user1.account },
+        ),
       ).to.be.rejectedWith("ShipDestroyed");
     });
 
@@ -1321,13 +1321,13 @@ describe("Ships", function () {
       // First purchase tier 1 to enable trading for user1 (the owner) - gives 11 ships
       await user1Ships.write.purchaseWithFlow(
         [user1.account.address, 1n, user2.account.address, 1],
-        { value: parseEther("9.99") }
+        { value: parseEther("9.99") },
       );
 
       // Purchase tier 1 for user2 (the receiver) - gives 11 ships
       await user2Ships.write.purchaseWithFlow(
         [user2.account.address, 1n, user1.account.address, 1],
-        { value: parseEther("9.99") }
+        { value: parseEther("9.99") },
       );
 
       // Confirm both users have purchased enough ships to transfer
@@ -1372,19 +1372,18 @@ describe("Ships", function () {
       // Verify the actual owner is user2
       const owner = await ships.read.ownerOf([1n]);
       expect(owner.toString().toLocaleLowerCase()).to.equal(
-        user2.account.address.toLocaleLowerCase()
+        user2.account.address.toLocaleLowerCase(),
       );
     });
 
     it("Should allow owner to approve and revoke approval after tier purchase", async function () {
-      const { ships, user1, user2, publicClient } = await loadFixture(
-        deployShipsFixture
-      );
+      const { ships, user1, user2, publicClient } =
+        await loadFixture(deployShipsFixture);
 
       // First purchase tier 1 to enable trading - gives 11 ships
       await ships.write.purchaseWithFlow(
         [user1.account.address, 1n, user2.account.address, 1],
-        { value: parseEther("9.99") }
+        { value: parseEther("9.99") },
       );
 
       // Note: The first purchase already gives 11 ships, no need for a second purchase
@@ -1397,31 +1396,30 @@ describe("Ships", function () {
       // Verify approval
       const approved = await ships.read.getApproved([1n]);
       expect(approved.toString().toLocaleLowerCase()).to.equal(
-        user2.account.address.toLocaleLowerCase()
+        user2.account.address.toLocaleLowerCase(),
       );
 
       // Revoke approval
       await ships.write.approve(
         ["0x0000000000000000000000000000000000000000", 1],
-        { account: user1.account }
+        { account: user1.account },
       );
 
       // Verify approval revoked
       const newApproved = await ships.read.getApproved([1n]);
       expect(newApproved).to.equal(
-        "0x0000000000000000000000000000000000000000"
+        "0x0000000000000000000000000000000000000000",
       );
     });
 
     it("Should allow owner to set and revoke operator after tier purchase", async function () {
-      const { ships, user1, user2, publicClient } = await loadFixture(
-        deployShipsFixture
-      );
+      const { ships, user1, user2, publicClient } =
+        await loadFixture(deployShipsFixture);
 
       // First purchase tier 1 to enable trading - gives 11 ships
       await ships.write.purchaseWithFlow(
         [user1.account.address, 1n, user2.account.address, 1],
-        { value: parseEther("9.99") }
+        { value: parseEther("9.99") },
       );
 
       // Note: The first purchase already gives 11 ships, no need for a second purchase
@@ -1461,7 +1459,7 @@ describe("Ships", function () {
         [user1.account.address, true],
         {
           account: owner.account,
-        }
+        },
       );
 
       // Create 3 ships for user1
@@ -1478,7 +1476,7 @@ describe("Ships", function () {
         const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
         const ship = tupleToShip(shipTuple);
         expect(ship.owner.toString().toLocaleLowerCase()).to.equal(
-          user1.account.address.toLocaleLowerCase()
+          user1.account.address.toLocaleLowerCase(),
         );
       }
     });
@@ -1490,7 +1488,7 @@ describe("Ships", function () {
       await expect(
         ships.write.createShips([user1.account.address, 3n, 1, 0], {
           account: user2.account,
-        })
+        }),
       ).to.be.rejectedWith("NotAuthorized");
     });
 
@@ -1502,7 +1500,7 @@ describe("Ships", function () {
         [user1.account.address, true],
         {
           account: owner.account,
-        }
+        },
       );
 
       // Create 10 ships for user1
@@ -1519,7 +1517,7 @@ describe("Ships", function () {
         const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
         const ship = tupleToShip(shipTuple);
         expect(ship.owner.toString().toLocaleLowerCase()).to.equal(
-          user1.account.address.toLocaleLowerCase()
+          user1.account.address.toLocaleLowerCase(),
         );
       }
     });
@@ -1532,7 +1530,7 @@ describe("Ships", function () {
         [user1.account.address, true],
         {
           account: owner.account,
-        }
+        },
       );
 
       // Create 5 ships for user1 using owner account
@@ -1549,7 +1547,7 @@ describe("Ships", function () {
         const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
         const ship = tupleToShip(shipTuple);
         expect(ship.owner.toString().toLocaleLowerCase()).to.equal(
-          user1.account.address.toLocaleLowerCase()
+          user1.account.address.toLocaleLowerCase(),
         );
       }
     });
@@ -1562,7 +1560,7 @@ describe("Ships", function () {
         [user1.account.address, true],
         {
           account: owner.account,
-        }
+        },
       );
 
       // Create 3 ships for user1
@@ -1590,7 +1588,7 @@ describe("Ships", function () {
         [user1.account.address, true],
         {
           account: owner.account,
-        }
+        },
       );
 
       // Create a ship first
@@ -1654,7 +1652,7 @@ describe("Ships", function () {
       const constructedShip = tupleToShip(constructedShipTuple);
       expect(constructedShip.name).to.equal("Custom Ship"); // name
       expect(constructedShip.traits.serialNumber).to.equal(
-        originalSerialNumber
+        originalSerialNumber,
       ); // serial number preserved
       expect(constructedShip.traits.variant).to.equal(1); // traits.variant
       expect(constructedShip.traits.accuracy).to.equal(2); // traits.accuracy
@@ -1670,16 +1668,15 @@ describe("Ships", function () {
     });
 
     it("Should not allow unauthorized address to construct a specific ship", async function () {
-      const { ships, user1, user2, owner } = await loadFixture(
-        deployShipsFixture
-      );
+      const { ships, user1, user2, owner } =
+        await loadFixture(deployShipsFixture);
 
       // First authorize user1 to create ships
       await ships.write.setIsAllowedToCreateShips(
         [user1.account.address, true],
         {
           account: owner.account,
-        }
+        },
       );
 
       // Create a ship first
@@ -1733,7 +1730,7 @@ describe("Ships", function () {
       await expect(
         ships.write.customizeShip([1n, specificShip], {
           account: user2.account,
-        })
+        }),
       ).to.be.rejectedWith("NotAuthorized");
     });
 
@@ -1745,7 +1742,7 @@ describe("Ships", function () {
         [user1.account.address, true],
         {
           account: owner.account,
-        }
+        },
       );
 
       // Create a ship first
@@ -1832,7 +1829,7 @@ describe("Ships", function () {
 
       expect(afterSecondCustomize.shipData.constructed).to.be.true;
       expect(afterSecondCustomize.shipData.modified).to.be.above(
-        firstModifiedCount
+        firstModifiedCount,
       );
       expect(afterSecondCustomize.name).to.equal("Custom Ship MkII");
     });
@@ -1845,7 +1842,7 @@ describe("Ships", function () {
         [user1.account.address, true],
         {
           account: owner.account,
-        }
+        },
       );
 
       // Create a ship first
@@ -1944,7 +1941,7 @@ describe("Ships", function () {
         const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
         const ship = tupleToShip(shipTuple);
         expect(ship.owner.toString().toLocaleLowerCase()).to.equal(
-          user1.account.address.toLocaleLowerCase()
+          user1.account.address.toLocaleLowerCase(),
         );
       }
     });
@@ -1993,7 +1990,7 @@ describe("Ships", function () {
         ["0x000000000000000000000000000000000000dEaD", parseEther("1000")],
         {
           account: user1.account,
-        }
+        },
       );
 
       await expect(
@@ -2002,7 +1999,7 @@ describe("Ships", function () {
           0n,
           user2.account.address,
           1,
-        ])
+        ]),
       ).to.be.rejectedWith("InsufficientFunds");
     });
 
@@ -2015,7 +2012,7 @@ describe("Ships", function () {
           0n,
           "0x0000000000000000000000000000000000000000",
           1,
-        ])
+        ]),
       ).to.be.rejectedWith("InvalidReferral");
     });
 
@@ -2053,8 +2050,8 @@ describe("Ships", function () {
           [updatedShipsPerTier, updatedPrices],
           {
             account: user1.account,
-          }
-        )
+          },
+        ),
       ).to.be.rejectedWith("OwnableUnauthorizedAccount");
     });
 
@@ -2067,14 +2064,14 @@ describe("Ships", function () {
         [shipPurchaser.address, parseEther("100")],
         {
           account: user1.account,
-        }
+        },
       );
 
       await shipPurchaser.write.purchaseWithUC(
         [user1.account.address, 0n, owner.account.address, 1],
         {
           account: user1.account,
-        }
+        },
       );
 
       const initialBalance = await universalCredits.read.balanceOf([
@@ -2092,7 +2089,7 @@ describe("Ships", function () {
       const { shipPurchaser, user1 } = await loadFixture(deployShipsFixture);
 
       await expect(
-        shipPurchaser.write.withdrawUC({ account: user1.account })
+        shipPurchaser.write.withdrawUC({ account: user1.account }),
       ).to.be.rejectedWith("OwnableUnauthorizedAccount");
     });
   });
@@ -2119,7 +2116,7 @@ describe("Ships", function () {
       await expect(
         ships.write.setRecycleReward([parseEther("0.5")], {
           account: user1.account,
-        })
+        }),
       ).to.be.rejectedWith("OwnableUnauthorizedAccount");
     });
 
@@ -2132,14 +2129,14 @@ describe("Ships", function () {
         [shipPurchaser.address, parseEther("100")],
         {
           account: user1.account,
-        }
+        },
       );
 
       await shipPurchaser.write.purchaseWithUC(
         [user1.account.address, 1n, user2.account.address, 1],
         {
           account: user1.account,
-        }
+        },
       );
 
       // Get initial UC balance
@@ -2160,7 +2157,7 @@ describe("Ships", function () {
         user1.account.address,
       ]);
       expect(finalBalance - initialBalance).to.equal(
-        parseEther("0.1") * BigInt(shipIds.length)
+        parseEther("0.1") * BigInt(shipIds.length),
       );
 
       // Verify ships are no longer owned by user1
@@ -2201,7 +2198,7 @@ describe("Ships", function () {
         ],
         {
           account: owner.account,
-        }
+        },
       );
 
       // Purchase some ships for user1 using tier 1 (gives 11 ships, enough to recycle)
@@ -2209,14 +2206,14 @@ describe("Ships", function () {
         [shipPurchaser.address, parseEther("100")],
         {
           account: user1.account,
-        }
+        },
       );
 
       await shipPurchaser.write.purchaseWithUC(
         [user1.account.address, 1n, user2.account.address, 1],
         {
           account: user1.account,
-        }
+        },
       );
 
       // Get ship IDs owned by user1
@@ -2231,7 +2228,7 @@ describe("Ships", function () {
       await expect(
         ships.write.shipBreaker([shipIds], {
           account: user1.account,
-        })
+        }),
       ).to.be.rejectedWith("ShipInFleet");
     });
 
@@ -2244,14 +2241,14 @@ describe("Ships", function () {
         [shipPurchaser.address, parseEther("100")],
         {
           account: user1.account,
-        }
+        },
       );
 
       await shipPurchaser.write.purchaseWithUC(
         [user1.account.address, 1n, user2.account.address, 1],
         {
           account: user1.account,
-        }
+        },
       );
 
       // Get ship IDs owned by user1
@@ -2261,14 +2258,13 @@ describe("Ships", function () {
       await expect(
         ships.write.shipBreaker([shipIds], {
           account: user2.account,
-        })
+        }),
       ).to.be.rejectedWith("NotYourShip");
     });
 
     it("Should not allow recycling free ships", async function () {
-      const { ships, universalCredits, user1 } = await loadFixture(
-        deployShipsFixture
-      );
+      const { ships, universalCredits, user1 } =
+        await loadFixture(deployShipsFixture);
 
       // Claim free ships
       await ships.write.claimFreeShips([1], { account: user1.account });
@@ -2287,7 +2283,7 @@ describe("Ships", function () {
       await expect(
         ships.write.shipBreaker([shipIds], {
           account: user1.account,
-        })
+        }),
       ).to.be.rejectedWith("CannotRecycleFreeShip");
     });
 
@@ -2306,14 +2302,14 @@ describe("Ships", function () {
         [shipPurchaser.address, parseEther("100")],
         {
           account: user1.account,
-        }
+        },
       );
 
       await shipPurchaser.write.purchaseWithUC(
         [user1.account.address, 1n, user2.account.address, 1],
         {
           account: user1.account,
-        }
+        },
       );
 
       // Get all ship IDs (both free and purchased)
@@ -2323,7 +2319,7 @@ describe("Ships", function () {
 
       // Separate free and purchased ships
       const purchasedShipIds = allShipIds.filter(
-        (id) => !freeShipIds.includes(id)
+        (id) => !freeShipIds.includes(id),
       );
 
       // Verify purchased ships are not marked as free
@@ -2337,7 +2333,7 @@ describe("Ships", function () {
       await expect(
         ships.write.shipBreaker([allShipIds], {
           account: user1.account,
-        })
+        }),
       ).to.be.rejectedWith("CannotRecycleFreeShip");
 
       // But should be able to recycle only purchased ships
@@ -2354,7 +2350,7 @@ describe("Ships", function () {
         user1.account.address,
       ]);
       expect(finalBalance - initialBalance).to.equal(
-        parseEther("0.1") * BigInt(purchasedShipIds.length)
+        parseEther("0.1") * BigInt(purchasedShipIds.length),
       );
 
       // Verify free ships are still owned
@@ -2405,14 +2401,13 @@ describe("Ships", function () {
 
       // Try to claim again immediately - should fail
       await expect(
-        ships.write.claimFreeShips([1], { account: user1.account })
+        ships.write.claimFreeShips([1], { account: user1.account }),
       ).to.be.rejectedWith("ClaimCooldownNotPassed");
     });
 
     it("Should allow claiming again after cooldown period", async function () {
-      const { ships, user1, publicClient } = await loadFixture(
-        deployShipsFixture
-      );
+      const { ships, user1, publicClient } =
+        await loadFixture(deployShipsFixture);
 
       // Claim free ships first time
       const firstTx = await ships.write.claimFreeShips([1], {
@@ -2451,7 +2446,7 @@ describe("Ships", function () {
       const currentBlock = await publicClient.getBlock({ blockNumber });
       const currentTimestamp = BigInt(currentBlock.timestamp);
       expect(Number(currentTimestamp)).to.be.greaterThanOrEqual(
-        Number(lastClaim + cooldownPeriod)
+        Number(lastClaim + cooldownPeriod),
       );
 
       // Claim again - should succeed
@@ -2505,14 +2500,13 @@ describe("Ships", function () {
       await expect(
         ships.write.setClaimCooldownPeriod([newCooldown], {
           account: user1.account,
-        })
+        }),
       ).to.be.rejectedWith("OwnableUnauthorizedAccount");
     });
 
     it("Should correctly track lastClaimTimestamp", async function () {
-      const { ships, user1, publicClient } = await loadFixture(
-        deployShipsFixture
-      );
+      const { ships, user1, publicClient } =
+        await loadFixture(deployShipsFixture);
 
       // Initially, lastClaimTimestamp should be 0
       const initialClaim = await ships.read.lastClaimTimestamp([
@@ -2552,14 +2546,14 @@ describe("Ships", function () {
         [shipPurchaser.address, parseEther("100")],
         {
           account: user1.account,
-        }
+        },
       );
 
       await shipPurchaser.write.purchaseWithUC(
         [user1.account.address, 1n, user2.account.address, 1],
         {
           account: user1.account,
-        }
+        },
       );
 
       // Get purchased ship IDs
@@ -2585,7 +2579,7 @@ describe("Ships", function () {
       // Non-owner (user1) purchases tier 1 with Flow using their contract instance
       await user1Ships.write.purchaseWithFlow(
         [user1.account.address, 1n, user2.account.address, 1],
-        { value: parseEther("9.99") }
+        { value: parseEther("9.99") },
       );
 
       // Verify ship count increased by 11 (tier 1 amount)
@@ -2597,7 +2591,7 @@ describe("Ships", function () {
         const shipTuple = (await ships.read.ships([i])) as ShipTuple;
         const ship = tupleToShip(shipTuple);
         expect(ship.owner.toString().toLocaleLowerCase()).to.equal(
-          user1.account.address.toLocaleLowerCase()
+          user1.account.address.toLocaleLowerCase(),
         );
       }
 
@@ -2623,7 +2617,7 @@ describe("Ships", function () {
 
       await shipPurchaser.write.purchaseUTCWithFlow(
         [user1.account.address, 0n],
-        { value: parseEther("4.99"), account: user1.account }
+        { value: parseEther("4.99"), account: user1.account },
       );
 
       const finalBalance = await universalCredits.read.balanceOf([
@@ -2637,14 +2631,13 @@ describe("Ships", function () {
       expect(finalBalance - initialBalance).to.equal(parseEther("4.99"));
       // Check that FLOW was received by contract
       expect(finalContractBalance - initialContractBalance).to.equal(
-        parseEther("4.99")
+        parseEther("4.99"),
       );
     });
 
     it("Should purchase UTC for tier 1 (9.99 UC for 9.99 FLOW)", async function () {
-      const { shipPurchaser, universalCredits, user1 } = await loadFixture(
-        deployShipsFixture
-      );
+      const { shipPurchaser, universalCredits, user1 } =
+        await loadFixture(deployShipsFixture);
 
       const initialBalance = await universalCredits.read.balanceOf([
         user1.account.address,
@@ -2652,7 +2645,7 @@ describe("Ships", function () {
 
       await shipPurchaser.write.purchaseUTCWithFlow(
         [user1.account.address, 1],
-        { value: parseEther("9.99"), account: user1.account }
+        { value: parseEther("9.99"), account: user1.account },
       );
 
       const finalBalance = await universalCredits.read.balanceOf([
@@ -2664,9 +2657,8 @@ describe("Ships", function () {
     });
 
     it("Should purchase UTC for tier 2 (19.99 UC for 19.99 FLOW)", async function () {
-      const { shipPurchaser, universalCredits, user1 } = await loadFixture(
-        deployShipsFixture
-      );
+      const { shipPurchaser, universalCredits, user1 } =
+        await loadFixture(deployShipsFixture);
 
       const initialBalance = await universalCredits.read.balanceOf([
         user1.account.address,
@@ -2674,7 +2666,7 @@ describe("Ships", function () {
 
       await shipPurchaser.write.purchaseUTCWithFlow(
         [user1.account.address, 2n],
-        { value: parseEther("19.99"), account: user1.account }
+        { value: parseEther("19.99"), account: user1.account },
       );
 
       const finalBalance = await universalCredits.read.balanceOf([
@@ -2686,9 +2678,8 @@ describe("Ships", function () {
     });
 
     it("Should purchase UTC for tier 3 (34.99 UC for 34.99 FLOW)", async function () {
-      const { shipPurchaser, universalCredits, user1 } = await loadFixture(
-        deployShipsFixture
-      );
+      const { shipPurchaser, universalCredits, user1 } =
+        await loadFixture(deployShipsFixture);
 
       const initialBalance = await universalCredits.read.balanceOf([
         user1.account.address,
@@ -2696,7 +2687,7 @@ describe("Ships", function () {
 
       await shipPurchaser.write.purchaseUTCWithFlow(
         [user1.account.address, 3n],
-        { value: parseEther("34.99"), account: user1.account }
+        { value: parseEther("34.99"), account: user1.account },
       );
 
       const finalBalance = await universalCredits.read.balanceOf([
@@ -2708,9 +2699,8 @@ describe("Ships", function () {
     });
 
     it("Should purchase UTC for tier 4 (49.99 UC for 49.99 FLOW)", async function () {
-      const { shipPurchaser, universalCredits, user1 } = await loadFixture(
-        deployShipsFixture
-      );
+      const { shipPurchaser, universalCredits, user1 } =
+        await loadFixture(deployShipsFixture);
 
       const initialBalance = await universalCredits.read.balanceOf([
         user1.account.address,
@@ -2718,7 +2708,7 @@ describe("Ships", function () {
 
       await shipPurchaser.write.purchaseUTCWithFlow(
         [user1.account.address, 4n],
-        { value: parseEther("49.99"), account: user1.account }
+        { value: parseEther("49.99"), account: user1.account },
       );
 
       const finalBalance = await universalCredits.read.balanceOf([
@@ -2749,7 +2739,7 @@ describe("Ships", function () {
 
       await shipPurchaser.write.purchaseUTCWithFlow(
         [user1.account.address, 4n],
-        { value: parseEther("49.99"), account: user1.account }
+        { value: parseEther("49.99"), account: user1.account },
       );
 
       const finalBalanceDirect = await universalCredits.read.balanceOf([
@@ -2767,7 +2757,7 @@ describe("Ships", function () {
       // Reset user1 balance
       await universalCredits.write.transfer(
         ["0x000000000000000000000000000000000000dEaD", utcReceivedDirect],
-        { account: user1.account }
+        { account: user1.account },
       );
 
       const initialBalanceRecycle = await universalCredits.read.balanceOf([
@@ -2817,7 +2807,7 @@ describe("Ships", function () {
       // Purchase ships with FLOW
       const txHash = await ships.write.purchaseWithFlow(
         [user1.account.address, 4n, user2.account.address, 1],
-        { value: parseEther("49.99"), account: user1.account }
+        { value: parseEther("49.99"), account: user1.account },
       );
 
       // Wait for transaction to be mined and get receipt
@@ -2845,7 +2835,7 @@ describe("Ships", function () {
       // This is a critical check - if this fails, the referral payment mechanism is broken
       expect(referrerReceived).to.equal(
         expectedReferralAmount,
-        `Referrer should receive ${expectedReferralAmount.toString()} FLOW (${expectedReferralPercentage}% of 49.99), but received ${referrerReceived.toString()}. Initial balance: ${initialReferrerBalance.toString()}, Final balance: ${finalReferrerBalance.toString()}, Initial referral count: ${initialReferralCount.toString()}, New count: ${newReferralCount.toString()}`
+        `Referrer should receive ${expectedReferralAmount.toString()} FLOW (${expectedReferralPercentage}% of 49.99), but received ${referrerReceived.toString()}. Initial balance: ${initialReferrerBalance.toString()}, Final balance: ${finalReferrerBalance.toString()}, Initial referral count: ${initialReferralCount.toString()}, New count: ${newReferralCount.toString()}`,
       );
 
       // Check Ships contract balance after purchase (before recycling)
@@ -2865,7 +2855,7 @@ describe("Ships", function () {
         parseEther("49.99") - expectedReferralAmount;
       expect(flowReceivedRecycle).to.equal(
         expectedShipsRetention,
-        `Ships contract should retain ${expectedShipsRetention.toString()} FLOW (49.99 - ${expectedReferralAmount.toString()}), but has ${flowReceivedRecycle.toString()}. Initial: ${initialContractBalanceRecycle.toString()}, Final: ${contractBalanceAfterPurchase.toString()}`
+        `Ships contract should retain ${expectedShipsRetention.toString()} FLOW (49.99 - ${expectedReferralAmount.toString()}), but has ${flowReceivedRecycle.toString()}. Initial: ${initialContractBalanceRecycle.toString()}, Final: ${contractBalanceAfterPurchase.toString()}`,
       );
 
       // Get ship IDs and recycle them
@@ -2908,7 +2898,7 @@ describe("Ships", function () {
         shipPurchaser.write.purchaseUTCWithFlow([user1.account.address, 4n], {
           value: parseEther("50"),
           account: user1.account,
-        })
+        }),
       ).to.be.rejectedWith("InvalidPurchase");
     });
 
@@ -2920,7 +2910,7 @@ describe("Ships", function () {
         shipPurchaser.write.purchaseUTCWithFlow([user1.account.address, 5n], {
           value: parseEther("100"),
           account: user1.account,
-        })
+        }),
       ).to.be.rejectedWith("InvalidPurchase");
     });
 
@@ -2931,7 +2921,7 @@ describe("Ships", function () {
       // Purchase UTC to send FLOW to contract
       await shipPurchaser.write.purchaseUTCWithFlow(
         [user1.account.address, 4n],
-        { value: parseEther("49.99"), account: user1.account }
+        { value: parseEther("49.99"), account: user1.account },
       );
 
       const initialOwnerBalance = await publicClient.getBalance({
@@ -2963,14 +2953,13 @@ describe("Ships", function () {
       const { shipPurchaser, user1 } = await loadFixture(deployShipsFixture);
 
       await expect(
-        shipPurchaser.write.withdrawFlow({ account: user1.account })
+        shipPurchaser.write.withdrawFlow({ account: user1.account }),
       ).to.be.rejectedWith("OwnableUnauthorizedAccount");
     });
 
     it("Should handle multiple purchases correctly", async function () {
-      const { shipPurchaser, universalCredits, user1 } = await loadFixture(
-        deployShipsFixture
-      );
+      const { shipPurchaser, universalCredits, user1 } =
+        await loadFixture(deployShipsFixture);
 
       const initialBalance = await universalCredits.read.balanceOf([
         user1.account.address,
@@ -2979,11 +2968,11 @@ describe("Ships", function () {
       // Purchase tier 0 twice
       await shipPurchaser.write.purchaseUTCWithFlow(
         [user1.account.address, 0n],
-        { value: parseEther("4.99"), account: user1.account }
+        { value: parseEther("4.99"), account: user1.account },
       );
       await shipPurchaser.write.purchaseUTCWithFlow(
         [user1.account.address, 0n],
-        { value: parseEther("4.99"), account: user1.account }
+        { value: parseEther("4.99"), account: user1.account },
       );
 
       const finalBalance = await universalCredits.read.balanceOf([
@@ -3005,7 +2994,7 @@ describe("Ships", function () {
       // User1 purchases but sends UTC to user2
       await shipPurchaser.write.purchaseUTCWithFlow(
         [user2.account.address, 4n],
-        { value: parseEther("49.99"), account: user1.account }
+        { value: parseEther("49.99"), account: user1.account },
       );
 
       const finalBalanceUser2 = await universalCredits.read.balanceOf([
@@ -3014,7 +3003,7 @@ describe("Ships", function () {
 
       // User2 should receive the UTC (49.99 UC for tier 4, 1:1 with FLOW price)
       expect(finalBalanceUser2 - initialBalanceUser2).to.equal(
-        parseEther("49.99")
+        parseEther("49.99"),
       );
     });
   });
@@ -3027,7 +3016,7 @@ describe("Ships", function () {
       await expect(
         shipAttributes.write.setCurrentAttributesVersion([2], {
           account: user1.account,
-        })
+        }),
       ).to.be.rejectedWith("OwnableUnauthorizedAccount");
 
       // Try to use setAllAttributes as non-owner
@@ -3072,8 +3061,8 @@ describe("Ships", function () {
             newHull,
             newEngineSpeeds,
           ],
-          { account: user1.account }
-        )
+          { account: user1.account },
+        ),
       ).to.be.rejectedWith("OwnableUnauthorizedAccount");
     });
 
@@ -3131,7 +3120,7 @@ describe("Ships", function () {
 
       // Try to update costs as non-owner
       await expect(
-        shipAttributes.write.setCosts([newCosts], { account: user1.account })
+        shipAttributes.write.setCosts([newCosts], { account: user1.account }),
       ).to.be.rejectedWith("OwnableUnauthorizedAccount");
     });
 
@@ -3187,7 +3176,7 @@ describe("Ships", function () {
         ],
         {
           account: owner.account,
-        }
+        },
       );
 
       // Verify version incremented
@@ -3250,8 +3239,8 @@ describe("Ships", function () {
           ],
           {
             account: user1.account,
-          }
-        )
+          },
+        ),
       ).to.be.rejectedWith("OwnableUnauthorizedAccount");
     });
   });
@@ -3264,7 +3253,7 @@ describe("Ships", function () {
       // Purchase and construct a ship
       await ships.write.purchaseWithFlow(
         [user1.account.address, 0n, user2.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       const shipTuple = (await ships.read.ships([1n])) as ShipTuple;
@@ -3315,7 +3304,7 @@ describe("Ships", function () {
       // Purchase and construct a ship
       await ships.write.purchaseWithFlow(
         [user1.account.address, 0n, user2.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       const shipTuple = (await ships.read.ships([1n])) as ShipTuple;
@@ -3378,7 +3367,7 @@ describe("Ships", function () {
       // Purchase and construct a ship
       await ships.write.purchaseWithFlow(
         [user1.account.address, 0n, user2.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       const shipTuple = (await ships.read.ships([1n])) as ShipTuple;
@@ -3435,7 +3424,7 @@ describe("Ships", function () {
       // Purchase and construct a ship
       await ships.write.purchaseWithFlow(
         [user1.account.address, 0n, user2.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       const shipTuple = (await ships.read.ships([1n])) as ShipTuple;
@@ -3496,7 +3485,7 @@ describe("Ships", function () {
       // Purchase and construct a ship
       await ships.write.purchaseWithFlow(
         [user1.account.address, 0n, user2.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       const shipTuple = (await ships.read.ships([1n])) as ShipTuple;
@@ -3557,7 +3546,7 @@ describe("Ships", function () {
       // Purchase and construct a ship for user1
       await ships.write.purchaseWithFlow(
         [user1.account.address, 0n, user2.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       const shipTuple = (await ships.read.ships([1n])) as ShipTuple;
@@ -3582,19 +3571,18 @@ describe("Ships", function () {
       await expect(
         user2DroneYard.write.modifyShip([1n, modifiedShip], {
           account: user2.account,
-        })
+        }),
       ).to.be.rejectedWith("NotShipOwner");
     });
 
     it("Should not allow modifying unconstructed ship", async function () {
-      const { ships, user1, user2, user1DroneYard } = await loadFixture(
-        deployShipsFixture
-      );
+      const { ships, user1, user2, user1DroneYard } =
+        await loadFixture(deployShipsFixture);
 
       // Purchase but don't construct
       await ships.write.purchaseWithFlow(
         [user1.account.address, 0n, user2.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       const currentShipTuple = (await ships.read.ships([1n])) as ShipTuple;
@@ -3611,7 +3599,7 @@ describe("Ships", function () {
       await expect(
         user1DroneYard.write.modifyShip([1n, modifiedShip], {
           account: user1.account,
-        })
+        }),
       ).to.be.rejectedWith("ShipNotConstructed");
     });
 
@@ -3621,7 +3609,7 @@ describe("Ships", function () {
 
       await ships.write.purchaseWithFlow(
         [user1.account.address, 0n, user2.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       const shipTuple = (await ships.read.ships([1n])) as ShipTuple;
@@ -3646,7 +3634,7 @@ describe("Ships", function () {
       await expect(
         user1DroneYard.write.modifyShip([1n, modifiedShip], {
           account: user1.account,
-        })
+        }),
       ).to.be.rejectedWith("InvalidTraitValue");
     });
 
@@ -3656,7 +3644,7 @@ describe("Ships", function () {
 
       await ships.write.purchaseWithFlow(
         [user1.account.address, 0n, user2.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       const shipTuple = (await ships.read.ships([1n])) as ShipTuple;
@@ -3682,7 +3670,7 @@ describe("Ships", function () {
       await expect(
         user1DroneYard.write.modifyShip([1n, modifiedShip], {
           account: user1.account,
-        })
+        }),
       ).to.be.rejectedWith("ArmorAndShieldsBothSet");
     });
 
@@ -3698,7 +3686,7 @@ describe("Ships", function () {
 
       await ships.write.purchaseWithFlow(
         [user1.account.address, 0n, user2.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       const shipTuple = (await ships.read.ships([1n])) as ShipTuple;
@@ -3764,7 +3752,7 @@ describe("Ships", function () {
 
       await ships.write.purchaseWithFlow(
         [user1.account.address, 0n, user2.account.address, 1],
-        { value: parseEther("4.99") }
+        { value: parseEther("4.99") },
       );
 
       const shipTuple = (await ships.read.ships([1n])) as ShipTuple;

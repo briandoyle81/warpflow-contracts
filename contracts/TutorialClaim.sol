@@ -56,7 +56,10 @@ contract TutorialClaim is ReentrancyGuard {
         tutorialCompleted[player] = true;
     }
 
-    function _createAndCustomizeShip(address player, Ship memory template) internal {
+    function _createAndCustomizeShip(
+        address player,
+        Ship memory template
+    ) internal {
         ships.createSpecificShip(player, template);
     }
 
@@ -67,8 +70,8 @@ contract TutorialClaim is ReentrancyGuard {
         s.owner = owner;
         s.equipment = Equipment({
             mainWeapon: MainWeapon.PlasmaCannon,
-            armor: Armor.Light,
-            shields: Shields.Light,
+            armor: Armor.None,
+            shields: Shields.Medium,
             special: Special.EMP
         });
         s.traits = Traits({
@@ -85,8 +88,8 @@ contract TutorialClaim is ReentrancyGuard {
                 l3: 0
             }),
             variant: 1,
-            // Tier indices 0–2 for costs/attributes (not raw stat totals)
-            accuracy: 1,
+            // Tier indices 0–2 for costs/attributes
+            accuracy: 2,
             hull: 2,
             speed: 2
         });
@@ -99,8 +102,8 @@ contract TutorialClaim is ReentrancyGuard {
         s.owner = owner;
         s.equipment = Equipment({
             mainWeapon: MainWeapon.Railgun,
-            armor: Armor.Medium,
-            shields: Shields.Medium,
+            armor: Armor.None,
+            shields: Shields.Light,
             special: Special.RepairDrones
         });
         s.traits = Traits({
@@ -117,9 +120,9 @@ contract TutorialClaim is ReentrancyGuard {
                 l3: 0
             }),
             variant: 2,
-            accuracy: 2,
-            hull: 2,
-            speed: 2
+            accuracy: 1,
+            hull: 0,
+            speed: 0
         });
     }
 
@@ -130,8 +133,8 @@ contract TutorialClaim is ReentrancyGuard {
         s.owner = owner;
         s.equipment = Equipment({
             mainWeapon: MainWeapon.Laser,
-            armor: Armor.Light,
-            shields: Shields.Light,
+            armor: Armor.Medium,
+            shields: Shields.None,
             special: Special.None
         });
         s.traits = Traits({
@@ -149,8 +152,8 @@ contract TutorialClaim is ReentrancyGuard {
             }),
             variant: 3,
             accuracy: 1,
-            hull: 1,
-            speed: 2
+            hull: 0,
+            speed: 0
         });
     }
 }

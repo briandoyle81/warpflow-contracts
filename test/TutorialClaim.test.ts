@@ -12,12 +12,12 @@ describe("TutorialClaim", function () {
     const user1TutorialClaim = await hre.viem.getContractAt(
       "TutorialClaim",
       tutorialClaim.address,
-      { client: { wallet: user1 } }
+      { client: { wallet: user1 } },
     );
     const user2TutorialClaim = await hre.viem.getContractAt(
       "TutorialClaim",
       tutorialClaim.address,
-      { client: { wallet: user2 } }
+      { client: { wallet: user2 } },
     );
 
     return {
@@ -34,10 +34,8 @@ describe("TutorialClaim", function () {
 
   /** Owner order from `getShipIdsOwned` is not guaranteed; key by name. */
   async function shipsByName(
-    ships: Awaited<
-      ReturnType<typeof deployTutorialFixture>
-    >["ships"],
-    owner: `0x${string}`
+    ships: Awaited<ReturnType<typeof deployTutorialFixture>>["ships"],
+    owner: `0x${string}`,
   ) {
     const shipIds = await ships.read.getShipIdsOwned([owner]);
     const out: Record<
@@ -69,17 +67,15 @@ describe("TutorialClaim", function () {
 
   /** `playerStats` mapping returns `[wins, losses, totalGames]` from viem. */
   function expectStats(
-    raw: readonly [bigint, bigint, bigint] | { wins: bigint; losses: bigint; totalGames: bigint },
+    raw:
+      | readonly [bigint, bigint, bigint]
+      | { wins: bigint; losses: bigint; totalGames: bigint },
     wins: bigint,
     losses: bigint,
-    totalGames: bigint
+    totalGames: bigint,
   ) {
-    const w = Array.isArray(raw)
-      ? raw[0]
-      : (raw as { wins: bigint }).wins;
-    const l = Array.isArray(raw)
-      ? raw[1]
-      : (raw as { losses: bigint }).losses;
+    const w = Array.isArray(raw) ? raw[0] : (raw as { wins: bigint }).wins;
+    const l = Array.isArray(raw) ? raw[1] : (raw as { losses: bigint }).losses;
     const t = Array.isArray(raw)
       ? raw[2]
       : (raw as { totalGames: bigint }).totalGames;
@@ -104,19 +100,19 @@ describe("TutorialClaim", function () {
 
     const byName = await shipsByName(ships, user1.account.address);
     expect(Object.keys(byName).sort()).to.deep.equal(
-      ["Sentinel", "Vigilant"].sort()
+      ["Sentinel", "Vigilant"].sort(),
     );
 
     const vigilant = byName["Vigilant"];
     const sentinel = byName["Sentinel"];
     expect(vigilant.equipment.mainWeapon).to.equal(1); // Railgun
-    expect(vigilant.equipment.armor).to.equal(2); // Medium
-    expect(vigilant.equipment.shields).to.equal(2);
+    expect(vigilant.equipment.armor).to.equal(0); // None
+    expect(vigilant.equipment.shields).to.equal(1); // Light
     expect(vigilant.equipment.special).to.equal(2); // Repair
 
     expect(sentinel.equipment.mainWeapon).to.equal(0); // Laser
-    expect(sentinel.equipment.armor).to.equal(1); // Light
-    expect(sentinel.equipment.shields).to.equal(1);
+    expect(sentinel.equipment.armor).to.equal(2); // Medium
+    expect(sentinel.equipment.shields).to.equal(0); // None
     expect(sentinel.equipment.special).to.equal(0); // None
 
     const stats = await gameResults.read.playerStats([user1.account.address]);
@@ -124,8 +120,9 @@ describe("TutorialClaim", function () {
   });
 
   it("completes loss path once, mints 3 ships, records loss", async function () {
-    const { user1, ships, gameResults, user1TutorialClaim } =
-      await loadFixture(deployTutorialFixture);
+    const { user1, ships, gameResults, user1TutorialClaim } = await loadFixture(
+      deployTutorialFixture,
+    );
 
     await user1TutorialClaim.write.completeTutorialLossPath();
 
@@ -134,8 +131,26 @@ describe("TutorialClaim", function () {
 
     const byName = await shipsByName(ships, user1.account.address);
     expect(Object.keys(byName).sort()).to.deep.equal(
-      ["Resolute", "Sentinel", "Vigilant"].sort()
+      ["Resolute", "Sentinel", "Vigilant"].sort(),
     );
+
+    const resolute = byName["Resolute"];
+    expect(resolute.equipment.mainWeapon).to.equal(3); // Plasma
+    expect(resolute.equipment.armor).to.equal(0);
+    expect(resolute.equipment.shields).to.equal(2); // Medium
+    expect(resolute.equipment.special).to.equal(1); // EMP
+
+    const vigilantLoss = byName["Vigilant"];
+    expect(vigilantLoss.equipment.mainWeapon).to.equal(1);
+    expect(vigilantLoss.equipment.armor).to.equal(0);
+    expect(vigilantLoss.equipment.shields).to.equal(1);
+    expect(vigilantLoss.equipment.special).to.equal(2);
+
+    const sentinelLoss = byName["Sentinel"];
+    expect(sentinelLoss.equipment.mainWeapon).to.equal(0);
+    expect(sentinelLoss.equipment.armor).to.equal(2);
+    expect(sentinelLoss.equipment.shields).to.equal(0);
+    expect(sentinelLoss.equipment.special).to.equal(0);
 
     const stats = await gameResults.read.playerStats([user1.account.address]);
     expectStats(stats, 0n, 1n, 1n);
@@ -146,13 +161,18 @@ describe("TutorialClaim", function () {
 
     await user1TutorialClaim.write.completeTutorialWinPath();
     await expect(
-      user1TutorialClaim.write.completeTutorialLossPath()
+      user1TutorialClaim.write.completeTutorialLossPath(),
     ).to.be.rejectedWith("TutorialAlreadyCompleted");
   });
 
   it("allows different addresses to complete independently", async function () {
-    const { user1, user2, gameResults, user1TutorialClaim, user2TutorialClaim } =
-      await loadFixture(deployTutorialFixture);
+    const {
+      user1,
+      user2,
+      gameResults,
+      user1TutorialClaim,
+      user2TutorialClaim,
+    } = await loadFixture(deployTutorialFixture);
 
     await user1TutorialClaim.write.completeTutorialWinPath();
     await user2TutorialClaim.write.completeTutorialLossPath();
@@ -173,7 +193,7 @@ describe("TutorialClaim", function () {
     const ships = await hre.viem.deployContract("MockTutorialShips", []);
     const reentrantResults = await hre.viem.deployContract(
       "MockTutorialReentrantGameResults",
-      []
+      [],
     );
     const tutorialClaim = await hre.viem.deployContract("TutorialClaim", [
       ships.address,
@@ -186,12 +206,11 @@ describe("TutorialClaim", function () {
     const user1TutorialClaim = await hre.viem.getContractAt(
       "TutorialClaim",
       tutorialClaim.address,
-      { client: { wallet: user1 } }
+      { client: { wallet: user1 } },
     );
 
-    await expect(
-      user1TutorialClaim.write.completeTutorialWinPath()
-    ).to.be.rejected;
+    await expect(user1TutorialClaim.write.completeTutorialWinPath()).to.be
+      .rejected;
   });
 
   it("rejects direct createSpecificShip from unauthorized EOA", async function () {
@@ -243,7 +262,7 @@ describe("TutorialClaim", function () {
     } as const;
 
     await expect(
-      user1Ships.write.createSpecificShip([user1.account.address, template])
+      user1Ships.write.createSpecificShip([user1.account.address, template]),
     ).to.be.rejectedWith("NotAuthorized");
   });
 });

@@ -387,20 +387,31 @@ describe("Ships", function () {
       ).to.be.rejectedWith("InvalidPurchase");
     });
 
-    it("Should revert tier 0 with zero address referral", async function () {
-      const { ships, user1 } = await loadFixture(deployShipsFixture);
+    it("Should retain full FLOW for tier 0 when referral is zero address", async function () {
+      const { ships, user1, publicClient } = await loadFixture(
+        deployShipsFixture,
+      );
 
-      await expect(
-        ships.write.purchaseWithFlow(
-          [
-            user1.account.address,
-            0n,
-            "0x0000000000000000000000000000000000000000",
-            1n,
-          ],
-          { value: parseEther("4.99") },
-        ),
-      ).to.be.rejectedWith("InvalidReferral");
+      const price = parseEther("4.99");
+      const initialContractBalance = await publicClient.getBalance({
+        address: ships.address,
+      });
+
+      const txHash = await ships.write.purchaseWithFlow(
+        [
+          user1.account.address,
+          0n,
+          "0x0000000000000000000000000000000000000000",
+          1n,
+        ],
+        { value: price, account: user1.account },
+      );
+      await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+      const finalContractBalance = await publicClient.getBalance({
+        address: ships.address,
+      });
+      expect(finalContractBalance - initialContractBalance).to.equal(price);
     });
 
     it("Should revert with invalid payment", async function () {
@@ -414,20 +425,31 @@ describe("Ships", function () {
       ).to.be.rejectedWith("InvalidPurchase");
     });
 
-    it("Should revert with zero address referral", async function () {
-      const { ships, user1 } = await loadFixture(deployShipsFixture);
+    it("Should retain full FLOW for higher tier when referral is zero address", async function () {
+      const { ships, user1, publicClient } = await loadFixture(
+        deployShipsFixture,
+      );
 
-      await expect(
-        ships.write.purchaseWithFlow(
-          [
-            user1.account.address,
-            0n,
-            "0x0000000000000000000000000000000000000000",
-            1n,
-          ],
-          { value: parseEther("4.99") },
-        ),
-      ).to.be.rejectedWith("InvalidReferral");
+      const price = parseEther("19.99");
+      const initialContractBalance = await publicClient.getBalance({
+        address: ships.address,
+      });
+
+      const txHash = await ships.write.purchaseWithFlow(
+        [
+          user1.account.address,
+          2n,
+          "0x0000000000000000000000000000000000000000",
+          1n,
+        ],
+        { value: price, account: user1.account },
+      );
+      await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+      const finalContractBalance = await publicClient.getBalance({
+        address: ships.address,
+      });
+      expect(finalContractBalance - initialContractBalance).to.equal(price);
     });
 
     it("Should purchase 10,000 ships", async function () {
@@ -2003,17 +2025,26 @@ describe("Ships", function () {
       ).to.be.rejectedWith("InsufficientFunds");
     });
 
-    it("Should revert with zero address referral", async function () {
-      const { user1, user1Purchaser } = await loadFixture(deployShipsFixture);
+    it("Should retain full UC when referral is zero address", async function () {
+      const { user1, user1Purchaser, universalCredits, shipPurchaser } =
+        await loadFixture(deployShipsFixture);
 
-      await expect(
-        user1Purchaser.write.purchaseWithUC([
-          user1.account.address,
-          0n,
-          "0x0000000000000000000000000000000000000000",
-          1,
-        ]),
-      ).to.be.rejectedWith("InvalidReferral");
+      const price = parseEther("4.99");
+      const initialPurchaserUC = await universalCredits.read.balanceOf([
+        shipPurchaser.address,
+      ]);
+
+      await user1Purchaser.write.purchaseWithUC([
+        user1.account.address,
+        0n,
+        "0x0000000000000000000000000000000000000000",
+        1,
+      ]);
+
+      const finalPurchaserUC = await universalCredits.read.balanceOf([
+        shipPurchaser.address,
+      ]);
+      expect(finalPurchaserUC - initialPurchaserUC).to.equal(price);
     });
 
     it("Should allow owner to update purchase info", async function () {

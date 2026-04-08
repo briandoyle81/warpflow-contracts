@@ -43,6 +43,8 @@ describe("TutorialClaim", function () {
       {
         name: string;
         shiny: boolean;
+        isFreeShip: boolean;
+        shipsDestroyed: number;
         equipment: {
           mainWeapon: number;
           armor: number;
@@ -56,6 +58,8 @@ describe("TutorialClaim", function () {
       out[s.name] = {
         name: s.name,
         shiny: s.shipData.shiny,
+        isFreeShip: s.shipData.isFreeShip,
+        shipsDestroyed: Number(s.shipData.shipsDestroyed),
         equipment: {
           mainWeapon: Number(s.equipment.mainWeapon),
           armor: Number(s.equipment.armor),
@@ -119,6 +123,8 @@ describe("TutorialClaim", function () {
 
     expect(vigilant.shiny).to.equal(false);
     expect(sentinel.shiny).to.equal(false);
+    expect(vigilant.isFreeShip).to.equal(true);
+    expect(sentinel.isFreeShip).to.equal(true);
 
     const stats = await gameResults.read.playerStats([user1.account.address]);
     expectStats(stats, 1n, 0n, 1n);
@@ -145,6 +151,8 @@ describe("TutorialClaim", function () {
     expect(resolute.equipment.shields).to.equal(2); // Medium
     expect(resolute.equipment.special).to.equal(1); // EMP
     expect(resolute.shiny).to.equal(true);
+    expect(resolute.shipsDestroyed).to.equal(10); // rank 2 starts at 10 kills
+    expect(resolute.isFreeShip).to.equal(true);
 
     const vigilantLoss = byName["Vigilant"];
     expect(vigilantLoss.equipment.mainWeapon).to.equal(1);
@@ -160,6 +168,8 @@ describe("TutorialClaim", function () {
 
     expect(vigilantLoss.shiny).to.equal(false);
     expect(sentinelLoss.shiny).to.equal(false);
+    expect(vigilantLoss.isFreeShip).to.equal(true);
+    expect(sentinelLoss.isFreeShip).to.equal(true);
 
     const stats = await gameResults.read.playerStats([user1.account.address]);
     expectStats(stats, 0n, 1n, 1n);

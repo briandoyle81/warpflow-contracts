@@ -96,6 +96,7 @@ contract TutorialClaim is ReentrancyGuard {
         // Rank 2 starts at 10 kills in ShipAttributes.getRank()
         s.shipData.shipsDestroyed = 10;
         s.shipData.shiny = true;
+        s.shipData.isFreeShip = true;
     }
 
     function _buildVigilantTemplate(
@@ -127,6 +128,7 @@ contract TutorialClaim is ReentrancyGuard {
             hull: 0,
             speed: 0
         });
+        s.shipData.isFreeShip = true;
     }
 
     function _buildSentinelTemplate(
@@ -158,5 +160,6 @@ contract TutorialClaim is ReentrancyGuard {
             hull: 0,
             speed: 0
         });
+        s.shipData.isFreeShip = true;
     }
 }

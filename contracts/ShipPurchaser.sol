@@ -8,7 +8,6 @@ import "./IShips.sol";
 import "./IUniversalCredits.sol";
 
 contract ShipPurchaser is Ownable, ReentrancyGuard {
-    error InvalidReferral();
     error InvalidPurchase(uint _tier, uint _amount);
     error ArrayLengthMismatch();
     error NotAuthorized(address);
@@ -58,10 +57,6 @@ contract ShipPurchaser is Ownable, ReentrancyGuard {
         address _referral,
         uint16 _variant
     ) public nonReentrant {
-        if (_referral == address(0)) {
-            revert InvalidReferral();
-        }
-
         uint totalShips = tierShips[_tier];
         uint price = tierPrices[_tier];
 
@@ -80,8 +75,9 @@ contract ShipPurchaser is Ownable, ReentrancyGuard {
         // Create ships for the buyer
         ships.createShips(_to, totalShips, _variant, _tier);
 
-        // Process referral
-        _processReferral(_referral, totalShips, price);
+        if (_referral != address(0)) {
+            _processReferral(_referral, totalShips, price);
+        }
     }
 
     /**

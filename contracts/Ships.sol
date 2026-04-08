@@ -36,7 +36,6 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
     // Stages: 100, 1000, 10000, 50000, 100000 ships sold
     // Percentages: 0%, 10%, 20%, 35%, 50%
 
-    error InvalidReferral();
     error NotAuthorized(address);
     error NotYourShip(uint);
     error ShipDestroyed();
@@ -149,10 +148,6 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
             revert InvalidPurchase(_tier, msg.value);
         }
 
-        if (_referral == address(0)) {
-            revert InvalidReferral();
-        }
-
         uint totalShips = tierShips[_tier];
         uint8 tierRankCount = _tier + 1;
 
@@ -165,7 +160,9 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
             }
         }
 
-        _processReferral(_referral, totalShips, tierPrices[_tier]);
+        if (_referral != address(0)) {
+            _processReferral(_referral, totalShips, tierPrices[_tier]);
+        }
 
         amountPurchased[_to] += totalShips;
     }
@@ -241,11 +238,11 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         ship.traits.variant = _ship.traits.variant;
         ship.traits.colors = _ship.traits.colors;
         ship.equipment = _ship.equipment;
+        // Allow authorized custom templates (e.g. tutorial ships) to define rank.
+        ship.shipData.shipsDestroyed = _ship.shipData.shipsDestroyed;
+        ship.shipData.isFreeShip = _ship.shipData.isFreeShip;
 
-        // Update shiny status if provided (counts as 3 modifications)
-        if (ship.shipData.shiny != _ship.shipData.shiny) {
-            ship.shipData.shiny = _ship.shipData.shiny;
-        }
+        ship.shipData.shiny = _ship.shipData.shiny;
 
         // Update modified amount (add to existing if constructed, set if not)
         if (ship.shipData.constructed) {

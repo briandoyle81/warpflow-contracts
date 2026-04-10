@@ -235,6 +235,40 @@ describe("Ship costs, versions, and fleets", function () {
       expect(BigInt(updated.shipData.cost)).to.equal(BigInt(expectedCost));
     });
 
+    it("syncShipCosts is permissionless and updates multiple ships", async function () {
+      const { ships, shipAttributes, owner, user1, user2, randomManager } =
+        await loadFixture(deployShipsFixture);
+
+      await ships.write.purchaseWithFlow(
+        [user1.account.address, 0n, user1.account.address, 1],
+        { value: parseEther("4.99") },
+      );
+
+      for (const id of [1n, 2n] as const) {
+        const shipTuple = (await ships.read.ships([id])) as ShipTuple;
+        const s = tupleToShip(shipTuple);
+        await randomManager.write.fulfillRandomRequest([s.traits.serialNumber]);
+        await ships.write.constructShip([id], { account: user1.account });
+      }
+
+      await shipAttributes.write.setCosts([sampleCostsV2()], {
+        account: owner.account,
+      });
+
+      const vAfter = await shipAttributes.read.getCurrentCostsVersion();
+
+      await ships.write.syncShipCosts([[1n, 2n]], { account: user2.account });
+
+      for (const id of [1n, 2n] as const) {
+        const shipMem = await ships.read.getShip([id]);
+        const expectedCost =
+          await shipAttributes.read.calculateShipCost([shipMem]);
+        const updated = tupleToShip((await ships.read.ships([id])) as ShipTuple);
+        expect(Number(updated.shipData.costsVersion)).to.equal(Number(vAfter));
+        expect(BigInt(updated.shipData.cost)).to.equal(BigInt(expectedCost));
+      }
+    });
+
     it("reverts ShipInFleet while ship is in a lobby fleet", async function () {
       const {
         owner,
@@ -266,6 +300,10 @@ describe("Ship costs, versions, and fleets", function () {
         [shipId],
         [{ row: 0, col: 0 }],
       ]);
+
+      await expect(
+        ships.write.syncShipCosts([[shipId]], { account: joiner.account }),
+      ).to.be.rejectedWith("ShipInFleet");
 
       await expect(
         ships.write.setCostOfShip([shipId], { account: owner.account }),

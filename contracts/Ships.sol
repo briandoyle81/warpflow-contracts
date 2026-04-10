@@ -350,6 +350,13 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         _setCostOfShip(_id);
     }
 
+    /// @notice Permissionless: refresh cost and costsVersion for each id (minted ERC-721 tokens only; invalid ids corrupt storage).
+    function syncShipCosts(uint[] calldata _ids) external {
+        for (uint i; i < _ids.length; ++i) {
+            _setCostOfShip(_ids[i]);
+        }
+    }
+
     function _setCostOfShip(uint _id) internal {
         Ship storage ship = ships[_id];
         if (ship.shipData.inFleet) {

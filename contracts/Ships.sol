@@ -250,9 +250,6 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
         } else {
             ship.shipData.modified = amountModified;
             ship.shipData.constructed = true;
-            ship.shipData.costsVersion = config
-                .shipAttributes
-                .getCurrentCostsVersion();
         }
 
         _setCostOfShip(_id);
@@ -339,9 +336,6 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
                 .shipData
                 .shipsDestroyed;
         }
-        newShip.shipData.costsVersion = config
-            .shipAttributes
-            .getCurrentCostsVersion();
         newShip.shipData.constructed = true;
         // modified defaults to 0 (false) for regular construction
 
@@ -358,6 +352,12 @@ contract Ships is ERC721, Ownable, ReentrancyGuard {
 
     function _setCostOfShip(uint _id) internal {
         Ship storage ship = ships[_id];
+        if (ship.shipData.inFleet) {
+            revert ShipInFleet(_id);
+        }
+        ship.shipData.costsVersion = config
+            .shipAttributes
+            .getCurrentCostsVersion();
         ship.shipData.cost = config.shipAttributes.calculateShipCost(ship);
     }
 

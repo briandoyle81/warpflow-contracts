@@ -9,10 +9,10 @@ const config: HardhatUserConfig = {
   solidity: {
     version: "0.8.28",
     settings: {
-      // viaIR: true,
+      // viaIR: true, // Yul stack issues in this repo; runs:1 keeps Game under 24 KiB
       optimizer: {
         enabled: true,
-        runs: 200,
+        runs: 1,
       },
     },
   },

@@ -53,7 +53,6 @@ contract Game is Ownable {
     error GameNotFound();
     error NotInGame();
     error ShipNotFound();
-    error InvalidPosition();
     error ShipNotOwned();
     error ShipAlreadyMoved();
     error InvalidMove();
@@ -227,11 +226,10 @@ contract Game is Ownable {
         GameData storage game = games[_gameId];
 
         // Validate position is within grid bounds
-        if (_row >= GRID_HEIGHT || _column >= GRID_WIDTH)
-            revert InvalidPosition();
+        if (_row >= GRID_HEIGHT || _column >= GRID_WIDTH) revert InvalidMove();
 
         // Check if position is already occupied
-        if (game.grid[_row][_column] != 0) revert InvalidPosition();
+        if (game.grid[_row][_column] != 0) revert InvalidMove();
 
         // Place ship on grid at specified row and column
         game.grid[_row][_column] = _shipId;
@@ -435,8 +433,39 @@ contract Game is Ownable {
         );
     }
 
-    // Move a ship to a new position and perform an action (pass or shoot)
-    // actionType: ActionType.Pass = 0, ActionType.Shoot = 1
+    /// @dev Move `_shipId` onto (dest); if tile has enemy at 0 HP, retreat them, +1 rammer reactor, destroy rammer if >=3.
+    /// @return true if rammer was destroyed (caller skips moved set + primary action).
+    function _moveShipToCellOrRam(
+        uint _gameId,
+        uint _shipId,
+        int16 _destRow,
+        int16 _destCol,
+        address moverOwner,
+        Ship memory moverShip
+    ) internal returns (bool) {
+        GameData storage g = games[_gameId];
+        uint occ = g.grid[_destRow][_destCol];
+        if (occ != 0) {
+            Ship memory victim = _validateShipExistsAndNotDestroyed(occ);
+            if (victim.owner == moverOwner) revert InvalidMove();
+            if (g.shipAttributes[occ].hullPoints != 0) revert InvalidMove();
+            _removeShipFromGame(_gameId, occ, true, victim);
+            Attributes storage ra = g.shipAttributes[_shipId];
+            ra.reactorCriticalTimer++;
+            if (ra.reactorCriticalTimer >= 3) {
+                _removeShipFromGame(_gameId, _shipId, false, moverShip);
+                return true;
+            }
+        }
+        Position storage p = g.shipPositions[_shipId].position;
+        g.grid[p.row][p.col] = 0;
+        g.grid[_destRow][_destCol] = _shipId;
+        p.row = _destRow;
+        p.col = _destCol;
+        return false;
+    }
+
+    // Move (may ram enemy at 0 HP onto their tile) then perform action unless rammer reactor destroys ship.
     function moveShip(
         uint _gameId,
         uint _shipId,
@@ -482,6 +511,8 @@ contract Game is Ownable {
         int16 oldRow = shipPos.row;
         int16 oldCol = shipPos.col;
 
+        bool skipPerform;
+
         if (actionType != ActionType.Retreat) {
             // Allow moving to the current position (no-op move), skip movement validation and position occupied check
 
@@ -493,31 +524,34 @@ contract Game is Ownable {
                 Attributes storage attributes = game.shipAttributes[_shipId];
                 if (movementCost > attributes.movement) revert InvalidMove();
                 if (_newRow >= GRID_HEIGHT || _newCol >= GRID_WIDTH)
-                    revert InvalidPosition();
-                if (game.grid[_newRow][_newCol] != 0) revert InvalidPosition(); // position occupied
-
-                game.grid[shipPos.row][shipPos.col] = 0;
-                game.grid[_newRow][_newCol] = _shipId;
-                game.shipPositions[_shipId].position = Position(
+                    revert InvalidMove();
+                skipPerform = _moveShipToCellOrRam(
+                    _gameId,
+                    _shipId,
                     _newRow,
-                    _newCol
+                    _newCol,
+                    ship.owner,
+                    ship
                 );
             }
 
-            EnumerableSet.add(game.shipMovedThisRound, _shipId);
+            if (!skipPerform) {
+                EnumerableSet.add(game.shipMovedThisRound, _shipId);
+            }
         }
 
-        // Perform the action
-        _performAction(
-            game,
-            _gameId,
-            _shipId,
-            _newRow,
-            _newCol,
-            actionType,
-            targetShipId,
-            ship
-        );
+        if (!skipPerform) {
+            _performAction(
+                game,
+                _gameId,
+                _shipId,
+                _newRow,
+                _newCol,
+                actionType,
+                targetShipId,
+                ship
+            );
+        }
 
         // Check if both players have moved all their ships (round complete)
         if (_checkRoundComplete(_gameId)) {
@@ -674,11 +708,6 @@ contract Game is Ownable {
             ? uint8(uint16(a.col - b.col))
             : uint8(uint16(b.col - a.col));
         return rowDiff + colDiff;
-    }
-
-    // Helper function to add ship to zero HP set
-    function _addShipToZeroHPSet(uint _gameId, uint _shipId) internal {
-        EnumerableSet.add(games[_gameId].shipsWithZeroHP, _shipId);
     }
 
     /// @notice Sets hull to 0 and records the ship in `shipsWithZeroHP` for round completion.

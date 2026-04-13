@@ -1895,7 +1895,7 @@ describe("Game", function () {
       });
     });
 
-    it("should prevent moving to an occupied position", async function () {
+    it("should prevent moving onto a tile occupied by a friendly ship", async function () {
       const {
         creatorLobbies,
         joinerLobbies,
@@ -1951,12 +1951,12 @@ describe("Game", function () {
         generateStartingPositions([6n, 7n], false),
       ]);
 
-      // Try to move ship to position occupied by another ship
+      // Ship 2 is at (1,1); moving ship 1 onto a friendly tile is InvalidMove (ram path rejects same owner).
       await expect(
         game.write.moveShip([1n, 1n, 1, 1, ActionType.Pass, 0n], {
           account: creator.account,
         }),
-      ).to.be.rejectedWith("InvalidPosition");
+      ).to.be.rejectedWith("InvalidMove");
     });
 
     it("should allow diagonal movement", async function () {
@@ -3771,6 +3771,220 @@ describe("Game", function () {
 
       gameData = (await game.read.getGame([1n])) as GameDataView;
       expect(gameData.turnState.currentRound).to.equal(2n);
+    });
+  });
+
+  describe("Ram (0 HP enemy)", function () {
+    it("allows moving onto an enemy at 0 HP, retreats victim, and applies 1 reactor damage to rammer", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+        owner,
+      } = await loadFixture(deployGameFixture);
+
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address, 1],
+        { value: parseEther("4.99") },
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address, 1],
+        { value: parseEther("4.99") },
+      );
+
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        await randomManager.write.fulfillRandomRequest([ship.traits.serialNumber]);
+      }
+
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n,
+        100n,
+        zeroAddress,
+      ]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
+
+      await game.write.debugSetShipPosition([1n, 1n, 5, 5], {
+        account: owner.account,
+      });
+      await game.write.debugSetShipPosition([1n, 6n, 5, 6], {
+        account: owner.account,
+      });
+      await (game.write as any).debugSetHullPointsToZero([1n, 6n], {
+        account: owner.account,
+      });
+
+      expect((await game.read.getShipAttributes([1n, 1n])).reactorCriticalTimer).to.equal(
+        0,
+      );
+
+      await game.write.moveShip(
+        [1n, 1n, 5, 6, ActionType.Pass, 0n],
+        { account: creator.account },
+      );
+
+      const attrsAfter = await game.read.getShipAttributes([1n, 1n]);
+      expect(attrsAfter.reactorCriticalTimer).to.equal(1);
+      const gameAfter = (await game.read.getGame([1n])) as GameDataView;
+      const pos1 = findShipPosition(gameAfter, 1n);
+      expect(pos1.row).to.equal(5);
+      expect(pos1.col).to.equal(6);
+      expect(gameAfter.joinerActiveShipIds).to.not.include(6n);
+    });
+
+    it("reverts when destination is occupied by a living enemy", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+        owner,
+      } = await loadFixture(deployGameFixture);
+
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address, 1],
+        { value: parseEther("4.99") },
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address, 1],
+        { value: parseEther("4.99") },
+      );
+
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        await randomManager.write.fulfillRandomRequest([ship.traits.serialNumber]);
+      }
+
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n,
+        100n,
+        zeroAddress,
+      ]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
+
+      await game.write.debugSetShipPosition([1n, 1n, 5, 5], {
+        account: owner.account,
+      });
+      await game.write.debugSetShipPosition([1n, 6n, 5, 6], {
+        account: owner.account,
+      });
+
+      await expect(
+        game.write.moveShip([1n, 1n, 5, 6, ActionType.Pass, 0n], {
+          account: creator.account,
+        }),
+      ).to.be.rejectedWith("InvalidMove");
+    });
+
+    it("reverts when ramming a friendly ship at 0 HP", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+        owner,
+      } = await loadFixture(deployGameFixture);
+
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address, 1],
+        { value: parseEther("4.99") },
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address, 1],
+        { value: parseEther("4.99") },
+      );
+
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        await randomManager.write.fulfillRandomRequest([ship.traits.serialNumber]);
+      }
+
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n,
+        100n,
+        zeroAddress,
+      ]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n, 2n],
+        generateStartingPositions([1n, 2n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n],
+        generateStartingPositions([6n], false),
+      ]);
+
+      await game.write.debugSetShipPosition([1n, 1n, 5, 5], {
+        account: owner.account,
+      });
+      await game.write.debugSetShipPosition([1n, 2n, 5, 6], {
+        account: owner.account,
+      });
+      await (game.write as any).debugSetHullPointsToZero([1n, 2n], {
+        account: owner.account,
+      });
+
+      await expect(
+        game.write.moveShip([1n, 1n, 5, 6, ActionType.Pass, 0n], {
+          account: creator.account,
+        }),
+      ).to.be.rejectedWith("InvalidMove");
     });
   });
 

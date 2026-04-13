@@ -78,7 +78,7 @@ const DeployModule = buildModule("DeployModule", (m) => {
   const metadataRenderer = m.contract("RenderMetadata", [imageRenderer]);
 
   // Mock for local/tests — Ignition + viem require a contract future, not a string address.
-  const shipNames = m.contract("MockOnchainRandomShipNames");
+  // const shipNames = m.contract("MockOnchainRandomShipNames");
 
   // For Flow testnet use
   // const shipNames = "0x9E433A07D283d56E8243EA25b7358521b1922df5";

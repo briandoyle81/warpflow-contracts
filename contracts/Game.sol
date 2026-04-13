@@ -556,7 +556,8 @@ contract Game is Ownable {
         emit GameUpdate(_gameId);
     }
 
-    // Internal function to perform an action (pass or shoot)
+    /// @dev Dispatches moveShip actions. Unknown or removed enum values revert so a ship is never
+    ///      marked moved without a defined effect.
     function _performAction(
         GameData storage game,
         uint _gameId,
@@ -584,7 +585,6 @@ contract Game is Ownable {
         } else if (actionType == ActionType.Assist) {
             revert InvalidMove(); // Assist removed
         } else if (actionType == ActionType.Special) {
-            // Special: use special equipment
             _performSpecial(
                 _gameId,
                 _shipId,
@@ -593,6 +593,8 @@ contract Game is Ownable {
                 targetShipId,
                 _ship
             );
+        } else {
+            revert InvalidMove();
         }
     }
 
@@ -679,10 +681,15 @@ contract Game is Ownable {
         EnumerableSet.add(games[_gameId].shipsWithZeroHP, _shipId);
     }
 
-    // Helper function to set ship HP to 0 and add to zero HP set
+    /// @notice Sets hull to 0 and records the ship in `shipsWithZeroHP` for round completion.
+    /// @dev Round math: removes `_shipId` from `shipMovedThisRound` before adding to `shipsWithZeroHP`
+    ///      so a ship that moved then was reduced to 0 HP in the same round is counted once, not twice.
+    ///      Callers must not leave `shipsWithZeroHP` out of sync with `shipAttributes[_shipId].hullPoints`.
     function _setShipHPToZero(uint _gameId, uint _shipId) internal {
-        games[_gameId].shipAttributes[_shipId].hullPoints = 0;
-        EnumerableSet.add(games[_gameId].shipsWithZeroHP, _shipId);
+        GameData storage game = games[_gameId];
+        game.shipAttributes[_shipId].hullPoints = 0;
+        EnumerableSet.remove(game.shipMovedThisRound, _shipId);
+        EnumerableSet.add(game.shipsWithZeroHP, _shipId);
     }
 
     // Helper function to copy EnumerableSet to array
@@ -747,9 +754,17 @@ contract Game is Ownable {
         return ship;
     }
 
-    // Check if both players have moved all their ships (round complete)
-    // Use totalActiveShipsAtRoundStart so that when ships are destroyed/retreated mid-round
-    // the threshold does not drop and the round does not end before all surviving ships have moved.
+    /// @notice Returns true when every ship that counted toward `totalActiveShipsAtRoundStart` has been
+    ///         accounted for this round (moved, at 0 HP, or removed).
+    /// @dev Invariants required for correct behavior (avoid premature or endless rounds):
+    ///      - `totalActiveShipsAtRoundStart` is set when the round begins to the sum of
+    ///        `playerActiveShipIds[creator]` and `playerActiveShipIds[joiner]` at that snapshot.
+    ///      - Each id in `shipsWithZeroHP` should be a ship still in the game with `hullPoints == 0`
+    ///        until it is removed or repaired off the set.
+    ///      - `shipMovedThisRound` and `shipsWithZeroHP` must not both count the same ship; `_setShipHPToZero`
+    ///        clears the former when adding to the latter.
+    ///      - `shipsRemovedThisRound` increments only in `_removeShipFromGame`, which also removes the id
+    ///        from `shipMovedThisRound` and `shipsWithZeroHP`.
     function _checkRoundComplete(uint _gameId) internal view returns (bool) {
         GameData storage game = games[_gameId];
 
@@ -1036,8 +1051,10 @@ contract Game is Ownable {
         }
     }
 
-    // Internal helper function to remove a ship from the game
-    // Handles common cleanup logic shared between retreat and destroy
+    /// @notice Removes a ship from the grid, fleets, and per-player active sets; records it as gone.
+    /// @dev Round completion: increments `shipsRemovedThisRound` and removes `_shipId` from
+    ///      `shipMovedThisRound` and `shipsWithZeroHP` so the removed ship contributes exactly once
+    ///      toward the round total (via `shipsRemovedThisRound`, not via moved/zero sets).
     function _removeShipFromGame(
         uint _gameId,
         uint _shipId,

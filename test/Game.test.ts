@@ -3634,6 +3634,146 @@ describe("Game", function () {
     });
   });
 
+  describe("Round completion (moved ∩ zero HP)", function () {
+    it("does not end the round early when a ship moved then was reduced to 0 HP the same round", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+        owner,
+      } = await loadFixture(deployGameFixture);
+
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address, 1],
+        { value: parseEther("4.99") },
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address, 1],
+        { value: parseEther("4.99") },
+      );
+
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        await randomManager.write.fulfillRandomRequest([ship.traits.serialNumber]);
+      }
+
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n,
+        100n,
+        zeroAddress,
+      ]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n, 2n, 3n],
+        generateStartingPositions([1n, 2n, 3n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n, 7n, 8n],
+        generateStartingPositions([6n, 7n, 8n], false),
+      ]);
+
+      await (game.write as any).debugSetHullPointsToZero([1n, 1n], {
+        account: owner.account,
+      });
+
+      await game.write.debugSetShipPosition([1n, 1n, 0, 0], {
+        account: owner.account,
+      });
+      await game.write.debugSetShipPosition([1n, 2n, 5, 5], {
+        account: owner.account,
+      });
+      await game.write.debugSetShipPosition([1n, 3n, 5, 7], {
+        account: owner.account,
+      });
+      // Adjacent line so opening shot and finisher are range 1 (no LOS map dependency)
+      await game.write.debugSetShipPosition([1n, 6n, 5, 6], {
+        account: owner.account,
+      });
+      await game.write.debugSetShipPosition([1n, 7n, 8, 13], {
+        account: owner.account,
+      });
+      await game.write.debugSetShipPosition([1n, 8n, 9, 14], {
+        account: owner.account,
+      });
+
+      let gameData = (await game.read.getGame([1n])) as GameDataView;
+      expect(gameData.turnState.currentRound).to.equal(1n);
+      expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
+        creator.account.address.toLowerCase(),
+      );
+
+      const ship6Before = await game.read.getShipAttributes([1n, 6n]);
+      expect(ship6Before.hullPoints).to.be.greaterThan(0);
+
+      // 1) Creator ship 2 damages joiner 6 (leaves HP > 0 so 6 still acts later)
+      const pos2 = findShipPosition(gameData, 2n);
+      await game.write.moveShip(
+        [1n, 2n, pos2.row, pos2.col, ActionType.Shoot, 6n],
+        { account: creator.account },
+      );
+      const ship6Damaged = await game.read.getShipAttributes([1n, 6n]);
+      expect(ship6Damaged.hullPoints).to.be.greaterThan(0);
+      expect(ship6Damaged.hullPoints).to.be.lessThan(ship6Before.hullPoints);
+
+      // 2) Joiner 6 passes (now in shipMovedThisRound)
+      gameData = (await game.read.getGame([1n])) as GameDataView;
+      const pos6 = findShipPosition(gameData, 6n);
+      await game.write.moveShip(
+        [1n, 6n, pos6.row, pos6.col, ActionType.Pass, 0n],
+        { account: joiner.account },
+      );
+
+      // 3) Creator ship 3 finishes joiner 6 (6 is in moved ∩ shipsWithZeroHP)
+      gameData = (await game.read.getGame([1n])) as GameDataView;
+      const pos3 = findShipPosition(gameData, 3n);
+      await game.write.moveShip(
+        [1n, 3n, pos3.row, pos3.col, ActionType.Shoot, 6n],
+        { account: creator.account },
+      );
+      expect((await game.read.getShipAttributes([1n, 6n])).hullPoints).to.equal(
+        0,
+      );
+
+      // 4) Joiner 7 passes — old formula would reach totalActive here and end the round
+      gameData = (await game.read.getGame([1n])) as GameDataView;
+      const pos7 = findShipPosition(gameData, 7n);
+      await game.write.moveShip(
+        [1n, 7n, pos7.row, pos7.col, ActionType.Pass, 0n],
+        { account: joiner.account },
+      );
+
+      gameData = (await game.read.getGame([1n])) as GameDataView;
+      expect(gameData.turnState.currentRound).to.equal(1n);
+      expect(gameData.turnState.currentTurn.toLowerCase()).to.equal(
+        joiner.account.address.toLowerCase(),
+      );
+
+      // 5) Joiner 8 still gets to act before the round completes
+      const pos8 = findShipPosition(gameData, 8n);
+      await game.write.moveShip(
+        [1n, 8n, pos8.row, pos8.col, ActionType.Pass, 0n],
+        { account: joiner.account },
+      );
+
+      gameData = (await game.read.getGame([1n])) as GameDataView;
+      expect(gameData.turnState.currentRound).to.equal(2n);
+    });
+  });
+
   describe("Reactor Critical Timer", function () {
     it("should increment reactor critical timer when shooting ships with 0 HP", async function () {
       const {

@@ -77,8 +77,8 @@ const DeployModule = buildModule("DeployModule", (m) => {
   // Deploy MetadataRenderer with ImageRenderer
   const metadataRenderer = m.contract("RenderMetadata", [imageRenderer]);
 
-  // Deploy mock ship names (required for Ignition + viem tests; use an address literal for prod deploys)
-  // const shipNames = m.contract("MockOnchainRandomShipNames");
+  // Mock for local/tests — Ignition + viem require a contract future, not a string address.
+  const shipNames = m.contract("MockOnchainRandomShipNames");
 
   // For Flow testnet use
   // const shipNames = "0x9E433A07D283d56E8243EA25b7358521b1922df5";
@@ -90,7 +90,7 @@ const DeployModule = buildModule("DeployModule", (m) => {
   // const shipNames = "0xe7266c681ce3F8CD8853141139574F2CA70AA165";
 
   // For Base Sepolia testnet use
-  const shipNames = "0x2b6C2e73D7D8B9dd49aF848B7A19FF003ED0d779";
+  // const shipNames = "0x2b6C2e73D7D8B9dd49aF848B7A19FF003ED0d779";
 
   // Deploy GenerateNewShip with ship names
   const generateNewShip = m.contract("GenerateNewShip", [shipNames]);

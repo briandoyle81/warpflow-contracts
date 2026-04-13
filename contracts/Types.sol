@@ -330,8 +330,7 @@ enum ActionType {
     Shoot,
     Retreat,
     Assist,
-    Special,
-    ClaimPoints
+    Special
 }
 
 // Last move information stored in game data

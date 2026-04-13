@@ -345,5 +345,4 @@ export enum ActionType {
   Retreat,
   Assist,
   Special,
-  ClaimPoints,
 }

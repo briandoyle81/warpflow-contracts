@@ -3919,6 +3919,81 @@ describe("Game", function () {
       ).to.be.rejectedWith("InvalidMove");
     });
 
+    it("does not execute the selected action when the move is a ram", async function () {
+      const {
+        creatorLobbies,
+        joinerLobbies,
+        creator,
+        joiner,
+        ships,
+        game,
+        randomManager,
+        owner,
+      } = await loadFixture(deployGameFixture);
+
+      await ships.write.purchaseWithFlow(
+        [creator.account.address, 0n, joiner.account.address, 1],
+        { value: parseEther("4.99") },
+      );
+      await ships.write.purchaseWithFlow(
+        [joiner.account.address, 0n, creator.account.address, 1],
+        { value: parseEther("4.99") },
+      );
+
+      for (let i = 1; i <= 10; i++) {
+        const shipTuple = (await ships.read.ships([BigInt(i)])) as ShipTuple;
+        const ship = tupleToShip(shipTuple);
+        await randomManager.write.fulfillRandomRequest([ship.traits.serialNumber]);
+      }
+
+      await ships.write.constructAllMyShips({ account: creator.account });
+      await ships.write.constructAllMyShips({ account: joiner.account });
+
+      await creatorLobbies.write.createLobby([
+        1000n,
+        300n,
+        true,
+        0n,
+        100n,
+        zeroAddress,
+      ]);
+      await joinerLobbies.write.joinLobby([1n]);
+
+      await creatorLobbies.write.createFleet([
+        1n,
+        [1n],
+        generateStartingPositions([1n], true),
+      ]);
+      await joinerLobbies.write.createFleet([
+        1n,
+        [6n, 7n],
+        generateStartingPositions([6n, 7n], false),
+      ]);
+
+      await game.write.debugSetShipPosition([1n, 1n, 5, 5], {
+        account: owner.account,
+      });
+      await game.write.debugSetShipPosition([1n, 6n, 5, 6], {
+        account: owner.account,
+      });
+      await game.write.debugSetShipPosition([1n, 7n, 5, 7], {
+        account: owner.account,
+      });
+      await (game.write as any).debugSetHullPointsToZero([1n, 6n], {
+        account: owner.account,
+      });
+
+      const ship7Before = await game.read.getShipAttributes([1n, 7n]);
+
+      // If action executed, ship 7 would take damage. Ram should consume the turn and skip shoot.
+      await game.write.moveShip([1n, 1n, 5, 6, ActionType.Shoot, 7n], {
+        account: creator.account,
+      });
+
+      const ship7After = await game.read.getShipAttributes([1n, 7n]);
+      expect(ship7After.hullPoints).to.equal(ship7Before.hullPoints);
+    });
+
     it("reverts when ramming a friendly ship at 0 HP", async function () {
       const {
         creatorLobbies,

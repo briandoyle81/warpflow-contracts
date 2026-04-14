@@ -225,11 +225,12 @@ contract Game is Ownable {
     ) internal {
         GameData storage game = games[_gameId];
 
-        // Validate position is within grid bounds
-        if (_row >= GRID_HEIGHT || _column >= GRID_WIDTH) revert InvalidMove();
-
-        // Check if position is already occupied
-        if (game.grid[_row][_column] != 0) revert InvalidMove();
+        // Validate bounds and vacancy
+        if (
+            _row >= GRID_HEIGHT ||
+            _column >= GRID_WIDTH ||
+            game.grid[_row][_column] != 0
+        ) revert InvalidMove();
 
         // Place ship on grid at specified row and column
         game.grid[_row][_column] = _shipId;
@@ -525,6 +526,10 @@ contract Game is Ownable {
                 if (movementCost > attributes.movement) revert InvalidMove();
                 if (_newRow >= GRID_HEIGHT || _newCol >= GRID_WIDTH)
                     revert InvalidMove();
+                if (game.grid[_newRow][_newCol] != 0) {
+                    // Ramming consumes the move and does not allow an additional action.
+                    actionType = ActionType.Pass;
+                }
                 skipPerform = _moveShipToCellOrRam(
                     _gameId,
                     _shipId,

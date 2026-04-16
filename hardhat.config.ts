@@ -47,10 +47,18 @@ const config: HardhatUserConfig = {
       },
       {
         network: "ronin-saigon",
-        chainId: 2021,
+        chainId: 202601,
         urls: {
           apiURL: "https://saigon-testnet.roninchain.com/rpc",
           browserURL: "https://saigon-app.roninchain.com/",
+        },
+      },
+      {
+        network: "polygon-amoy",
+        chainId: 80002,
+        urls: {
+          apiURL: "	https://polygon-amoy.drpc.org",
+          browserURL: "https://amoy.polygonscan.com",
         },
       },
       {
@@ -76,6 +84,16 @@ const config: HardhatUserConfig = {
     },
     "ronin-saigon": {
       url: "https://saigon-testnet.roninchain.com/rpc",
+      accounts: [process.env.METAMASK_WALLET_1 as string],
+      // Large Ignition deploys: default fee estimates can be "underpriced"; the tx may never
+      // enter the mempool but Ignition still advances local nonce state → IGN411 on retry.
+      ignition: {
+        maxPriorityFeePerGas: 20_000_000_000n, // 20 gwei; raise if mempool still rejects
+        maxFeePerGasLimit: 2_000_000_000_000n, // 2000 gwei ceiling for getNetworkFees guard only
+      },
+    },
+    "polygon-amoy": {
+      url: "https://polygon-amoy.drpc.org",
       accounts: [process.env.METAMASK_WALLET_1 as string],
     },
     "xai-testnet": {

@@ -12,6 +12,8 @@ Thanks!
 
 **In active development, ships and games will be lost**
 
+./scripts/ignition-deploy-retry.sh --network flow-testnet --deploy-script ignition/modules/DeployAndConfig.ts
+
 npx hardhat ignition deploy ignition/modules/DeployAndConfig.ts --network flow-testnet --verify
 
 DON'T FORGET TO SET SHIPNAMES APPROPRIATELY!
@@ -20,6 +22,8 @@ Things to remember:
 CRITICAL: Don't update maps. In the future, consider setting the map and creating the game with lobby creation. If you update a map, it will work, but will change unexpectedly for anyone between selecting a fleet and the game starting.
 
 TODO:
+
+CRITICAL: Add support for free ships for doing quests.
 
 CRITICAL: Evaluate if I care that the firstPlayer goes first every round, even if they moved last in the previous round
 Consider charging UTC to start or join a game

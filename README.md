@@ -1,74 +1,84 @@
-# Void Tactics
+# Void Tactics Contracts
 
-I own this game, repo, contents, code, etc. and reserve all rights. I'm sharing it so that others can learn from my methods.
+Smart contracts for Void Tactics, an onchain tactical strategy game with NFT ships, configurable fleets, map/lobby flow, and battle outcomes recorded onchain.
 
-You may not copy my contracts and use them in your own projects. All rights reserved.
+This repository contains the Solidity contracts, Hardhat configuration, and Ignition deployment modules used to deploy and wire the game system.
 
-Please see other repos for composable and forkable contracts, apps, etc.!
+## Current Status
 
-Thanks!
+- Active testnet alpha.
+- Contracts and deployment workflows are under active iteration.
+- Backward compatibility and storage migration guarantees are not yet finalized.
 
-## ⚠️ Testnet Alpha Warning
+## Tech Stack
 
-**In active development, ships and games will be lost**
+- Solidity `0.8.28`
+- Hardhat + Ignition
+- Viem tooling via `@nomicfoundation/hardhat-toolbox-viem`
+- OpenZeppelin Contracts
 
-./scripts/ignition-deploy-retry.sh --network flow-testnet --deploy-script ignition/modules/DeployAndConfig.ts
+## Quick Start
 
+### 1) Install dependencies
+
+```bash
+npm install
+```
+
+### 2) Configure environment
+
+Create a `.env` file in the repository root:
+
+```env
+METAMASK_WALLET_1=0xYOUR_PRIVATE_KEY
+```
+
+### 3) Compile contracts
+
+```bash
+npx hardhat compile
+```
+
+### 4) Run tests
+
+```bash
+npx hardhat test
+```
+
+## Deployment
+
+Default deployment module:
+
+- `ignition/modules/DeployAndConfig.ts`
+
+Deploy and verify on Flow testnet:
+
+```bash
 npx hardhat ignition deploy ignition/modules/DeployAndConfig.ts --network flow-testnet --verify
+```
 
-DON'T FORGET TO SET SHIPNAMES APPROPRIATELY!
+Retry helper script for interrupted Ignition deploys:
 
-Things to remember:
-CRITICAL: Don't update maps. In the future, consider setting the map and creating the game with lobby creation. If you update a map, it will work, but will change unexpectedly for anyone between selecting a fleet and the game starting.
+```bash
+./scripts/ignition-deploy-retry.sh --network flow-testnet --deploy-script ignition/modules/DeployAndConfig.ts
+```
 
-TODO:
+## Repository Structure
 
-CRITICAL: Add support for free ships for doing quests.
+- `contracts/` - core game contracts and token/NFT logic
+- `ignition/modules/` - Hardhat Ignition deployment modules
+- `test/` - contract tests
+- `scripts/` - deployment and maintenance scripts
+- `docs/` - supporting notes and project documentation
 
-CRITICAL: Evaluate if I care that the firstPlayer goes first every round, even if they moved last in the previous round
-Consider charging UTC to start or join a game
+## Notes for Reviewers
 
-Skipping a player's turn when you have no ships left to move should make it your turn and not the first player's turn for the new round
+- The deployment module handles contract orchestration and post-deploy configuration in one flow.
+- Contract sizing is enforced during compile via `hardhat-contract-sizer`.
+- Several testnets are configured in `hardhat.config.ts` for multi-network iteration.
+- Internal planning notes and TODOs are tracked in `docs/internal-todos.md`.
 
-Add wagers in UTC only.
-CRITICAL: Update maps creation to set horizontal or vertical deployment
-Consider allowing more custom deployments like diagonals, etc.
-CRITICAL: Reserved lobbies
+## License / Usage
 
-CRITICAL: Put rank in json metadata and on image
-CRITICAL: Find a way to show hull trait
-
-Allow third party map creation for 50+ flow and allow payments to map creators (probably as voluntary tips). DON'T GENERATE UTC HERE - EXPLOITABLE
-Pay UTC to winner of games if I can avoid game exploits
-Map creator should get 1/4 the recycle fee for ships destroyed on their maps.
-Potential issue: Map owner plus owner of two fleets allows training for free.
-
-Enforce minimum fleet size. WE DON'T DO THIS NOW FOR TESTING
-Decide if players should be able to cancel fleet before other submits
-The creator should probably be allowed to set their fleet without a joiner
-
-Done:
-Add buying UTC at the same price as recycling a ship to avoid people having to buy and recycle ships for it.
-CRITICAL: Add guaranteed high tier ships to higher tiers
-Players should be able to pay to join a lobby if they are in one already
-CRITICAL: Don't allow lobbies to be created for map ids that don't exist
-CRITICAL: Make sure I have a path to upgrade ships and add new collections
-CRITICAL: Make sure I can expand ship collections, add new weapons specials etc.
-CRITICAL: Make sure I can migrate ships
-CRITICAL: I have to be able to adjust bonus and tiers for leveling up. Right now a tier 3 plasma does 96 damage!!! Though that's only +16, but still
-Not done but can accomplish by replacing the Attributes contract. CRITICAL: Add controls to change ship rank tiers
-Costs should probably be in the attributes arrays instead of separate
-CRITICAL: Store last move in contract
-Limit fleet max cost
-
-Todo Later:
-
-Via Updated Renderer:
-Add battle scarring to ships each time they get disabled
-And a way to "clean" or repair them
-
-Not Doing:
-Is there any value in getting a ship's metadata without the image? I could use a local renderer but I'm not sure what i gain.
-Not doing reroll colors or name. Too easy to exploit and too hard to do another commit reveal
-CRITICAL: Add reroll shiny colors
-CRITICAL: Add guaranteed shiny ships to higher tiers
+All rights reserved unless otherwise stated.  
+This repository is shared for evaluation and learning; reuse in production or derivative commercial projects requires explicit permission.

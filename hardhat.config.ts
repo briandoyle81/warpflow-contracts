@@ -50,7 +50,7 @@ const config: HardhatUserConfig = {
         chainId: 202601,
         urls: {
           apiURL: "https://saigon-testnet.roninchain.com/rpc",
-          browserURL: "https://saigon-app.roninchain.com/",
+          browserURL: "https://saigon-explorer.roninchain.com/",
         },
       },
       {
